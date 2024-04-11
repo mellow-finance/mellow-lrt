@@ -1,0 +1,22 @@
+{
+  "name": "mellow-lrt",
+  "license": "BSL-1.1",
+  "version": "1.0.0",
+  "files": [
+    "src/**/*.sol"
+  ],
+  "repository": "https://github.com/mellow-finance/lrt",
+  "devDependencies": {
+    "prettier": "^2.3.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.13"
+  },
+  "scripts": {
+    "prettier": "prettier --write ./src/** && prettier --write ./test/**",
+    "prettier:check": "prettier --check ./src/** && prettier --check ./test/**",
+    "prettier:changed": "prettier --write $(git status | grep '.sol' | grep -v 'deleted:' | cut -d ' ' -f 4)",
+    "test:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./test/mainnet/\\*",
+    "size": "forge build --sizes --force",
+    "deploy:optimism:core": "forge script --use 0.8.21 src/scripts/deploy/optimism/Deploy.sol:Deploy --rpc-url $(grep OPTIMISM_RPC .env | cut -d '=' -f2) --broadcast --slow --verify -vvvv",
+    "compile": "forge build"
+  }
+}
