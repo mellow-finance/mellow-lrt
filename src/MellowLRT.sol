@@ -4,12 +4,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./interfaces/ICore.sol";
 import "./interfaces/IMellowLRT.sol";
 
 import "./libraries/external/FullMath.sol";
 
-contract Core is ICore {
+contract MellowLRT is IMellowLRT, ERC20 {
     using SafeERC20 for IERC20;
 
     IOracle public oracle;
@@ -17,12 +16,15 @@ contract Core is ICore {
     uint256 public lrtId;
 
     address public owner;
-    IMellowLRT public mellowLRT;
     address public baseToken;
 
-    constructor(address owner_, IMellowLRT mellowLRT_, address baseToken_) {
+    constructor(
+        address owner_,
+        address baseToken_,
+        string memory name,
+        string memory symbol
+    ) ERC20(name, symbol) {
         owner = owner_;
-        mellowLRT = mellowLRT_;
         baseToken = baseToken_;
     }
 
@@ -34,7 +36,7 @@ contract Core is ICore {
     ) external returns (uint256 lpAmount) {
         address user = msg.sender;
         lpAmount = FullMath.mulDiv(
-            mellowLRT.totalSupply(),
+            totalSupply(),
             oracle.getValue(token, amount, baseToken),
             tvl()
         );
@@ -46,7 +48,7 @@ contract Core is ICore {
 
         lrtService.deposit(lrtId, token, amount);
 
-        mellowLRT.mint(to, lpAmount);
+        _mint(to, lpAmount);
     }
 
     function withdraw(
@@ -56,16 +58,12 @@ contract Core is ICore {
         uint256 minAmount
     ) external returns (uint256 amount) {
         address user = msg.sender;
-        uint256 balance = IERC20(mellowLRT).balanceOf(user);
+        uint256 balance = balanceOf(user);
         if (balance < lpAmount) {
             lpAmount = balance;
         }
 
-        uint256 value = FullMath.mulDiv(
-            tvl(),
-            lpAmount,
-            mellowLRT.totalSupply()
-        );
+        uint256 value = FullMath.mulDiv(tvl(), lpAmount, totalSupply());
         amount = oracle.getValue(baseToken, value, token);
 
         if (amount < minAmount) revert("Core: insufficient token amount");
@@ -73,7 +71,7 @@ contract Core is ICore {
         lrtService.withdraw(lrtId, token, amount);
         IERC20(token).safeTransfer(to, amount);
 
-        mellowLRT.burn(user, lpAmount);
+        _burn(user, lpAmount);
     }
 
     function compound(bytes memory params) external {
