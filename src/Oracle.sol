@@ -11,8 +11,7 @@ contract Oracle is IOracle {
         uint256 amount,
         address target
     ) external view returns (uint256) {
-        // get values from chainlink
-
+        // TODO: fetch prices from chainlink
         return 0;
     }
 }
