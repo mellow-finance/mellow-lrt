@@ -14,22 +14,20 @@ contract MellowLRT is IMellowLRT, ERC20 {
     IOracle public immutable oracle;
     ILrtService public immutable lrtService;
     uint256 public immutable lrtId;
-
-    address public immutable owner;
     address public immutable baseToken;
 
     constructor(
-        address owner_,
-        address baseToken_,
         string memory name,
         string memory symbol,
         IOracle oracle_,
-        ILrtService lrtService_
+        address baseToken_,
+        ILrtService lrtService_,
+        uint256 lrtId_
     ) ERC20(name, symbol) {
-        owner = owner_;
         baseToken = baseToken_;
         oracle = oracle_;
         lrtService = lrtService_;
+        lrtId = lrtId_;
     }
 
     function deposit(
@@ -79,7 +77,6 @@ contract MellowLRT is IMellowLRT, ERC20 {
     }
 
     function compound(bytes memory params) external {
-        require(msg.sender == owner, "Core: not owner");
         lrtService.compound(params);
     }
 

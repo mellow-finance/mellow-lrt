@@ -29,7 +29,6 @@ contract Core {
     ) external returns (MellowLRT lrt) {
         require(msg.sender == owner, "Core: not owner");
         uint256 id = lrtService.createLRT(params);
-
-        lrt = new MellowLRT(owner, baseToken, name, symbol, oracle, lrtService);
+        lrt = new MellowLRT(name, symbol, oracle, baseToken, lrtService, id);
     }
 }
