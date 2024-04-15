@@ -11,21 +11,25 @@ import "./libraries/external/FullMath.sol";
 contract MellowLRT is IMellowLRT, ERC20 {
     using SafeERC20 for IERC20;
 
-    IOracle public oracle;
-    ILrtService public lrtService;
-    uint256 public lrtId;
+    IOracle public immutable oracle;
+    ILrtService public immutable lrtService;
+    uint256 public immutable lrtId;
 
-    address public owner;
-    address public baseToken;
+    address public immutable owner;
+    address public immutable baseToken;
 
     constructor(
         address owner_,
         address baseToken_,
         string memory name,
-        string memory symbol
+        string memory symbol,
+        IOracle oracle_,
+        ILrtService lrtService_
     ) ERC20(name, symbol) {
         owner = owner_;
         baseToken = baseToken_;
+        oracle = oracle_;
+        lrtService = lrtService_;
     }
 
     function deposit(

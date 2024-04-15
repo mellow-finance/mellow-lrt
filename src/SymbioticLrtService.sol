@@ -15,4 +15,6 @@ contract SymbioticLrtService is ILrtService {
     function getTokensAndAmounts(
         uint256 id
     ) external view returns (address[] memory, uint256[] memory) {}
+
+    function createLRT(bytes memory params) external returns (uint256) {}
 }
