@@ -3,8 +3,6 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/vaults/IDefaultBondVault.sol";
 
-import "../validators/Validator.sol";
-
 import "./Subvault.sol";
 
 contract DefaultBondVault is IDefaultBondVault, Subvault {

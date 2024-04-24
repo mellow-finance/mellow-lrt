@@ -20,6 +20,7 @@ interface ISubvault is IERC165 {
 
     function externalCall(
         address to,
+        bytes4 selector,
         bytes memory data
     ) external returns (bool success, bytes memory response);
 

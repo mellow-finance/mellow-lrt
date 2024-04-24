@@ -48,11 +48,17 @@ abstract contract Subvault is ISubvault {
 
     function externalCall(
         address to,
+        bytes4 selector,
         bytes memory data
     ) external returns (bool success, bytes memory response) {
         if (!IDefaultAccessControl(address(rootVault)).isOperator(msg.sender))
             revert NotAuthorized();
-        IValidator(rootVault.validator()).validate(to, data);
+        IValidator(rootVault.validator()).validate(
+            address(this),
+            to,
+            selector,
+            data
+        );
         (success, response) = to.call(data);
     }
 

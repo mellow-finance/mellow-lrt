@@ -2,5 +2,10 @@
 pragma solidity ^0.8.0;
 
 interface IValidator {
-    function validate(address to, bytes memory data) external;
+    function validate(
+        address from,
+        address to,
+        bytes4 selector,
+        bytes memory data
+    ) external view;
 }

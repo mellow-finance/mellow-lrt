@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "../interfaces/vaults/IERC20Vault.sol";
 import "../interfaces/vaults/IRootVault.sol";
 
-import "../validators/Validator.sol";
-
 import "./Subvault.sol";
 
 contract ERC20Vault is IERC20Vault, Subvault {
