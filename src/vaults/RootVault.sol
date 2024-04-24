@@ -1,52 +1,35 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "../interfaces/vaults/ISubvault.sol";
+import "../interfaces/vaults/IRootVault.sol";
 import "../interfaces/vaults/IERC20Vault.sol";
 
 import "../libraries/external/FullMath.sol";
 
-import "../oracles/Oracle.sol";
-import "../oracles/RatiosOracle.sol";
-
 import "../utils/DefaultAccessControl.sol";
 
-import "./ERC20Vault.sol";
-
-contract RootVault is DefaultAccessControl, ERC20 {
+contract RootVault is IRootVault, DefaultAccessControl, ERC20 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
-
-    error AlreadyInitialized();
-    error InvalidLength();
-    error InvalidSubvault();
-    error InvalidAddress();
-    error InvalidValue();
-
-    // immutable params
 
     uint256 public constant D9 = 1e9;
     uint256 public constant Q96 = 2 ** 96;
 
-    Oracle public immutable oracle;
-    RatiosOracle public immutable ratiosOracle;
+    IOracle public immutable oracle;
+    IRatiosOracle public immutable ratiosOracle;
     address public immutable validator;
+
+    uint256 public withdrawalFeeD9;
 
     address[] private _subvaults;
     EnumerableSet.AddressSet private _subvaultsSet;
 
     address[] private _tokens;
 
-    // mutable params
-    uint256 public withdrawalFeeD9;
-
     constructor(
         address admin,
-        Oracle oracle_,
-        RatiosOracle ratiosOracle_,
+        IOracle oracle_,
+        IRatiosOracle ratiosOracle_,
         string memory name_,
         string memory symbol_
     ) DefaultAccessControl(admin) ERC20(name_, symbol_) {
@@ -300,5 +283,11 @@ contract RootVault is DefaultAccessControl, ERC20 {
         for (uint256 i = 0; i < subvaults_.length; i++) {
             ISubvault(subvaults_[i]).removeToken(token);
         }
+    }
+
+    function updateWithdrawalFee(uint256 withdrawalFeeD9_) external {
+        _requireAdmin();
+        if (withdrawalFeeD9_ > D9 / 20) revert InvalidValue(); // up to 5%
+        withdrawalFeeD9 = withdrawalFeeD9_;
     }
 }
