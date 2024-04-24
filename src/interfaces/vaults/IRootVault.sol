@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./ISubvault.sol";
 
+import "../validators/IValidator.sol";
+
 import "../utils/IDefaultAccessControl.sol";
 import "../oracles/IOracle.sol";
 import "../oracles/IRatiosOracle.sol";
@@ -21,7 +23,7 @@ interface IRootVault is IDefaultAccessControl {
     function Q96() external view returns (uint256);
     function oracle() external view returns (IOracle);
     function ratiosOracle() external view returns (IRatiosOracle);
-    function validator() external view returns (address);
+    function validator() external view returns (IValidator);
     function withdrawalFeeD9() external view returns (uint256);
 
     function initialize(

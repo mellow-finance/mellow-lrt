@@ -142,6 +142,8 @@ contract ManagedValidator is IValidator {
         address from,
         address to,
         bytes4 selector,
-        bytes memory data
-    ) external view {}
+        bytes memory
+    ) external view {
+        requirePermission(from, to, selector);
+    }
 }

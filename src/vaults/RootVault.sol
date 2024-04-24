@@ -17,7 +17,7 @@ contract RootVault is IRootVault, DefaultAccessControl, ERC20 {
 
     IOracle public immutable oracle;
     IRatiosOracle public immutable ratiosOracle;
-    address public immutable validator;
+    IValidator public immutable validator;
 
     uint256 public withdrawalFeeD9;
 

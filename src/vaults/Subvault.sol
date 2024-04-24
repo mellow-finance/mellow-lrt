@@ -3,8 +3,6 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/vaults/ISubvault.sol";
 
-import "../interfaces/validators/IValidator.sol";
-
 abstract contract Subvault is ISubvault {
     IRootVault public immutable rootVault;
 
@@ -50,15 +48,8 @@ abstract contract Subvault is ISubvault {
         address to,
         bytes4 selector,
         bytes memory data
-    ) external returns (bool success, bytes memory response) {
-        if (!IDefaultAccessControl(address(rootVault)).isOperator(msg.sender))
-            revert NotAuthorized();
-        IValidator(rootVault.validator()).validate(
-            address(this),
-            to,
-            selector,
-            data
-        );
+    ) external atLeastOperator returns (bool success, bytes memory response) {
+        rootVault.validator().validate(address(this), to, selector, data);
         (success, response) = to.call(data);
     }
 

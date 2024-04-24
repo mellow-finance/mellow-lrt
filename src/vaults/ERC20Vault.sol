@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "@openzeppelin/contracts/interfaces/IERC165.sol";
-
 import "../interfaces/vaults/IERC20Vault.sol";
-import "../interfaces/vaults/IRootVault.sol";
 
 import "./Subvault.sol";
 
