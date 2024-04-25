@@ -11,6 +11,9 @@ import "../interfaces/validators/IValidator.sol";
 import "../interfaces/oracles/IOracle.sol";
 import "../interfaces/oracles/IRatiosOracle.sol";
 
+import "../interfaces/utils/IDepositCallback.sol";
+import "../interfaces/utils/IWithdrawalCallback.sol";
+
 import "../utils/DefaultAccessControl.sol";
 
 import "../libraries/external/FullMath.sol";
@@ -28,6 +31,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     struct WithdrawalRequest {
         address to;
         uint256 lpAmount;
+        uint256 deadline;
         address[] tokens;
         uint256[] minAmounts;
     }
@@ -216,10 +220,19 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
             totalValue += FullMath.mulDiv(totalAmounts[i], priceX96, Q96);
         }
 
-        lpAmount = FullMath.mulDiv(depositValue, totalSupply(), totalValue);
-
+        uint256 totalSupply = totalSupply();
+        lpAmount = FullMath.mulDiv(depositValue, totalSupply, totalValue);
+        if (
+            lpAmount + totalSupply >
+            protocolGovernance.maxTotalSupply(address(this))
+        ) revert("Max total supply exceeded");
         if (lpAmount < minLpAmount) revert("Insufficient LP amount");
         _mint(msg.sender, lpAmount);
+
+        address callback = protocolGovernance.depositCallback(address(this));
+        if (callback != address(0)) {
+            IDepositCallback(callback).depositCallback();
+        }
     }
 
     function closeWithdrawalRequest() external nonReentrant {
@@ -233,8 +246,10 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     function registerWithdrawal(
         address to,
         uint256 lpAmount,
-        uint256[] memory minAmounts
+        uint256[] memory minAmounts,
+        uint256 deadline
     ) external nonReentrant {
+        if (deadline < block.timestamp) revert("Deadline");
         if (withdrawalRequest[msg.sender].lpAmount != 0) {
             revert("Withdrawal request already exists");
         }
@@ -254,7 +269,8 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
             to: to,
             lpAmount: lpAmount,
             tokens: tokens,
-            minAmounts: minAmounts
+            minAmounts: minAmounts,
+            deadline: deadline
         });
     }
 
@@ -276,11 +292,16 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         }
 
         uint256 totalSupply = totalSupply();
+        uint256 timestamp = block.timestamp;
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
             WithdrawalRequest memory request = withdrawalRequest[user];
-            if (request.tokens.length != tokens.length || request.lpAmount == 0)
-                continue;
+            if (
+                request.tokens.length != tokens.length ||
+                request.lpAmount == 0 ||
+                request.deadline < timestamp
+            ) continue;
+
             uint256 withdrawalValue = FullMath.mulDiv(
                 request.lpAmount,
                 s.totalValue,
@@ -339,6 +360,11 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
             _burn(address(this), request.lpAmount);
             delete withdrawalRequest[user];
             statuses[i] = true;
+        }
+
+        address callback = protocolGovernance.withdrawalCallback(address(this));
+        if (callback != address(0)) {
+            IWithdrawalCallback(callback).withdrawalCallback();
         }
     }
 }
