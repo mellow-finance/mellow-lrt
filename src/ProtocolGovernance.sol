@@ -40,6 +40,7 @@ contract ProtocolGovernance is ReentrancyGuard {
         address module
     ) external onlyAdmin nonReentrant {
         delete delegateModulesStageTimestamps[module];
+        delete approvedDelegateModules[module];
     }
 
     function stageDelegateModuleApproval(
