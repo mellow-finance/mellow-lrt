@@ -1,2 +1,2 @@
-# mellow-alm-toolkit
-Strategy builder for amm protocols
+# mellow-lrt
+Mellow lrt constructor
