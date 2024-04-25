@@ -11,19 +11,18 @@ import "../libraries/external/FullMath.sol";
 contract ManagedRatiosOracle is IRatiosOracle, DefaultAccessControl {
     uint256 public constant Q96 = 2 ** 96;
 
-    mapping(address => mapping(address => uint256))
-        public rootVaultToTokenToWeight;
+    mapping(address => mapping(address => uint256)) public vaultToTokenToWeight;
 
     constructor(address admin) DefaultAccessControl(admin) {}
 
     function updateRatios(
-        address rootVault,
+        address vault,
         address[] memory tokens,
         uint256[] memory weights
     ) external {
         _requireAdmin();
         for (uint256 i = 0; i < tokens.length; i++) {
-            rootVaultToTokenToWeight[rootVault][tokens[i]] = weights[i];
+            vaultToTokenToWeight[vault][tokens[i]] = weights[i];
         }
     }
 
@@ -34,7 +33,7 @@ contract ManagedRatiosOracle is IRatiosOracle, DefaultAccessControl {
         uint256 cumulativeWeight = 0;
         uint256[] memory weights = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
-            weights[i] = rootVaultToTokenToWeight[rootVault][tokens[i]];
+            weights[i] = vaultToTokenToWeight[rootVault][tokens[i]];
             cumulativeWeight += weights[i];
         }
         if (cumulativeWeight == 0) {
