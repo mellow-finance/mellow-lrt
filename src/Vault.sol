@@ -5,20 +5,20 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "../interfaces/modules/ITvlModule.sol";
-import "../interfaces/validators/IValidator.sol";
+import "./interfaces/modules/ITvlModule.sol";
+import "./interfaces/validators/IValidator.sol";
 
-import "../interfaces/oracles/IOracle.sol";
-import "../interfaces/oracles/IRatiosOracle.sol";
+import "./interfaces/oracles/IOracle.sol";
+import "./interfaces/oracles/IRatiosOracle.sol";
 
-import "../interfaces/utils/IDepositCallback.sol";
-import "../interfaces/utils/IWithdrawalCallback.sol";
+import "./interfaces/utils/IDepositCallback.sol";
+import "./interfaces/utils/IWithdrawalCallback.sol";
 
-import "../utils/DefaultAccessControl.sol";
+import "./utils/DefaultAccessControl.sol";
 
-import "../libraries/external/FullMath.sol";
+import "./libraries/external/FullMath.sol";
 
-import "../ProtocolGovernance.sol";
+import "./ProtocolGovernance.sol";
 
 contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
