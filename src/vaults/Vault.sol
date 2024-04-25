@@ -20,8 +20,6 @@ import "../libraries/external/FullMath.sol";
 
 import "../ProtocolGovernance.sol";
 
-import "./WithdrawalVault.sol";
-
 contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
@@ -46,7 +44,6 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     uint256 public constant D9 = 1e9;
     uint256 public constant MAX_WITHDRAWAL_FEE_D9 = 5e7; // 5%
 
-    address public immutable withdrawalVault;
     IRatiosOracle public immutable ratiosOracle;
     IOracle public immutable oracle;
     IValidator public immutable validator;
@@ -87,7 +84,6 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         oracle = IOracle(oracle_);
         validator = IValidator(validator_);
         protocolGovernance = ProtocolGovernance(protocolGovernance_);
-        withdrawalVault = address(new WithdrawalVault());
     }
 
     function addToken(address token) external onlyAdmin nonReentrant {
@@ -339,18 +335,9 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
             if (!isEnoughTokens) continue;
 
             for (uint256 j = 0; j < tokens.length; j++) {
-                IERC20(tokens[j]).safeTransfer(
-                    withdrawalVault,
-                    expectedAmounts[j]
-                );
+                IERC20(tokens[j]).safeTransfer(request.to, expectedAmounts[j]);
                 erc20Balances[j] -= expectedAmounts[j];
             }
-
-            WithdrawalVault(withdrawalVault).push(
-                request.to,
-                request.tokens,
-                expectedAmounts
-            );
 
             _burn(address(this), request.lpAmount);
             delete withdrawalRequest[user];
