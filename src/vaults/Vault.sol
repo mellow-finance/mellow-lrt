@@ -26,8 +26,6 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
-    uint256 public constant MAX_WITHDRAWAL_FEE_D9 = 5e7; // 5%
-
     struct WithdrawalRequest {
         address to;
         uint256 lpAmount;
@@ -46,11 +44,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
 
     uint256 public constant Q96 = 2 ** 96;
     uint256 public constant D9 = 1e9;
-
-    EnumerableSet.AddressSet private _tvlModules;
-    EnumerableSet.AddressSet private _underlyingTokens;
-
-    uint256 public withdrawalFeeD9;
+    uint256 public constant MAX_WITHDRAWAL_FEE_D9 = 5e7; // 5%
 
     address public immutable withdrawalVault;
     IRatiosOracle public immutable ratiosOracle;
@@ -58,8 +52,12 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     IValidator public immutable validator;
     ProtocolGovernance public immutable protocolGovernance;
 
-    mapping(address => WithdrawalRequest) public withdrawalRequest;
+    uint256 public withdrawalFeeD9;
     mapping(address => bytes) public tvlModuleParams;
+    mapping(address => WithdrawalRequest) public withdrawalRequest;
+
+    EnumerableSet.AddressSet private _tvlModules;
+    EnumerableSet.AddressSet private _underlyingTokens;
 
     modifier onlyManager() {
         require(isOperator(msg.sender), "Forbidden");
@@ -172,9 +170,6 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         tokens = _underlyingTokens.values();
         address[] memory modules = _tvlModules.values();
         for (uint256 i = 0; i < modules.length; i++) {
-            // delegatecall
-            if (!protocolGovernance.approvedDelegateModules(modules[i]))
-                revert("Module is not an approved delegate module");
             (address[] memory tokens_, uint256[] memory amounts_) = ITvlModule(
                 modules[i]
             ).tvl(address(this), tvlModuleParams[modules[i]]);
