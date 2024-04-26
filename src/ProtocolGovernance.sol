@@ -3,15 +3,20 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract ProtocolGovernance is ReentrancyGuard {
-    address public immutable admin;
-    uint256 public immutable governanceDelay;
+import "./utils/DefaultAccessControl.sol";
+
+contract ProtocolGovernance is ReentrancyGuard, DefaultAccessControl {
+    uint256 public constant MAX_GOVERNANCE_DELAY = 30 days;
+
+    uint256 public governanceDelay;
+    uint256 public governanceDelayStageTimestamp;
+    uint256 public stagedGovernanceDelay;
 
     mapping(address => uint256) public delegateModulesStageTimestamps;
     mapping(address => bool) public approvedDelegateModules;
 
-    mapping(address => uint256) public stagedMaxTotalSupplyTimestamp;
     mapping(address => uint256) public stagedMaxTotalSupply;
+    mapping(address => uint256) public stagedMaxTotalSupplyTimestamp;
     mapping(address => uint256) public maxTotalSupply;
 
     mapping(address => address) public stagedDepositCallback;
@@ -23,24 +28,23 @@ contract ProtocolGovernance is ReentrancyGuard {
     mapping(address => address) public withdrawalCallback;
 
     modifier onlyAdmin() {
-        if (msg.sender != admin)
+        if (!isAdmin(msg.sender))
             revert("ProtocolGovernance: caller is not the admin");
         _;
     }
-
-    constructor(address admin_, uint256 governanceDelay_) {
-        if (admin_ == address(0)) revert("ProtocolGovernance: invalid admin");
-        if (governanceDelay_ == 0 || governanceDelay_ > 30 days)
+    constructor(
+        address admin,
+        uint256 governanceDelay_
+    ) DefaultAccessControl(admin) {
+        if (governanceDelay_ == 0 || governanceDelay_ > MAX_GOVERNANCE_DELAY)
             revert("ProtocolGovernance: invalid governance delay");
-        admin = admin_;
         governanceDelay = governanceDelay_;
     }
 
-    function revokeDelegateModuleApproval(
-        address module
-    ) external onlyAdmin nonReentrant {
-        delete delegateModulesStageTimestamps[module];
-        delete approvedDelegateModules[module];
+    function _validateTimestamp(uint256 timestamp) internal view {
+        if (timestamp == 0) revert("ProtocolGovernance: timestamp is not set");
+        if (block.timestamp - timestamp < governanceDelay)
+            revert("ProtocolGovernance: stage delay has not passed");
     }
 
     function stageDelegateModuleApproval(
@@ -50,16 +54,23 @@ contract ProtocolGovernance is ReentrancyGuard {
     }
 
     function commitDelegateModuleApproval(
-        address module,
-        bool approved
+        address module
     ) external onlyAdmin nonReentrant {
-        if (delegateModulesStageTimestamps[module] == 0)
-            revert("ProtocolGovernance: module is not staged for approval");
-        if (
-            block.timestamp - delegateModulesStageTimestamps[module] <
-            governanceDelay
-        ) revert("ProtocolGovernance: stage delay has not passed");
-        approvedDelegateModules[module] = approved;
+        _validateTimestamp(delegateModulesStageTimestamps[module]);
+        approvedDelegateModules[module] = true;
+        delete delegateModulesStageTimestamps[module];
+    }
+
+    function rollbackStagedDelegateModuleApproval(
+        address module
+    ) external onlyAdmin nonReentrant {
+        delete delegateModulesStageTimestamps[module];
+    }
+
+    function revokeDelegateModuleApproval(
+        address module
+    ) external onlyAdmin nonReentrant {
+        delete approvedDelegateModules[module];
     }
 
     function stageMaximalTotalSupply(
@@ -73,18 +84,13 @@ contract ProtocolGovernance is ReentrancyGuard {
     function commitMaximalTotalSupply(
         address vault
     ) external onlyAdmin nonReentrant {
-        if (stagedMaxTotalSupplyTimestamp[vault] == 0)
-            revert(
-                "ProtocolGovernance: vault is not staged for maximal total supply"
-            );
-        if (
-            block.timestamp - stagedMaxTotalSupplyTimestamp[vault] <
-            governanceDelay
-        ) revert("ProtocolGovernance: stage delay has not passed");
+        _validateTimestamp(stagedMaxTotalSupplyTimestamp[vault]);
         maxTotalSupply[vault] = stagedMaxTotalSupply[vault];
+        delete stagedMaxTotalSupplyTimestamp[vault];
+        delete stagedMaxTotalSupply[vault];
     }
 
-    function revokeMaximalTotalSupply(
+    function rollbackStagedMaximalTotalSupply(
         address vault
     ) external onlyAdmin nonReentrant {
         delete stagedMaxTotalSupplyTimestamp[vault];
@@ -102,22 +108,23 @@ contract ProtocolGovernance is ReentrancyGuard {
     function commitDepositCallback(
         address vault
     ) external onlyAdmin nonReentrant {
-        if (stagedDepositCallbackTimestamp[vault] == 0)
-            revert(
-                "ProtocolGovernance: vault is not staged for deposit callback"
-            );
-        if (
-            block.timestamp - stagedDepositCallbackTimestamp[vault] <
-            governanceDelay
-        ) revert("ProtocolGovernance: stage delay has not passed");
+        _validateTimestamp(stagedDepositCallbackTimestamp[vault]);
         depositCallback[vault] = stagedDepositCallback[vault];
+        delete stagedDepositCallbackTimestamp[vault];
+        delete stagedDepositCallback[vault];
+    }
+
+    function rollbackStagedDepositCallback(
+        address vault
+    ) external onlyAdmin nonReentrant {
+        delete stagedDepositCallbackTimestamp[vault];
+        delete stagedDepositCallback[vault];
     }
 
     function revokeDepositCallback(
         address vault
     ) external onlyAdmin nonReentrant {
-        delete stagedDepositCallbackTimestamp[vault];
-        delete stagedDepositCallback[vault];
+        delete depositCallback[vault];
     }
 
     function stageWithdrawalCallback(
@@ -131,21 +138,43 @@ contract ProtocolGovernance is ReentrancyGuard {
     function commitWithdrawalCallback(
         address vault
     ) external onlyAdmin nonReentrant {
-        if (stagedWithdrawalCallbackTimestamp[vault] == 0)
-            revert(
-                "ProtocolGovernance: vault is not staged for withdrawal callback"
-            );
-        if (
-            block.timestamp - stagedWithdrawalCallbackTimestamp[vault] <
-            governanceDelay
-        ) revert("ProtocolGovernance: stage delay has not passed");
+        _validateTimestamp(stagedWithdrawalCallbackTimestamp[vault]);
         withdrawalCallback[vault] = stagedWithdrawalCallback[vault];
+        delete stagedWithdrawalCallbackTimestamp[vault];
+        delete stagedWithdrawalCallback[vault];
     }
 
-    function revokeWithdrawalCallback(
+    function rollbackStagedWithdrawalCallback(
         address vault
     ) external onlyAdmin nonReentrant {
         delete stagedWithdrawalCallbackTimestamp[vault];
         delete stagedWithdrawalCallback[vault];
+    }
+
+    function revokeWithdrawlCallback(
+        address vault
+    ) external onlyAdmin nonReentrant {
+        delete withdrawalCallback[vault];
+    }
+
+    function stageGovernanceDelay(
+        uint256 delay
+    ) external onlyAdmin nonReentrant {
+        if (delay == 0 || delay > MAX_GOVERNANCE_DELAY)
+            revert("ProtocolGovernance: invalid governance delay");
+        governanceDelayStageTimestamp = block.timestamp;
+        stagedGovernanceDelay = delay;
+    }
+
+    function commitGovernanceDelay() external onlyAdmin nonReentrant {
+        _validateTimestamp(governanceDelayStageTimestamp);
+        governanceDelay = stagedGovernanceDelay;
+        delete governanceDelayStageTimestamp;
+        delete stagedGovernanceDelay;
+    }
+
+    function rollbackStagedGovernanceDelay() external onlyAdmin nonReentrant {
+        delete governanceDelayStageTimestamp;
+        delete stagedGovernanceDelay;
     }
 }
