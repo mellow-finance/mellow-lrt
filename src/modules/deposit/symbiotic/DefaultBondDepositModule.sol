@@ -6,10 +6,11 @@ import "../../../interfaces/external/symbiotic/IDefaultBond.sol";
 
 import "../../../interfaces/modules/IMutableModule.sol";
 
-contract BondDepositModule is IMutableModule {
+contract DefaultBondDepositModule is IMutableModule {
     using SafeERC20 for IERC20;
 
     function deposit(address bond, uint256 amount) external {
+        if (amount == 0) return;
         IERC20(bond).safeIncreaseAllowance(address(this), amount);
         IDefaultBond(bond).deposit(address(this), amount);
     }

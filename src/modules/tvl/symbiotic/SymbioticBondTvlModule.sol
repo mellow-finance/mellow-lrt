@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../../interfaces/external/symbiotic/IBond.sol";
 
 import "../../../interfaces/modules/ITvlModule.sol";
+import "../../../interfaces/IVault.sol";
 
 contract SymbioticBondTvlModule is ITvlModule {
     struct Params {
@@ -13,7 +14,7 @@ contract SymbioticBondTvlModule is ITvlModule {
     }
 
     function tvl(
-        address user,
+        address vault,
         bytes memory params
     )
         external
@@ -21,11 +22,15 @@ contract SymbioticBondTvlModule is ITvlModule {
         returns (address[] memory tokens, uint256[] memory amounts)
     {
         address[] memory bonds = abi.decode(params, (Params)).bonds;
-        tokens = new address[](bonds.length);
-        amounts = new uint256[](bonds.length);
+        tokens = IVault(vault).underlyingTokens();
+        amounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < bonds.length; i++) {
-            amounts[i] = IERC20(bonds[i]).balanceOf(user);
-            tokens[i] = IBond(bonds[i]).asset();
+            address token = IBond(bonds[i]).asset();
+            for (uint256 j = 0; j < tokens.length; j++) {
+                if (token != tokens[j]) continue;
+                amounts[j] += IBond(bonds[i]).balanceOf(vault);
+                break;
+            }
         }
     }
 }

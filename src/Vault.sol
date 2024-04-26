@@ -24,7 +24,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     mapping(address => WithdrawalRequest) private _withdrawalRequest;
 
     address[] private _underlyingTokens;
-
+    EnumerableSet.AddressSet private _withdrawers;
     EnumerableSet.AddressSet private _tvlModules;
     EnumerableSet.AddressSet private _underlyingTokensSet;
 
@@ -131,10 +131,11 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         return response;
     }
 
+    // cannot be called in callbacks due to nonReentrant modifier
     function delegateCall(
         address to,
         bytes calldata data
-    ) external onlyManager nonReentrant returns (bytes memory) {
+    ) external onlyManager returns (bytes memory) {
         if (!protocolGovernance.isDelegateModuleApproved(to))
             revert("Vault: module is not an approved delegate module");
         bytes4 selector = bytes4(data[:4]);
@@ -150,6 +151,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
     function underlyingTokens() external view returns (address[] memory) {
         return _underlyingTokens;
+    }
+
+    function withdrawers() external view returns (address[] memory) {
+        return _withdrawers.values();
     }
 
     function tvl()
@@ -228,6 +233,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         WithdrawalRequest memory request = _withdrawalRequest[sender];
         if (request.lpAmount == 0) return;
         delete _withdrawalRequest[sender];
+        _withdrawers.remove(sender);
         _transfer(address(this), sender, request.lpAmount);
     }
 
@@ -260,6 +266,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             minAmounts: minAmounts,
             deadline: deadline
         });
+        _withdrawers.add(msg.sender);
     }
 
     function withdrawalRequest(
