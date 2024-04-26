@@ -52,6 +52,8 @@ interface IVault {
         address
     ) external view returns (WithdrawalRequest memory);
 
+    function tvlModules() external view returns (address[] memory);
+
     function addToken(address token) external;
 
     function removeToken(address token) external;

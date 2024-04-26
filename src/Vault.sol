@@ -145,6 +145,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         return response;
     }
 
+    function tvlModules() external view returns (address[] memory) {
+        return _tvlModules.values();
+    }
+
     function underlyingTokens() external view returns (address[] memory) {
         return _underlyingTokens;
     }
@@ -209,7 +213,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         lpAmount = FullMath.mulDiv(depositValue, totalSupply, totalValue);
         if (
             lpAmount + totalSupply >
-            protocolGovernance.maxTotalSupply(address(this))
+            protocolGovernance.maximalTotalSupply(address(this))
         ) revert("Vault: max total supply exceeded");
         if (lpAmount < minLpAmount) revert("Vault: insufficient LP amount");
         _mint(msg.sender, lpAmount);

@@ -13,186 +13,269 @@ contract ProtocolGovernance is
     uint256 public constant MAX_GOVERNANCE_DELAY = 30 days;
     uint256 public constant MAX_WITHDRAWAL_FEE = 5e7; // 5%
 
-    uint256 public governanceDelay;
-    uint256 public governanceDelayStageTimestamp;
-    uint256 public stagedGovernanceDelay;
+    Data private _governanceDelay;
+    mapping(address => Data) private _isDelegateModuleApproved;
+    mapping(address => Data) private _isExternalCallsApprovedFor;
+    mapping(address => Data) private _maxTotalSupply;
+    mapping(address => Data) private _depositCallback;
+    mapping(address => Data) private _withdrawalCallback;
+    mapping(address => Data) private _withdrawalFeeD9;
 
-    mapping(address => uint256) public delegateModulesApprovalStageTimestamp;
-    mapping(address => bool) public isDelegateModuleApproved;
+    function isDelegateModuleApproved(
+        address target
+    ) external view returns (bool) {
+        return _isDelegateModuleApproved[target].value != bytes32(0);
+    }
 
-    mapping(address => uint256) public externalCallsApprovalStageTimestamp;
-    mapping(address => bool) public isExternalCallsApprovedFor;
+    function isExternalCallsApprovedFor(
+        address target
+    ) external view returns (bool) {
+        return _isExternalCallsApprovedFor[target].value != bytes32(0);
+    }
 
-    mapping(address => uint256) public stagedMaxTotalSupply;
-    mapping(address => uint256) public stagedMaxTotalSupplyTimestamp;
-    mapping(address => uint256) public maxTotalSupply;
+    function maximalTotalSupply(address vault) external view returns (uint256) {
+        return uint256(_maxTotalSupply[vault].value);
+    }
 
-    mapping(address => address) public stagedDepositCallback;
-    mapping(address => uint256) public stagedDepositCallbackTimestamp;
-    mapping(address => address) public depositCallback;
+    function depositCallback(address vault) external view returns (address) {
+        return address(bytes20(_depositCallback[vault].value));
+    }
 
-    mapping(address => address) public stagedWithdrawalCallback;
-    mapping(address => uint256) public stagedWithdrawalCallbackTimestamp;
-    mapping(address => address) public withdrawalCallback;
+    function withdrawalCallback(address vault) external view returns (address) {
+        return address(bytes20(_withdrawalCallback[vault].value));
+    }
 
-    mapping(address => uint256) public stagedWithdrawalFeeD9;
-    mapping(address => uint256) public stagedWithdrawalFeeD9Timestamp;
-    mapping(address => uint256) public withdrawalFeeD9;
+    function withdrawalFeeD9(address vault) external view returns (uint256) {
+        return uint256(_withdrawalFeeD9[vault].value);
+    }
+
+    function maximalTotalSupplyStagedValue(
+        address vault
+    ) external view returns (uint256) {
+        return uint256(_maxTotalSupply[vault].stagedValue);
+    }
+
+    function depositCallbackStagedValue(
+        address vault
+    ) external view returns (address) {
+        return address(bytes20(_depositCallback[vault].stagedValue));
+    }
+
+    function withdrawalCallbackStagedValue(
+        address vault
+    ) external view returns (address) {
+        return address(bytes20(_withdrawalCallback[vault].stagedValue));
+    }
+
+    function withdrawalFeeD9StagedValue(
+        address vault
+    ) external view returns (uint256) {
+        return uint256(_withdrawalFeeD9[vault].stagedValue);
+    }
+
+    function isDelegateModuleApprovedStagedTimestamp(
+        address target
+    ) external view returns (uint256) {
+        return _isDelegateModuleApproved[target].stageTimestamp;
+    }
+
+    function isExternalCallsApprovedForStagedTimestamp(
+        address target
+    ) external view returns (uint256) {
+        return _isExternalCallsApprovedFor[target].stageTimestamp;
+    }
+
+    function maximalTotalSupplyStagedTimestamp(
+        address vault
+    ) external view returns (uint256) {
+        return _maxTotalSupply[vault].stageTimestamp;
+    }
+
+    function depositCallbackStagedTimestamp(
+        address vault
+    ) external view returns (uint256) {
+        return _depositCallback[vault].stageTimestamp;
+    }
+
+    function withdrawalCallbackStagedTimestamp(
+        address vault
+    ) external view returns (uint256) {
+        return _withdrawalCallback[vault].stageTimestamp;
+    }
+
+    function withdrawalFeeD9StagedTimestamp(
+        address vault
+    ) external view returns (uint256) {
+        return _withdrawalFeeD9[vault].stageTimestamp;
+    }
+
+    function governanceDelay() external view override returns (uint256) {
+        return uint256(_governanceDelay.value);
+    }
+
+    function governanceDelayStageTimestamp()
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _governanceDelay.stageTimestamp;
+    }
+
+    function stagedGovernanceDelay() external view override returns (uint256) {
+        return uint256(_governanceDelay.stagedValue);
+    }
 
     modifier onlyAdmin() {
         if (!isAdmin(msg.sender))
             revert("ProtocolGovernance: caller is not the admin");
         _;
     }
-    constructor(
-        address admin,
-        uint256 governanceDelay_
-    ) DefaultAccessControl(admin) {
-        if (governanceDelay_ == 0 || governanceDelay_ > MAX_GOVERNANCE_DELAY)
-            revert("ProtocolGovernance: invalid governance delay");
-        governanceDelay = governanceDelay_;
+
+    constructor(address admin) DefaultAccessControl(admin) {}
+
+    function _validateTimestamp(uint256 timestamp) private view {
+        if (timestamp == 0) revert("ProtocolGovernance: timestamp is not set");
+        if (block.timestamp - timestamp < uint256(_governanceDelay.value))
+            revert("ProtocolGovernance: stage delay has not passed");
     }
 
-    function _validateTimestamp(uint256 timestamp) internal view {
-        if (timestamp == 0) revert("ProtocolGovernance: timestamp is not set");
-        if (block.timestamp - timestamp < governanceDelay)
-            revert("ProtocolGovernance: stage delay has not passed");
+    function _stage(Data storage s, bytes32 value) private {
+        s.stageTimestamp = block.timestamp;
+        s.stagedValue = value;
+    }
+
+    function _commit(Data storage s) private {
+        _validateTimestamp(s.stageTimestamp);
+        s.value = s.stagedValue;
+        delete s.stageTimestamp;
+        delete s.stagedValue;
+    }
+
+    function _rollback(Data storage s) private {
+        delete s.stageTimestamp;
+        delete s.stagedValue;
+    }
+
+    function _revoke(Data storage s) private {
+        delete s.value;
     }
 
     function stageDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        delegateModulesApprovalStageTimestamp[module] = block.timestamp;
+        _stage(_isDelegateModuleApproved[module], bytes32(uint256(1)));
     }
 
     function commitDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        _validateTimestamp(delegateModulesApprovalStageTimestamp[module]);
-        isDelegateModuleApproved[module] = true;
-        delete delegateModulesApprovalStageTimestamp[module];
+        _commit(_isDelegateModuleApproved[module]);
     }
 
     function rollbackStagedDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        delete delegateModulesApprovalStageTimestamp[module];
+        _rollback(_isDelegateModuleApproved[module]);
     }
 
     function revokeDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        delete isDelegateModuleApproved[module];
+        _revoke(_isDelegateModuleApproved[module]);
     }
 
     function stageExternalCallsApprovalFor(
         address target
     ) external onlyAdmin nonReentrant {
-        externalCallsApprovalStageTimestamp[target] = block.timestamp;
+        _stage(_isExternalCallsApprovedFor[target], bytes32(uint256(1)));
     }
 
     function commitExternalCallsApprovalFor(
         address target
     ) external onlyAdmin nonReentrant {
-        _validateTimestamp(externalCallsApprovalStageTimestamp[target]);
-        isExternalCallsApprovedFor[target] = true;
-        delete externalCallsApprovalStageTimestamp[target];
+        _commit(_isExternalCallsApprovedFor[target]);
     }
 
     function rollbackStagedExternalCallsApprovalFor(
         address target
     ) external onlyAdmin nonReentrant {
-        delete externalCallsApprovalStageTimestamp[target];
+        _rollback(_isExternalCallsApprovedFor[target]);
     }
 
     function revokeExternalCallsApprovalFor(
         address target
     ) external onlyAdmin nonReentrant {
-        delete isExternalCallsApprovedFor[target];
+        _revoke(_isExternalCallsApprovedFor[target]);
     }
 
     function stageMaximalTotalSupply(
         address vault,
-        uint256 totalSupply
+        uint256 maximalTotalSupply_
     ) external onlyAdmin nonReentrant {
-        stagedMaxTotalSupplyTimestamp[vault] = block.timestamp;
-        stagedMaxTotalSupply[vault] = totalSupply;
+        _stage(_maxTotalSupply[vault], bytes32(maximalTotalSupply_));
     }
 
     function commitMaximalTotalSupply(
         address vault
     ) external onlyAdmin nonReentrant {
-        _validateTimestamp(stagedMaxTotalSupplyTimestamp[vault]);
-        maxTotalSupply[vault] = stagedMaxTotalSupply[vault];
-        delete stagedMaxTotalSupplyTimestamp[vault];
-        delete stagedMaxTotalSupply[vault];
+        _commit(_maxTotalSupply[vault]);
     }
 
     function rollbackStagedMaximalTotalSupply(
         address vault
     ) external onlyAdmin nonReentrant {
-        delete stagedMaxTotalSupplyTimestamp[vault];
-        delete stagedMaxTotalSupply[vault];
+        _rollback(_maxTotalSupply[vault]);
     }
 
     function stageDepositCallback(
         address vault,
         address callback
     ) external onlyAdmin nonReentrant {
-        stagedDepositCallbackTimestamp[vault] = block.timestamp;
-        stagedDepositCallback[vault] = callback;
+        _stage(_depositCallback[vault], bytes32(bytes20(callback)));
     }
 
     function commitDepositCallback(
         address vault
     ) external onlyAdmin nonReentrant {
-        _validateTimestamp(stagedDepositCallbackTimestamp[vault]);
-        depositCallback[vault] = stagedDepositCallback[vault];
-        delete stagedDepositCallbackTimestamp[vault];
-        delete stagedDepositCallback[vault];
+        _commit(_depositCallback[vault]);
     }
 
     function rollbackStagedDepositCallback(
         address vault
     ) external onlyAdmin nonReentrant {
-        delete stagedDepositCallbackTimestamp[vault];
-        delete stagedDepositCallback[vault];
+        _rollback(_depositCallback[vault]);
     }
 
     function revokeDepositCallback(
         address vault
     ) external onlyAdmin nonReentrant {
-        delete depositCallback[vault];
+        _revoke(_depositCallback[vault]);
     }
 
     function stageWithdrawalCallback(
         address vault,
         address callback
     ) external onlyAdmin nonReentrant {
-        stagedWithdrawalCallbackTimestamp[vault] = block.timestamp;
-        stagedWithdrawalCallback[vault] = callback;
+        _stage(_withdrawalCallback[vault], bytes32(bytes20(callback)));
     }
 
     function commitWithdrawalCallback(
         address vault
     ) external onlyAdmin nonReentrant {
-        _validateTimestamp(stagedWithdrawalCallbackTimestamp[vault]);
-        withdrawalCallback[vault] = stagedWithdrawalCallback[vault];
-        delete stagedWithdrawalCallbackTimestamp[vault];
-        delete stagedWithdrawalCallback[vault];
+        _commit(_withdrawalCallback[vault]);
     }
 
     function rollbackStagedWithdrawalCallback(
         address vault
     ) external onlyAdmin nonReentrant {
-        delete stagedWithdrawalCallbackTimestamp[vault];
-        delete stagedWithdrawalCallback[vault];
+        _rollback(_withdrawalCallback[vault]);
     }
 
     function revokeWithdrawlCallback(
         address vault
     ) external onlyAdmin nonReentrant {
-        delete withdrawalCallback[vault];
+        _revoke(_withdrawalCallback[vault]);
     }
 
     function stageGovernanceDelay(
@@ -200,20 +283,15 @@ contract ProtocolGovernance is
     ) external onlyAdmin nonReentrant {
         if (delay == 0 || delay > MAX_GOVERNANCE_DELAY)
             revert("ProtocolGovernance: invalid governance delay");
-        governanceDelayStageTimestamp = block.timestamp;
-        stagedGovernanceDelay = delay;
+        _stage(_governanceDelay, bytes32(delay));
     }
 
     function commitGovernanceDelay() external onlyAdmin nonReentrant {
-        _validateTimestamp(governanceDelayStageTimestamp);
-        governanceDelay = stagedGovernanceDelay;
-        delete governanceDelayStageTimestamp;
-        delete stagedGovernanceDelay;
+        _commit(_governanceDelay);
     }
 
     function rollbackStagedGovernanceDelay() external onlyAdmin nonReentrant {
-        delete governanceDelayStageTimestamp;
-        delete stagedGovernanceDelay;
+        _rollback(_governanceDelay);
     }
 
     function stageWithdrawalFeeD9(
@@ -221,24 +299,19 @@ contract ProtocolGovernance is
         uint256 feeD9
     ) external onlyAdmin nonReentrant {
         if (feeD9 > MAX_WITHDRAWAL_FEE)
-            revert("ProtocolGovernance: withdrawal fee is too high");
-        stagedWithdrawalFeeD9Timestamp[vault] = block.timestamp;
-        stagedWithdrawalFeeD9[vault] = feeD9;
+            revert("ProtocolGovernance: fee is too high");
+        _stage(_withdrawalFeeD9[vault], bytes32(feeD9));
     }
 
     function commitWithdrawalFeeD9(
         address vault
     ) external onlyAdmin nonReentrant {
-        _validateTimestamp(stagedWithdrawalFeeD9Timestamp[vault]);
-        withdrawalFeeD9[vault] = stagedWithdrawalFeeD9[vault];
-        delete stagedWithdrawalFeeD9Timestamp[vault];
-        delete stagedWithdrawalFeeD9[vault];
+        _commit(_withdrawalFeeD9[vault]);
     }
 
     function rollbackStagedWithdrawalFeeD9(
         address vault
     ) external onlyAdmin nonReentrant {
-        delete stagedWithdrawalFeeD9Timestamp[vault];
-        delete stagedWithdrawalFeeD9[vault];
+        _rollback(_withdrawalFeeD9[vault]);
     }
 }
