@@ -10,7 +10,6 @@ import "./libraries/external/FullMath.sol";
 contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
-    using Arrays for address[];
 
     uint256 public constant Q96 = 2 ** 96;
     uint256 public constant D9 = 1e9;
