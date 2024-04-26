@@ -73,7 +73,9 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
                 break;
             }
         }
-        _underlyingTokens[index] = token;
+        if (index < n - 1) {
+            _underlyingTokens[index] = token;
+        }
     }
 
     function removeToken(address token) external onlyAdmin nonReentrant {
