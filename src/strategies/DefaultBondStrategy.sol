@@ -7,43 +7,75 @@ import "../modules/tvl/erc20/ERC20TvlModule.sol";
 import "../modules/deposit/symbiotic/DefaultBondDepositModule.sol";
 import "../modules/withdraw/symbiotic/DefaultBondWithdrawalModule.sol";
 
+import "../libraries/external/FullMath.sol";
+
 import "../utils/DefaultAccessControl.sol";
 
 contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
-    ERC20TvlModule public erc20TvlModule;
-    DefaultBondDepositModule public depositModule;
-    DefaultBondWithdrawalModule public withdrawalModule;
+    struct Data {
+        address bond;
+        uint256 ratioX96;
+    }
 
-    address[] public supportedBonds;
+    uint256 public constant Q96 = 2 ** 96;
 
     IVault public immutable vault;
 
-    constructor(address admin, IVault vault_) DefaultAccessControl(admin) {
+    mapping(address => bytes) public tokenToData;
+
+    ERC20TvlModule public immutable erc20TvlModule;
+    DefaultBondDepositModule public immutable depositModule;
+    DefaultBondWithdrawalModule public immutable withdrawalModule;
+
+    constructor(
+        address admin,
+        IVault vault_,
+        ERC20TvlModule erc20TvlModule_,
+        DefaultBondDepositModule depositModule_,
+        DefaultBondWithdrawalModule withdrawalModule_
+    ) DefaultAccessControl(admin) {
         vault = vault_;
+        erc20TvlModule = erc20TvlModule_;
+        depositModule = depositModule_;
+        withdrawalModule = withdrawalModule_;
     }
 
-    /*
-        deletageCall(to, selector, data)
-
-        validate(to) = protocolGovernance.isApprovedDelegateModule(to)
-        validate(to, selector) = validator.validate(vault, to, selector)
-        validate(to, selector, data) = validator.customValidator((to, selector)).validate(vault, to, selector, data)
-    */
+    function setData(address token, Data[] memory data) external {
+        _requireAdmin();
+        if (token == address(0))
+            revert("DefaultBondStrategy: token address is 0");
+        uint256 cumulativeRatio = 0;
+        for (uint256 i = 0; i < data.length; i++) {
+            if (data[i].bond == address(0))
+                revert("DefaultBondStrategy: bond address is 0");
+            cumulativeRatio += data[i].ratioX96;
+        }
+        if (cumulativeRatio != Q96)
+            revert("DefaultBondStrategy: cumulative ratio is not equal to 1");
+        tokenToData[token] = abi.encode(data);
+    }
 
     function _deposit() private {
-        // TODO: fix for multiple tokens to bond situation
         (address[] memory tokens, uint256[] memory amounts) = erc20TvlModule
             .tvl(address(vault), new bytes(0));
-        address[] memory bonds = supportedBonds;
-        for (uint256 i = 0; i < bonds.length; i++) {
-            for (uint256 j = 0; j < tokens.length; j++) {
-                if (IDefaultBond(bonds[i]).asset() != tokens[j]) continue;
+        for (uint256 i = 0; i < tokens.length; i++) {
+            bytes memory data_ = tokenToData[tokens[i]];
+            if (data_.length == 0) continue;
+            Data[] memory data = abi.decode(data_, (Data[]));
+            if (data.length == 0) continue;
+            for (uint256 j = 0; j < data.length; j++) {
+                uint256 amount = FullMath.mulDiv(
+                    amounts[i],
+                    data[j].ratioX96,
+                    Q96
+                );
+                if (amount == 0) continue;
                 vault.delegateCall(
                     address(depositModule),
                     abi.encodeWithSelector(
                         depositModule.deposit.selector,
-                        bonds[i],
-                        amounts[j]
+                        data[j].bond,
+                        amount
                     )
                 );
             }
@@ -67,17 +99,27 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
 
     function _processWithdrawals(address[] memory users) private {
         if (users.length == 0) return;
-        address[] memory bonds = supportedBonds;
-        for (uint256 i = 0; i < bonds.length; i++) {
-            vault.delegateCall(
-                address(withdrawalModule),
-                abi.encodeWithSelector(
-                    withdrawalModule.withdraw.selector,
-                    bonds[i],
-                    IERC20(bonds[i]).balanceOf(address(vault))
-                )
-            );
+
+        address[] memory tokens = vault.underlyingTokens();
+        for (uint256 index = 0; index < tokens.length; index++) {
+            bytes memory data_ = tokenToData[tokens[index]];
+            if (data_.length == 0) continue;
+            Data[] memory data = abi.decode(data_, (Data[]));
+            for (uint256 i = 0; i < data.length; i++) {
+                uint256 balance = IERC20(data[i].bond).balanceOf(
+                    address(vault)
+                );
+                vault.delegateCall(
+                    address(withdrawalModule),
+                    abi.encodeWithSelector(
+                        withdrawalModule.withdraw.selector,
+                        data[i].bond,
+                        balance
+                    )
+                );
+            }
         }
+
         vault.processWithdrawals(users);
         _deposit();
     }
