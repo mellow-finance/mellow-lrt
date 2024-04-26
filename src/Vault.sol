@@ -63,12 +63,17 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         _underlyingTokensSet.add(token);
         _underlyingTokens.push(token);
         uint256 n = _underlyingTokens.length;
+        uint256 index = 0;
         for (uint256 i = 1; i < n; i++) {
-            address prevToken = _underlyingTokens[n - 1 - i];
-            if (token > prevToken) break;
-            _underlyingTokens[n - i] = prevToken;
-            _underlyingTokens[n - 1 - i] = token;
+            address token_ = _underlyingTokens[n - 1 - i];
+            if (token_ > token) {
+                _underlyingTokens[n - i] = token_;
+            } else {
+                index = n - i;
+                break;
+            }
         }
+        _underlyingTokens[index] = token;
     }
 
     function removeToken(address token) external onlyAdmin nonReentrant {
