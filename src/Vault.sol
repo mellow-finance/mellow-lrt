@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Arrays.sol";
 
 import "./interfaces/modules/ITvlModule.sol";
 import "./interfaces/validators/IValidator.sol";
@@ -23,6 +24,7 @@ import "./ProtocolGovernance.sol";
 contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
+    using Arrays for address[];
 
     struct WithdrawalRequest {
         address to;
@@ -54,7 +56,9 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     mapping(address => WithdrawalRequest) public withdrawalRequest;
 
     EnumerableSet.AddressSet private _tvlModules;
-    EnumerableSet.AddressSet private _underlyingTokens;
+    EnumerableSet.AddressSet private _underlyingTokensSet;
+
+    address[] public underlyingTokens;
 
     modifier onlyManager() {
         require(isOperator(msg.sender), "Forbidden");
@@ -87,7 +91,8 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     function addToken(address token) external onlyAdmin nonReentrant {
-        _underlyingTokens.add(token);
+        _underlyingTokensSet.add(token);
+        underlyingTokens = Arrays.sort(_underlyingTokensSet.values());
     }
 
     function removeToken(address token) external onlyAdmin nonReentrant {
@@ -101,7 +106,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
             }
         }
         if (index == tokens.length) revert("Token not found");
-        _underlyingTokens.remove(token);
+        _underlyingTokensSet.remove(token);
     }
 
     function setWithdrawalFeeD9(uint256 fee) external onlyAdmin nonReentrant {
@@ -150,12 +155,13 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     function findToken(
-        address[] memory array,
-        address value
-    ) public pure returns (uint256 index) {
-        for (uint256 i = 0; i < array.length; i++)
-            if (array[i] == value) return i;
-        return array.length;
+        address[] memory tokens,
+        address token
+    ) internal pure returns (uint256) {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i] == token) return i;
+        }
+        return tokens.length;
     }
 
     function tvl()
@@ -163,7 +169,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         view
         returns (address[] memory tokens, uint256[] memory amounts)
     {
-        tokens = _underlyingTokens.values();
+        tokens = underlyingTokens;
         address[] memory modules = _tvlModules.values();
         for (uint256 i = 0; i < modules.length; i++) {
             (address[] memory tokens_, uint256[] memory amounts_) = ITvlModule(
@@ -250,7 +256,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         }
         if (lpAmount == 0) return;
 
-        address[] memory tokens = _underlyingTokens.values();
+        address[] memory tokens = underlyingTokens;
         if (tokens.length != minAmounts.length)
             revert("Invalid minAmounts length");
 
