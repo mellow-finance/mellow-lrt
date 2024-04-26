@@ -44,21 +44,18 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
 
     uint256 public constant Q96 = 2 ** 96;
     uint256 public constant D9 = 1e9;
-    uint256 public constant MAX_WITHDRAWAL_FEE_D9 = 5e7; // 5%
 
     IRatiosOracle public immutable ratiosOracle;
     IOracle public immutable oracle;
     IValidator public immutable validator;
     ProtocolGovernance public immutable protocolGovernance;
 
-    uint256 public withdrawalFeeD9;
     mapping(address => bytes) public tvlModuleParams;
     mapping(address => WithdrawalRequest) public withdrawalRequest;
+    address[] private _underlyingTokens;
 
     EnumerableSet.AddressSet private _tvlModules;
     EnumerableSet.AddressSet private _underlyingTokensSet;
-
-    address[] public underlyingTokens;
 
     modifier onlyManager() {
         require(isOperator(msg.sender), "Forbidden");
@@ -91,11 +88,20 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     function addToken(address token) external onlyAdmin nonReentrant {
+        if (_underlyingTokensSet.contains(token)) return;
         _underlyingTokensSet.add(token);
-        underlyingTokens = Arrays.sort(_underlyingTokensSet.values());
+        _underlyingTokens.push(token);
+        uint256 n = _underlyingTokens.length;
+        for (uint256 i = 1; i < n; i++) {
+            address prevToken = _underlyingTokens[n - 1 - i];
+            if (token > prevToken) break;
+            _underlyingTokens[n - i] = prevToken;
+            _underlyingTokens[n - 1 - i] = token;
+        }
     }
 
     function removeToken(address token) external onlyAdmin nonReentrant {
+        if (!_underlyingTokensSet.contains(token)) revert("Token not found");
         (address[] memory tokens, uint256[] memory amounts) = tvl();
         uint256 index = tokens.length;
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -105,19 +111,28 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
                 break;
             }
         }
-        if (index == tokens.length) revert("Token not found");
         _underlyingTokensSet.remove(token);
-    }
-
-    function setWithdrawalFeeD9(uint256 fee) external onlyAdmin nonReentrant {
-        if (fee > MAX_WITHDRAWAL_FEE_D9) revert("Invalid fee");
-        withdrawalFeeD9 = fee;
+        while (index < tokens.length) {
+            _underlyingTokens[index] = tokens[index + 1];
+            index++;
+        }
+        _underlyingTokens.pop();
     }
 
     function setTvlModule(
         address module,
         bytes memory params
     ) external onlyAdmin nonReentrant {
+        (address[] memory tokens, uint256[] memory amounts) = ITvlModule(module)
+            .tvl(address(this), params);
+        if (tokens.length != amounts.length)
+            revert("Invalid tvl module response");
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (!_underlyingTokensSet.contains(tokens[i]))
+                revert("Invalid token");
+            if (i > 0 && tokens[i] <= tokens[i - 1])
+                revert("Invalid token order");
+        }
         _tvlModules.add(module);
         tvlModuleParams[module] = params;
     }
@@ -164,19 +179,26 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         return tokens.length;
     }
 
+    function underlyingTokens() external view returns (address[] memory) {
+        return _underlyingTokens;
+    }
+
     function tvl()
         public
         view
         returns (address[] memory tokens, uint256[] memory amounts)
     {
-        tokens = underlyingTokens;
+        tokens = _underlyingTokens;
+        amounts = new uint256[](tokens.length);
         address[] memory modules = _tvlModules.values();
         for (uint256 i = 0; i < modules.length; i++) {
             (address[] memory tokens_, uint256[] memory amounts_) = ITvlModule(
                 modules[i]
             ).tvl(address(this), tvlModuleParams[modules[i]]);
+            uint256 index = 0;
             for (uint256 j = 0; j < tokens_.length; j++) {
-                uint256 index = findToken(tokens, tokens_[j]);
+                while (index < tokens.length && tokens[index] < tokens_[j])
+                    index++;
                 if (index == tokens.length) revert("Invalid token");
                 amounts[index] += amounts_[j];
             }
@@ -256,7 +278,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         }
         if (lpAmount == 0) return;
 
-        address[] memory tokens = underlyingTokens;
+        address[] memory tokens = _underlyingTokens;
         if (tokens.length != minAmounts.length)
             revert("Invalid minAmounts length");
 
@@ -306,7 +328,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
             );
             withdrawalValue = FullMath.mulDiv(
                 withdrawalValue,
-                D9 - withdrawalFeeD9,
+                D9 - protocolGovernance.withdrawalFeeD9(address(this)),
                 D9
             );
 

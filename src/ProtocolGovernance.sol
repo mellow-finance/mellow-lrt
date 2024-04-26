@@ -7,6 +7,7 @@ import "./utils/DefaultAccessControl.sol";
 
 contract ProtocolGovernance is ReentrancyGuard, DefaultAccessControl {
     uint256 public constant MAX_GOVERNANCE_DELAY = 30 days;
+    uint256 public constant MAX_WITHDRAWAL_FEE = 5e7; // 5%
 
     uint256 public governanceDelay;
     uint256 public governanceDelayStageTimestamp;
@@ -26,6 +27,10 @@ contract ProtocolGovernance is ReentrancyGuard, DefaultAccessControl {
     mapping(address => address) public stagedWithdrawalCallback;
     mapping(address => uint256) public stagedWithdrawalCallbackTimestamp;
     mapping(address => address) public withdrawalCallback;
+
+    mapping(address => uint256) public stagedWithdrawalFeeD9;
+    mapping(address => uint256) public stagedWithdrawalFeeD9Timestamp;
+    mapping(address => uint256) public withdrawalFeeD9;
 
     modifier onlyAdmin() {
         if (!isAdmin(msg.sender))
@@ -176,5 +181,31 @@ contract ProtocolGovernance is ReentrancyGuard, DefaultAccessControl {
     function rollbackStagedGovernanceDelay() external onlyAdmin nonReentrant {
         delete governanceDelayStageTimestamp;
         delete stagedGovernanceDelay;
+    }
+
+    function stageWithdrawalFeeD9(
+        address vault,
+        uint256 feeD9
+    ) external onlyAdmin nonReentrant {
+        if (feeD9 > MAX_WITHDRAWAL_FEE)
+            revert("ProtocolGovernance: withdrawal fee is too high");
+        stagedWithdrawalFeeD9Timestamp[vault] = block.timestamp;
+        stagedWithdrawalFeeD9[vault] = feeD9;
+    }
+
+    function commitWithdrawalFeeD9(
+        address vault
+    ) external onlyAdmin nonReentrant {
+        _validateTimestamp(stagedWithdrawalFeeD9Timestamp[vault]);
+        withdrawalFeeD9[vault] = stagedWithdrawalFeeD9[vault];
+        delete stagedWithdrawalFeeD9Timestamp[vault];
+        delete stagedWithdrawalFeeD9[vault];
+    }
+
+    function rollbackStagedWithdrawalFeeD9(
+        address vault
+    ) external onlyAdmin nonReentrant {
+        delete stagedWithdrawalFeeD9Timestamp[vault];
+        delete stagedWithdrawalFeeD9[vault];
     }
 }
