@@ -1,46 +1,16 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Arrays.sol";
-
-import "./interfaces/modules/ITvlModule.sol";
-import "./interfaces/validators/IValidator.sol";
-
-import "./interfaces/oracles/IOracle.sol";
-import "./interfaces/oracles/IRatiosOracle.sol";
-
-import "./interfaces/utils/IDepositCallback.sol";
-import "./interfaces/utils/IWithdrawalCallback.sol";
+import "./interfaces/IVault.sol";
 
 import "./utils/DefaultAccessControl.sol";
 
 import "./libraries/external/FullMath.sol";
 
-import "./ProtocolGovernance.sol";
-
-contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
+contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
     using Arrays for address[];
-
-    struct WithdrawalRequest {
-        address to;
-        uint256 lpAmount;
-        uint256 deadline;
-        address[] tokens;
-        uint256[] minAmounts;
-    }
-
-    // for stack reduction
-    struct ProcessWithdrawalsStorage {
-        uint256 totalValue;
-        uint256 x96Value;
-        uint256[] ratiosX96;
-        uint256[] amounts;
-    }
 
     uint256 public constant Q96 = 2 ** 96;
     uint256 public constant D9 = 1e9;
@@ -48,10 +18,12 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
     IRatiosOracle public immutable ratiosOracle;
     IOracle public immutable oracle;
     IValidator public immutable validator;
-    ProtocolGovernance public immutable protocolGovernance;
+    IProtocolGovernance public immutable protocolGovernance;
 
     mapping(address => bytes) public tvlModuleParams;
-    mapping(address => WithdrawalRequest) public withdrawalRequest;
+
+    mapping(address => WithdrawalRequest) private _withdrawalRequest;
+
     address[] private _underlyingTokens;
 
     EnumerableSet.AddressSet private _tvlModules;
@@ -84,7 +56,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         ratiosOracle = IRatiosOracle(ratiosOracle_);
         oracle = IOracle(oracle_);
         validator = IValidator(validator_);
-        protocolGovernance = ProtocolGovernance(protocolGovernance_);
+        protocolGovernance = IProtocolGovernance(protocolGovernance_);
     }
 
     function addToken(address token) external onlyAdmin nonReentrant {
@@ -169,16 +141,6 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         return response;
     }
 
-    function findToken(
-        address[] memory tokens,
-        address token
-    ) internal pure returns (uint256) {
-        for (uint256 i = 0; i < tokens.length; i++) {
-            if (tokens[i] == token) return i;
-        }
-        return tokens.length;
-    }
-
     function underlyingTokens() external view returns (address[] memory) {
         return _underlyingTokens;
     }
@@ -256,9 +218,9 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
 
     function closeWithdrawalRequest() external nonReentrant {
         address sender = msg.sender;
-        WithdrawalRequest memory request = withdrawalRequest[sender];
+        WithdrawalRequest memory request = _withdrawalRequest[sender];
         if (request.lpAmount == 0) return;
-        delete withdrawalRequest[sender];
+        delete _withdrawalRequest[sender];
         _transfer(address(this), sender, request.lpAmount);
     }
 
@@ -269,7 +231,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 deadline
     ) external nonReentrant {
         if (deadline < block.timestamp) revert("Deadline");
-        if (withdrawalRequest[msg.sender].lpAmount != 0) {
+        if (_withdrawalRequest[msg.sender].lpAmount != 0) {
             revert("Withdrawal request already exists");
         }
         {
@@ -284,13 +246,19 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
 
         _transfer(msg.sender, address(this), lpAmount);
 
-        withdrawalRequest[msg.sender] = WithdrawalRequest({
+        _withdrawalRequest[msg.sender] = WithdrawalRequest({
             to: to,
             lpAmount: lpAmount,
             tokens: tokens,
             minAmounts: minAmounts,
             deadline: deadline
         });
+    }
+
+    function withdrawalRequest(
+        address user
+    ) external view returns (WithdrawalRequest memory) {
+        return _withdrawalRequest[user];
     }
 
     function processWithdrawals(
@@ -314,7 +282,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 timestamp = block.timestamp;
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
-            WithdrawalRequest memory request = withdrawalRequest[user];
+            WithdrawalRequest memory request = _withdrawalRequest[user];
             if (
                 request.tokens.length != tokens.length ||
                 request.lpAmount == 0 ||
@@ -368,7 +336,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
             }
 
             _burn(address(this), request.lpAmount);
-            delete withdrawalRequest[user];
+            delete _withdrawalRequest[user];
             statuses[i] = true;
         }
 
