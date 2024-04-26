@@ -30,12 +30,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     EnumerableSet.AddressSet private _underlyingTokensSet;
 
     modifier onlyManager() {
-        require(isOperator(msg.sender), "Forbidden");
+        require(isOperator(msg.sender), "Vault: forbidden");
         _;
     }
 
     modifier onlyAdmin() {
-        require(isAdmin(msg.sender), "Forbidden");
+        require(isAdmin(msg.sender), "Vault: forbidden");
         _;
     }
 
@@ -48,11 +48,11 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         address oracle_,
         address validator_
     ) ERC20(name_, symbol_) DefaultAccessControl(admin) {
-        if (ratiosOracle_ == address(0)) revert("Invalid ratios oracle");
-        if (oracle_ == address(0)) revert("Invalid oracle");
-        if (validator_ == address(0)) revert("Invalid validator");
+        if (ratiosOracle_ == address(0)) revert("Vault: invalid ratios oracle");
+        if (oracle_ == address(0)) revert("Vault: invalid oracle");
+        if (validator_ == address(0)) revert("Vault: invalid validator");
         if (protocolGovernance_ == address(0))
-            revert("Invalid protocol governance");
+            revert("Vault: invalid protocol governance");
         ratiosOracle = IRatiosOracle(ratiosOracle_);
         oracle = IOracle(oracle_);
         validator = IValidator(validator_);
@@ -73,12 +73,14 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     function removeToken(address token) external onlyAdmin nonReentrant {
-        if (!_underlyingTokensSet.contains(token)) revert("Token not found");
+        if (!_underlyingTokensSet.contains(token))
+            revert("Vault: token not found");
         (address[] memory tokens, uint256[] memory amounts) = tvl();
         uint256 index = tokens.length;
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i] == token) {
-                if (amounts[i] != 0) revert("Token has non-zero balance");
+                if (amounts[i] != 0)
+                    revert("Vault: token has non-zero balance");
                 index = i;
                 break;
             }
@@ -98,12 +100,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         (address[] memory tokens, uint256[] memory amounts) = ITvlModule(module)
             .tvl(address(this), params);
         if (tokens.length != amounts.length)
-            revert("Invalid tvl module response");
+            revert("Vault: invalid tvl module response");
         for (uint256 i = 0; i < tokens.length; i++) {
             if (!_underlyingTokensSet.contains(tokens[i]))
-                revert("Invalid token");
+                revert("Vault: invalid token");
             if (i > 0 && tokens[i] <= tokens[i - 1])
-                revert("Invalid token order");
+                revert("Vault: invalid token order");
         }
         _tvlModules.add(module);
         tvlModuleParams[module] = params;
@@ -120,7 +122,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         bytes calldata data
     ) external onlyManager nonReentrant returns (bytes memory) {
         if (protocolGovernance.approvedDelegateModules(to))
-            revert("Module is an approved delegate module");
+            revert("Vault: module is an approved delegate module");
         bytes4 selector = bytes4(data[:4]);
         validator.validate(address(this), to, selector, data);
         (bool success, bytes memory response) = to.call(data);
@@ -133,7 +135,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         bytes calldata data
     ) external onlyManager nonReentrant returns (bytes memory) {
         if (!protocolGovernance.approvedDelegateModules(to))
-            revert("Module is not an approved delegate module");
+            revert("Vault: module is not an approved delegate module");
         bytes4 selector = bytes4(data[:4]);
         validator.validate(address(this), to, selector, data);
         (bool success, bytes memory response) = to.delegatecall(data);
@@ -161,7 +163,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             for (uint256 j = 0; j < tokens_.length; j++) {
                 while (index < tokens.length && tokens[index] < tokens_[j])
                     index++;
-                if (index == tokens.length) revert("Invalid token");
+                if (index == tokens.length) revert("Vault: invalid token");
                 amounts[index] += amounts_[j];
             }
         }
@@ -206,8 +208,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         if (
             lpAmount + totalSupply >
             protocolGovernance.maxTotalSupply(address(this))
-        ) revert("Max total supply exceeded");
-        if (lpAmount < minLpAmount) revert("Insufficient LP amount");
+        ) revert("Vault: max total supply exceeded");
+        if (lpAmount < minLpAmount) revert("Vault: insufficient LP amount");
         _mint(msg.sender, lpAmount);
 
         address callback = protocolGovernance.depositCallback(address(this));
@@ -230,9 +232,9 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256[] memory minAmounts,
         uint256 deadline
     ) external nonReentrant {
-        if (deadline < block.timestamp) revert("Deadline");
+        if (deadline < block.timestamp) revert("Vault: deadline");
         if (_withdrawalRequest[msg.sender].lpAmount != 0) {
-            revert("Withdrawal request already exists");
+            revert("Vault: withdrawal request already exists");
         }
         {
             uint256 balance = balanceOf(msg.sender);
@@ -242,7 +244,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
         address[] memory tokens = _underlyingTokens;
         if (tokens.length != minAmounts.length)
-            revert("Invalid minAmounts length");
+            revert("Vault: invalid minAmounts length");
 
         _transfer(msg.sender, address(this), lpAmount);
 
