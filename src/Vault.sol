@@ -121,8 +121,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         address to,
         bytes calldata data
     ) external onlyManager nonReentrant returns (bytes memory) {
-        if (protocolGovernance.approvedDelegateModules(to))
+        if (protocolGovernance.isDelegateModuleApproved(to))
             revert("Vault: module is an approved delegate module");
+        if (protocolGovernance.isExternalCallsApprovedFor(address(this)))
+            revert("Vault: external calls are disabled");
         bytes4 selector = bytes4(data[:4]);
         validator.validate(address(this), to, selector, data);
         (bool success, bytes memory response) = to.call(data);
@@ -134,12 +136,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         address to,
         bytes calldata data
     ) external onlyManager nonReentrant returns (bytes memory) {
-        if (!protocolGovernance.approvedDelegateModules(to))
+        if (!protocolGovernance.isDelegateModuleApproved(to))
             revert("Vault: module is not an approved delegate module");
         bytes4 selector = bytes4(data[:4]);
         validator.validate(address(this), to, selector, data);
         (bool success, bytes memory response) = to.delegatecall(data);
-        require(success, "Vault: external call failed");
+        require(success, "Vault: delegate call failed");
         return response;
     }
 
@@ -161,10 +163,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             ).tvl(address(this), tvlModuleParams[modules[i]]);
             uint256 index = 0;
             for (uint256 j = 0; j < tokens_.length; j++) {
-                while (index < tokens.length && tokens[index] < tokens_[j])
+                while (index < tokens.length && tokens[index] != tokens_[j])
                     index++;
                 if (index == tokens.length) revert("Vault: invalid token");
-                amounts[index] += amounts_[j];
+                amounts[index++] += amounts_[j];
             }
         }
     }

@@ -50,6 +50,7 @@ contract ChainlinkOracle is IOracle, DefaultAccessControl {
     }
 
     function priceX96(address token) external view returns (uint256 priceX96_) {
+        if (token == baseToken) return Q96;
         (uint256 tokenPrice, uint8 decimals) = getPrice(token);
         (uint256 baseTokenPrice, uint8 baseDecimals) = getPrice(baseToken);
         priceX96_ = FullMath.mulDiv(

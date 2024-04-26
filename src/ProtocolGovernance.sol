@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./interfaces/IProtocolGovernance.sol";
 
 import "./utils/DefaultAccessControl.sol";
 
-contract ProtocolGovernance is ReentrancyGuard, DefaultAccessControl {
+contract ProtocolGovernance is
+    IProtocolGovernance,
+    ReentrancyGuard,
+    DefaultAccessControl
+{
     uint256 public constant MAX_GOVERNANCE_DELAY = 30 days;
     uint256 public constant MAX_WITHDRAWAL_FEE = 5e7; // 5%
 
@@ -13,8 +17,11 @@ contract ProtocolGovernance is ReentrancyGuard, DefaultAccessControl {
     uint256 public governanceDelayStageTimestamp;
     uint256 public stagedGovernanceDelay;
 
-    mapping(address => uint256) public delegateModulesStageTimestamps;
-    mapping(address => bool) public approvedDelegateModules;
+    mapping(address => uint256) public delegateModulesApprovalStageTimestamp;
+    mapping(address => bool) public isDelegateModuleApproved;
+
+    mapping(address => uint256) public externalCallsApprovalStageTimestamp;
+    mapping(address => bool) public isExternalCallsApprovedFor;
 
     mapping(address => uint256) public stagedMaxTotalSupply;
     mapping(address => uint256) public stagedMaxTotalSupplyTimestamp;
@@ -55,27 +62,53 @@ contract ProtocolGovernance is ReentrancyGuard, DefaultAccessControl {
     function stageDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        delegateModulesStageTimestamps[module] = block.timestamp;
+        delegateModulesApprovalStageTimestamp[module] = block.timestamp;
     }
 
     function commitDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        _validateTimestamp(delegateModulesStageTimestamps[module]);
-        approvedDelegateModules[module] = true;
-        delete delegateModulesStageTimestamps[module];
+        _validateTimestamp(delegateModulesApprovalStageTimestamp[module]);
+        isDelegateModuleApproved[module] = true;
+        delete delegateModulesApprovalStageTimestamp[module];
     }
 
     function rollbackStagedDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        delete delegateModulesStageTimestamps[module];
+        delete delegateModulesApprovalStageTimestamp[module];
     }
 
     function revokeDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        delete approvedDelegateModules[module];
+        delete isDelegateModuleApproved[module];
+    }
+
+    function stageExternalCallsApprovalFor(
+        address target
+    ) external onlyAdmin nonReentrant {
+        externalCallsApprovalStageTimestamp[target] = block.timestamp;
+    }
+
+    function commitExternalCallsApprovalFor(
+        address target
+    ) external onlyAdmin nonReentrant {
+        _validateTimestamp(externalCallsApprovalStageTimestamp[target]);
+        isExternalCallsApprovedFor[target] = true;
+        delete externalCallsApprovalStageTimestamp[target];
+    }
+
+    function rollbackStagedExternalCallsApprovalFor(
+        address target
+    ) external onlyAdmin nonReentrant {
+        delete externalCallsApprovalStageTimestamp[target];
+    }
+
+    function revokeExternalCallsApprovalFor(
+        address target
+    ) external onlyAdmin nonReentrant {
+        delete isExternalCallsApprovedFor[target];
     }
 
     function stageMaximalTotalSupply(

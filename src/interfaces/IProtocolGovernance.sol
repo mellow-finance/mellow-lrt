@@ -11,10 +11,11 @@ interface IProtocolGovernance {
     function governanceDelayStageTimestamp() external view returns (uint256);
     function stagedGovernanceDelay() external view returns (uint256);
 
-    function delegateModulesStageTimestamps(
+    function delegateModulesApprovalStageTimestamp(
         address
     ) external view returns (uint256);
-    function approvedDelegateModules(address) external view returns (bool);
+    function isDelegateModuleApproved(address) external view returns (bool);
+    function isExternalCallsApprovedFor(address) external view returns (bool);
 
     function stagedMaxTotalSupply(address) external view returns (uint256);
     function stagedMaxTotalSupplyTimestamp(
@@ -45,6 +46,12 @@ interface IProtocolGovernance {
 
     function rollbackStagedDelegateModuleApproval(address module) external;
     function revokeDelegateModuleApproval(address module) external;
+
+    function stageExternalCallsApprovalFor(address target) external;
+    function commitExternalCallsApprovalFor(address target) external;
+    function rollbackStagedExternalCallsApprovalFor(address target) external;
+    function revokeExternalCallsApprovalFor(address target) external;
+
     function stageMaximalTotalSupply(
         address vault,
         uint256 totalSupply
