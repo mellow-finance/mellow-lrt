@@ -13,7 +13,7 @@ contract ManagedValidator is IValidator {
         uint256 publicRoles;
         mapping(address => uint256) allowAllSignaturesRoles;
         mapping(address => mapping(bytes4 => uint256)) allowSignatureRoles;
-        mapping(bytes32 => address) customValidator;
+        mapping(address => address) customValidator;
     }
 
     uint256 public constant ADMIN_ROLE_MASK = 1 << 255;
@@ -85,23 +85,10 @@ contract ManagedValidator is IValidator {
 
     function setCustomValidator(
         address contractAddress,
-        bytes4 signature,
         address validator
     ) external authorized {
         Storage storage ds = _contractStorage();
-        ds.customValidator[
-            keccak256(abi.encodePacked(contractAddress, signature))
-        ] = validator;
-    }
-
-    function revokeCustomValidator(
-        address contractAddress,
-        bytes4 signature
-    ) external authorized {
-        Storage storage ds = _contractStorage();
-        delete ds.customValidator[
-            keccak256(abi.encodePacked(contractAddress, signature))
-        ];
+        ds.customValidator[contractAddress] = validator;
     }
 
     function grantContractRole(
@@ -167,9 +154,7 @@ contract ManagedValidator is IValidator {
         bytes memory data
     ) external view {
         requirePermission(from, to, selector);
-        address validator = _contractStorage().customValidator[
-            keccak256(abi.encodePacked(to, selector))
-        ];
+        address validator = _contractStorage().customValidator[to];
         if (validator == address(0)) return;
         IValidator(validator).validate(from, to, selector, data);
     }

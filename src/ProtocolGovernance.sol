@@ -164,6 +164,7 @@ contract ProtocolGovernance is
     function stageDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
+        if (module == address(0)) revert("ProtocolGovernance: address zero");
         _stage(_isDelegateModuleApproved[module], bytes32(uint256(1)));
     }
 
@@ -188,6 +189,7 @@ contract ProtocolGovernance is
     function stageExternalCallsApprovalFor(
         address target
     ) external onlyAdmin nonReentrant {
+        if (target == address(0)) revert("ProtocolGovernance: address zero");
         _stage(_isExternalCallsApprovedFor[target], bytes32(uint256(1)));
     }
 
@@ -213,6 +215,7 @@ contract ProtocolGovernance is
         address vault,
         uint256 maximalTotalSupply_
     ) external onlyAdmin nonReentrant {
+        if (vault == address(0)) revert("ProtocolGovernance: address zero");
         _stage(_maxTotalSupply[vault], bytes32(maximalTotalSupply_));
     }
 
@@ -232,6 +235,8 @@ contract ProtocolGovernance is
         address vault,
         address callback
     ) external onlyAdmin nonReentrant {
+        if (callback == address(0) || vault == address(0))
+            revert("ProtocolGovernance: address zero");
         _stage(_depositCallback[vault], bytes32(bytes20(callback)));
     }
 
@@ -257,6 +262,8 @@ contract ProtocolGovernance is
         address vault,
         address callback
     ) external onlyAdmin nonReentrant {
+        if (callback == address(0) || vault == address(0))
+            revert("ProtocolGovernance: address zero");
         _stage(_withdrawalCallback[vault], bytes32(bytes20(callback)));
     }
 
@@ -298,6 +305,7 @@ contract ProtocolGovernance is
         address vault,
         uint256 feeD9
     ) external onlyAdmin nonReentrant {
+        if (vault == address(0)) revert("ProtocolGovernance: invalid vault");
         if (feeD9 > MAX_WITHDRAWAL_FEE)
             revert("ProtocolGovernance: fee is too high");
         _stage(_withdrawalFeeD9[vault], bytes32(feeD9));

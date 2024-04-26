@@ -22,8 +22,16 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
         vault = vault_;
     }
 
+    /*
+        deletageCall(to, selector, data)
+
+        validate(to) = protocolGovernance.isApprovedDelegateModule(to)
+        validate(to, selector) = validator.validate(vault, to, selector)
+        validate(to, selector, data) = validator.customValidator((to, selector)).validate(vault, to, selector, data)
+    */
+
     function _deposit() private {
-        // TODO: fix
+        // TODO: fix for multiple tokens to bond situation
         (address[] memory tokens, uint256[] memory amounts) = erc20TvlModule
             .tvl(address(vault), new bytes(0));
         address[] memory bonds = supportedBonds;
