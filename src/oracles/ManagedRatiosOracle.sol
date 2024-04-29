@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../interfaces/oracles/IRatiosOracle.sol";
-import "../interfaces/vaults/IRootVault.sol";
+import "../interfaces/IVault.sol";
 
 import "../utils/DefaultAccessControl.sol";
 
@@ -29,7 +29,7 @@ contract ManagedRatiosOracle is IRatiosOracle, DefaultAccessControl {
     function getTargetRatiosX96(
         address rootVault
     ) external view returns (uint256[] memory ratiosX96) {
-        address[] memory tokens = IRootVault(rootVault).tokens();
+        address[] memory tokens = IVault(rootVault).underlyingTokens();
         uint256 cumulativeWeight = 0;
         uint256[] memory weights = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {

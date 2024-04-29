@@ -1,68 +1,40 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
-import "./interfaces/modules/ITvlModule.sol";
-import "./interfaces/validators/IValidator.sol";
-
-import "./interfaces/oracles/IOracle.sol";
-import "./interfaces/oracles/IRatiosOracle.sol";
-
-import "./interfaces/utils/IDepositCallback.sol";
-import "./interfaces/utils/IWithdrawalCallback.sol";
+import "./interfaces/IVault.sol";
 
 import "./utils/DefaultAccessControl.sol";
 
 import "./libraries/external/FullMath.sol";
 
-import "./ProtocolGovernance.sol";
-
-contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
+contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
-    struct WithdrawalRequest {
-        address to;
-        uint256 lpAmount;
-        uint256 deadline;
-        address[] tokens;
-        uint256[] minAmounts;
-    }
-
-    // for stack reduction
-    struct ProcessWithdrawalsStorage {
-        uint256 totalValue;
-        uint256 x96Value;
-        uint256[] ratiosX96;
-        uint256[] amounts;
-    }
-
     uint256 public constant Q96 = 2 ** 96;
     uint256 public constant D9 = 1e9;
-    uint256 public constant MAX_WITHDRAWAL_FEE_D9 = 5e7; // 5%
 
     IRatiosOracle public immutable ratiosOracle;
     IOracle public immutable oracle;
     IValidator public immutable validator;
-    ProtocolGovernance public immutable protocolGovernance;
+    IProtocolGovernance public immutable protocolGovernance;
 
-    uint256 public withdrawalFeeD9;
     mapping(address => bytes) public tvlModuleParams;
-    mapping(address => WithdrawalRequest) public withdrawalRequest;
 
+    mapping(address => WithdrawalRequest) private _withdrawalRequest;
+
+    address[] private _underlyingTokens;
+    EnumerableSet.AddressSet private _withdrawers;
     EnumerableSet.AddressSet private _tvlModules;
-    EnumerableSet.AddressSet private _underlyingTokens;
+    EnumerableSet.AddressSet private _underlyingTokensSet;
 
     modifier onlyManager() {
-        require(isOperator(msg.sender), "Forbidden");
+        if (!isOperator(msg.sender)) revert Forbidden();
         _;
     }
 
     modifier onlyAdmin() {
-        require(isAdmin(msg.sender), "Forbidden");
+        if (!isAdmin(msg.sender)) revert Forbidden();
         _;
     }
 
@@ -75,44 +47,65 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         address oracle_,
         address validator_
     ) ERC20(name_, symbol_) DefaultAccessControl(admin) {
-        if (ratiosOracle_ == address(0)) revert("Invalid ratios oracle");
-        if (oracle_ == address(0)) revert("Invalid oracle");
-        if (validator_ == address(0)) revert("Invalid validator");
-        if (protocolGovernance_ == address(0))
-            revert("Invalid protocol governance");
+        if (ratiosOracle_ == address(0)) revert AddressZero();
+        if (oracle_ == address(0)) revert AddressZero();
+        if (validator_ == address(0)) revert AddressZero();
+        if (protocolGovernance_ == address(0)) revert AddressZero();
         ratiosOracle = IRatiosOracle(ratiosOracle_);
         oracle = IOracle(oracle_);
         validator = IValidator(validator_);
-        protocolGovernance = ProtocolGovernance(protocolGovernance_);
+        protocolGovernance = IProtocolGovernance(protocolGovernance_);
     }
 
     function addToken(address token) external onlyAdmin nonReentrant {
-        _underlyingTokens.add(token);
+        if (_underlyingTokensSet.contains(token)) return;
+        _underlyingTokensSet.add(token);
+        address[] storage tokens = _underlyingTokens;
+        tokens.push(token);
+        uint256 n = tokens.length;
+        uint256 index = 0;
+        for (uint256 i = 1; i < n; i++) {
+            address token_ = tokens[n - 1 - i];
+            if (token_ < token) {
+                index = n - i;
+                break;
+            }
+            tokens[n - i] = token_;
+        }
+        if (index < n - 1) tokens[index] = token;
     }
 
     function removeToken(address token) external onlyAdmin nonReentrant {
+        if (!_underlyingTokensSet.contains(token)) revert InvalidToken();
         (address[] memory tokens, uint256[] memory amounts) = tvl();
         uint256 index = tokens.length;
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i] == token) {
-                if (amounts[i] != 0) revert("Token has non-zero balance");
+                if (amounts[i] != 0) revert NonZeroValue();
                 index = i;
                 break;
             }
         }
-        if (index == tokens.length) revert("Token not found");
-        _underlyingTokens.remove(token);
-    }
-
-    function setWithdrawalFeeD9(uint256 fee) external onlyAdmin nonReentrant {
-        if (fee > MAX_WITHDRAWAL_FEE_D9) revert("Invalid fee");
-        withdrawalFeeD9 = fee;
+        _underlyingTokensSet.remove(token);
+        while (index + 1 < tokens.length) {
+            _underlyingTokens[index] = tokens[index + 1];
+            index++;
+        }
+        _underlyingTokens.pop();
     }
 
     function setTvlModule(
         address module,
         bytes memory params
     ) external onlyAdmin nonReentrant {
+        (address[] memory tokens, uint256[] memory amounts) = ITvlModule(module)
+            .tvl(address(this), params);
+        if (tokens.length != amounts.length) revert InvalidState();
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (!_underlyingTokensSet.contains(tokens[i]))
+                revert InvalidToken();
+            if (i > 0 && tokens[i] <= tokens[i - 1]) revert InvalidState();
+        }
         _tvlModules.add(module);
         tvlModuleParams[module] = params;
     }
@@ -127,35 +120,38 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         address to,
         bytes calldata data
     ) external onlyManager nonReentrant returns (bytes memory) {
-        if (protocolGovernance.approvedDelegateModules(to))
-            revert("Module is an approved delegate module");
-        bytes4 selector = bytes4(data[:4]);
-        validator.validate(address(this), to, selector, data);
+        if (protocolGovernance.isDelegateModuleApproved(to)) revert Forbidden();
+        if (protocolGovernance.isExternalCallsApproved(address(this)))
+            revert Forbidden();
+        validator.validate(address(this), to, data);
         (bool success, bytes memory response) = to.call(data);
-        require(success, "Vault: external call failed");
+        if (!success) revert InvalidState();
         return response;
     }
 
+    /// @dev can be called in depositCallback or withdrawCallback
     function delegateCall(
         address to,
         bytes calldata data
-    ) external onlyManager nonReentrant returns (bytes memory) {
-        if (!protocolGovernance.approvedDelegateModules(to))
-            revert("Module is not an approved delegate module");
-        bytes4 selector = bytes4(data[:4]);
-        validator.validate(address(this), to, selector, data);
+    ) external onlyManager returns (bytes memory) {
+        if (!protocolGovernance.isDelegateModuleApproved(to))
+            revert Forbidden();
+        validator.validate(address(this), to, data);
         (bool success, bytes memory response) = to.delegatecall(data);
-        require(success, "Vault: external call failed");
+        if (!success) revert InvalidState();
         return response;
     }
 
-    function findToken(
-        address[] memory array,
-        address value
-    ) public pure returns (uint256 index) {
-        for (uint256 i = 0; i < array.length; i++)
-            if (array[i] == value) return i;
-        return array.length;
+    function tvlModules() external view returns (address[] memory) {
+        return _tvlModules.values();
+    }
+
+    function underlyingTokens() external view returns (address[] memory) {
+        return _underlyingTokens;
+    }
+
+    function withdrawers() external view returns (address[] memory) {
+        return _withdrawers.values();
     }
 
     function tvl()
@@ -163,28 +159,33 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         view
         returns (address[] memory tokens, uint256[] memory amounts)
     {
-        tokens = _underlyingTokens.values();
+        tokens = _underlyingTokens;
+        amounts = new uint256[](tokens.length);
         address[] memory modules = _tvlModules.values();
         for (uint256 i = 0; i < modules.length; i++) {
             (address[] memory tokens_, uint256[] memory amounts_) = ITvlModule(
                 modules[i]
             ).tvl(address(this), tvlModuleParams[modules[i]]);
+            uint256 index = 0;
             for (uint256 j = 0; j < tokens_.length; j++) {
-                uint256 index = findToken(tokens, tokens_[j]);
-                if (index == tokens.length) revert("Invalid token");
-                amounts[index] += amounts_[j];
+                while (index < tokens.length && tokens[index] != tokens_[j])
+                    index++;
+                if (index == tokens.length) revert InvalidToken();
+                amounts[index++] += amounts_[j];
             }
         }
     }
 
     function deposit(
         uint256[] memory amounts,
-        uint256 minLpAmount
+        uint256 minLpAmount,
+        uint256 deadline
     )
         external
         nonReentrant
         returns (uint256[] memory actualAmounts, uint256 lpAmount)
     {
+        if (block.timestamp > deadline) revert Deadline();
         (address[] memory tokens, uint256[] memory totalAmounts) = tvl();
         uint256[] memory ratiosX96 = ratiosOracle.getTargetRatiosX96(
             address(this)
@@ -199,7 +200,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
 
         uint256 depositValue = 0;
         uint256 totalValue = 0;
-
+        actualAmounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             if (ratiosX96[i] == 0) continue;
             uint256 amount = FullMath.mulDiv(ratioX96, ratiosX96[i], Q96);
@@ -212,13 +213,20 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         }
 
         uint256 totalSupply = totalSupply();
-        lpAmount = FullMath.mulDiv(depositValue, totalSupply, totalValue);
+        address to;
+        if (totalSupply == 0) {
+            lpAmount = minLpAmount;
+            to = address(this);
+        } else {
+            lpAmount = FullMath.mulDiv(depositValue, totalSupply, totalValue);
+            if (lpAmount < minLpAmount) revert InsufficientLpAmount();
+            to = msg.sender;
+        }
         if (
             lpAmount + totalSupply >
-            protocolGovernance.maxTotalSupply(address(this))
-        ) revert("Max total supply exceeded");
-        if (lpAmount < minLpAmount) revert("Insufficient LP amount");
-        _mint(msg.sender, lpAmount);
+            protocolGovernance.maximalTotalSupply(address(this))
+        ) revert LimitOverflow();
+        _mint(to, lpAmount);
 
         address callback = protocolGovernance.depositCallback(address(this));
         if (callback != address(0)) {
@@ -228,9 +236,10 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
 
     function closeWithdrawalRequest() external nonReentrant {
         address sender = msg.sender;
-        WithdrawalRequest memory request = withdrawalRequest[sender];
+        WithdrawalRequest memory request = _withdrawalRequest[sender];
         if (request.lpAmount == 0) return;
-        delete withdrawalRequest[sender];
+        delete _withdrawalRequest[sender];
+        _withdrawers.remove(sender);
         _transfer(address(this), sender, request.lpAmount);
     }
 
@@ -240,29 +249,33 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256[] memory minAmounts,
         uint256 deadline
     ) external nonReentrant {
-        if (deadline < block.timestamp) revert("Deadline");
-        if (withdrawalRequest[msg.sender].lpAmount != 0) {
-            revert("Withdrawal request already exists");
-        }
+        if (deadline < block.timestamp) revert Deadline();
+        if (_withdrawalRequest[msg.sender].lpAmount != 0) revert InvalidState();
         {
             uint256 balance = balanceOf(msg.sender);
             if (lpAmount > balance) lpAmount = balance;
         }
         if (lpAmount == 0) return;
 
-        address[] memory tokens = _underlyingTokens.values();
-        if (tokens.length != minAmounts.length)
-            revert("Invalid minAmounts length");
+        address[] memory tokens = _underlyingTokens;
+        if (tokens.length != minAmounts.length) revert InvalidLength();
 
         _transfer(msg.sender, address(this), lpAmount);
 
-        withdrawalRequest[msg.sender] = WithdrawalRequest({
+        _withdrawalRequest[msg.sender] = WithdrawalRequest({
             to: to,
             lpAmount: lpAmount,
             tokens: tokens,
             minAmounts: minAmounts,
             deadline: deadline
         });
+        _withdrawers.add(msg.sender);
+    }
+
+    function withdrawalRequest(
+        address user
+    ) external view returns (WithdrawalRequest memory) {
+        return _withdrawalRequest[user];
     }
 
     function processWithdrawals(
@@ -286,7 +299,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 timestamp = block.timestamp;
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
-            WithdrawalRequest memory request = withdrawalRequest[user];
+            WithdrawalRequest memory request = _withdrawalRequest[user];
             if (
                 request.tokens.length != tokens.length ||
                 request.lpAmount == 0 ||
@@ -300,7 +313,7 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
             );
             withdrawalValue = FullMath.mulDiv(
                 withdrawalValue,
-                D9 - withdrawalFeeD9,
+                D9 - protocolGovernance.withdrawalFeeD9(address(this)),
                 D9
             );
 
@@ -340,8 +353,9 @@ contract Vault is ERC20, DefaultAccessControl, ReentrancyGuard {
             }
 
             _burn(address(this), request.lpAmount);
-            delete withdrawalRequest[user];
+            delete _withdrawalRequest[user];
             statuses[i] = true;
+            _withdrawers.remove(user);
         }
 
         address callback = protocolGovernance.withdrawalCallback(address(this));

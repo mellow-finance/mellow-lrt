@@ -13,6 +13,7 @@ contract ManagedValidator is IValidator {
         uint256 publicRoles;
         mapping(address => uint256) allowAllSignaturesRoles;
         mapping(address => mapping(bytes4 => uint256)) allowSignatureRoles;
+        mapping(address => address) customValidator;
     }
 
     uint256 public constant ADMIN_ROLE_MASK = 1 << 255;
@@ -82,6 +83,14 @@ contract ManagedValidator is IValidator {
         ds.userRoles[user] &= ~(1 << role);
     }
 
+    function setCustomValidator(
+        address contractAddress,
+        address validator
+    ) external authorized {
+        Storage storage ds = _contractStorage();
+        ds.customValidator[contractAddress] = validator;
+    }
+
     function grantContractRole(
         address contractAddress,
         uint8 role
@@ -141,9 +150,12 @@ contract ManagedValidator is IValidator {
     function validate(
         address from,
         address to,
-        bytes4 selector,
-        bytes memory
+        bytes calldata data
     ) external view {
-        requirePermission(from, to, selector);
+        if (data.length < 4) revert("ManagedValidator: invalid data");
+        requirePermission(from, to, bytes4(data[:4]));
+        address validator = _contractStorage().customValidator[to];
+        if (validator == address(0)) return;
+        IValidator(validator).validate(from, to, data);
     }
 }
