@@ -19,7 +19,7 @@ import "../../src/oracles/ChainlinkOracle.sol";
 import "../../src/oracles/ManagedRatiosOracle.sol";
 import "../../src/modules/deposit/symbiotic/DefaultBondDepositModule.sol";
 import "../../src/modules/tvl/erc20/ERC20TvlModule.sol";
-import "../../src/modules/tvl/symbiotic/SymbioticBondTvlModule.sol";
+import "../../src/modules/tvl/symbiotic/DefaultBondTvlModule.sol";
 import "../../src/modules/withdraw/symbiotic/DefaultBondWithdrawalModule.sol";
 
 import "../../src/libraries/external/FullMath.sol";
@@ -33,6 +33,8 @@ library Constants {
         address(bytes20(keccak256("PROTOCOL_GOVERNANCE_ADMIN")));
     address public constant DEPOSITOR =
         address(bytes20(keccak256("DEPOSITOR")));
+
+    uint8 public constant DEFAULT_BOND_ROLE = 1;
 
     address public constant STETH =
         address(0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84);

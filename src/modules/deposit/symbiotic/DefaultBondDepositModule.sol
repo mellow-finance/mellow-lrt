@@ -11,7 +11,7 @@ contract DefaultBondDepositModule is IMutableModule {
 
     function deposit(address bond, uint256 amount) external {
         if (amount == 0) return;
-        IERC20(bond).safeIncreaseAllowance(address(this), amount);
+        IERC20(IBond(bond).asset()).safeIncreaseAllowance(bond, amount);
         IDefaultBond(bond).deposit(address(this), amount);
     }
 

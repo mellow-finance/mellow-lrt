@@ -6,7 +6,7 @@ import "./Fixture.sol";
 contract Integration is Fixture {
     using SafeERC20 for IERC20;
 
-    function test() external {
+    function _initializeVault() private {
         vm.startPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
 
         address[] memory tokens = new address[](1);
@@ -22,24 +22,56 @@ contract Integration is Fixture {
         );
         protocolGovernance.commitMaximalTotalSupply(address(vault));
 
+        protocolGovernance.stageDelegateModuleApproval(
+            address(bondDepositModule)
+        );
+        protocolGovernance.stageDelegateModuleApproval(
+            address(bondWithdrawalModule)
+        );
+        protocolGovernance.commitDelegateModuleApproval(
+            address(bondDepositModule)
+        );
+        protocolGovernance.commitDelegateModuleApproval(
+            address(bondWithdrawalModule)
+        );
+
+        validator.grantRole(address(vault), Constants.DEFAULT_BOND_ROLE);
+        validator.grantContractRole(
+            address(bondDepositModule),
+            Constants.DEFAULT_BOND_ROLE
+        );
+        validator.grantContractRole(
+            address(bondWithdrawalModule),
+            Constants.DEFAULT_BOND_ROLE
+        );
+
         newPrank(Constants.VAULT_ADMIN);
         vault.addToken(Constants.STETH);
         vault.setTvlModule(address(erc20TvlModule), new bytes(0));
+        address[] memory bonds = new address[](1);
+        bonds[0] = address(stethDefaultBond);
+        vault.setTvlModule(
+            address(bondTvlModule),
+            abi.encode(DefaultBondTvlModule.Params({bonds: bonds}))
+        );
 
         // initial deposit
         newPrank(address(this));
         mintSteth(address(this), 10 ether);
         mintSteth(Constants.DEPOSITOR, 10 ether);
-        {
-            uint256 amount = 10 gwei;
-            IERC20(Constants.STETH).safeIncreaseAllowance(
-                address(vault),
-                amount
-            );
-            uint256[] memory amounts = new uint256[](1);
-            amounts[0] = amount;
-            vault.deposit(amounts, amount);
-        }
+    }
+
+    function _initialDeposit() private {
+        uint256 amount = 10 gwei;
+        IERC20(Constants.STETH).safeIncreaseAllowance(address(vault), amount);
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = amount;
+        vault.deposit(amounts, amount);
+    }
+
+    function testPrimitiveOperations() external {
+        _initializeVault();
+        _initialDeposit();
 
         // normal deposit
         newPrank(Constants.DEPOSITOR);
@@ -84,6 +116,58 @@ contract Integration is Fixture {
         newPrank(Constants.VAULT_ADMIN);
         vm.expectRevert("Vault: token has non-zero balance");
         vault.removeToken(Constants.STETH);
+
+        vm.stopPrank();
+        // assert(false);
+    }
+
+    function testDepositCallback() external {
+        _initializeVault();
+
+        DefaultBondStrategy strategy = new DefaultBondStrategy(
+            Constants.PROTOCOL_GOVERNANCE_ADMIN,
+            vault,
+            erc20TvlModule,
+            bondDepositModule,
+            bondWithdrawalModule
+        );
+
+        newPrank(Constants.VAULT_ADMIN);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
+        vault.grantRole(vault.OPERATOR(), address(strategy));
+
+        newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
+
+        {
+            DefaultBondStrategy.Data[]
+                memory data = new DefaultBondStrategy.Data[](1);
+            data[0] = DefaultBondStrategy.Data({
+                bond: address(stethDefaultBond),
+                ratioX96: Q96
+            });
+            strategy.setData(Constants.STETH, data);
+        }
+        protocolGovernance.stageDepositCallback(
+            address(vault),
+            address(strategy)
+        );
+        protocolGovernance.commitDepositCallback(address(vault));
+
+        newPrank(address(this));
+        _initialDeposit();
+
+        // normal deposit
+        newPrank(Constants.DEPOSITOR);
+        {
+            uint256 amount = 10 ether;
+            IERC20(Constants.STETH).safeIncreaseAllowance(
+                address(vault),
+                amount
+            );
+            uint256[] memory amounts = new uint256[](1);
+            amounts[0] = amount;
+            vault.deposit(amounts, amount);
+        }
 
         vm.stopPrank();
         // assert(false);

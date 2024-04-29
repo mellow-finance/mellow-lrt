@@ -8,7 +8,7 @@ import "../../../interfaces/external/symbiotic/IBond.sol";
 import "../../../interfaces/modules/ITvlModule.sol";
 import "../../../interfaces/IVault.sol";
 
-contract SymbioticBondTvlModule is ITvlModule {
+contract DefaultBondTvlModule is ITvlModule {
     struct Params {
         address[] bonds;
     }

@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import "./Constants.sol";
 
+import "./mocks/DefaultBondMock.sol";
+
 contract Fixture is Test {
     using SafeERC20 for IERC20;
 
@@ -16,7 +18,13 @@ contract Fixture is Test {
     SymbioticBondValidator public customValidator;
     Vault public vault;
 
+    DefaultBondDepositModule public bondDepositModule;
+    DefaultBondWithdrawalModule public bondWithdrawalModule;
+    DefaultBondTvlModule public bondTvlModule;
+
     ERC20TvlModule public erc20TvlModule;
+
+    DefaultBondMock public stethDefaultBond;
 
     function mintSteth(address user, uint256 amount) public {
         deal(address(this), amount + 1);
@@ -44,6 +52,12 @@ contract Fixture is Test {
         customValidator = new SymbioticBondValidator(
             Constants.PROTOCOL_GOVERNANCE_ADMIN
         );
+
+        bondDepositModule = new DefaultBondDepositModule();
+        bondWithdrawalModule = new DefaultBondWithdrawalModule();
+        bondTvlModule = new DefaultBondTvlModule();
+
+        stethDefaultBond = new DefaultBondMock(Constants.STETH);
 
         erc20TvlModule = new ERC20TvlModule();
 
