@@ -16,9 +16,12 @@ contract DefaultBondMock is IDefaultBond, ERC20 {
         address recipient,
         uint256 amount
     ) external returns (uint256) {
+        uint256 balanceBefore = IERC20(asset).balanceOf(address(this));
         IERC20(asset).transferFrom(msg.sender, address(this), amount);
-        _mint(recipient, amount);
-        return amount;
+        uint256 lpAmount = IERC20(asset).balanceOf(address(this)) -
+            balanceBefore;
+        _mint(recipient, lpAmount);
+        return lpAmount;
     }
 
     function deposit(

@@ -169,6 +169,46 @@ contract Integration is Fixture {
             vault.deposit(amounts, amount);
         }
 
+        console2.log(
+            "Depositor balances before:",
+            vault.balanceOf(Constants.DEPOSITOR),
+            IERC20(Constants.STETH).balanceOf(Constants.DEPOSITOR)
+        );
+
+        vault.registerWithdrawal(
+            Constants.DEPOSITOR,
+            vault.balanceOf(Constants.DEPOSITOR) / 2,
+            new uint256[](1),
+            type(uint256).max
+        );
+
+        newPrank(Constants.VAULT_ADMIN);
+        {
+            address[] memory users = new address[](1);
+            users[0] = Constants.DEPOSITOR;
+            bool[] memory statuses = vault.processWithdrawals(users);
+
+            console2.log("Withdrawal status:", vm.toString(statuses[0]));
+            // assertFalse(statuses[0]);
+        }
+
+        newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
+        strategy.processAll();
+
+        newPrank(Constants.VAULT_ADMIN);
+        {
+            address[] memory users = new address[](1);
+            users[0] = Constants.DEPOSITOR;
+            bool[] memory statuses = vault.processWithdrawals(users);
+            console2.log("Withdrawal status:", vm.toString(statuses[0]));
+        }
+
+        console2.log(
+            "Depositor balances after:",
+            vault.balanceOf(Constants.DEPOSITOR),
+            IERC20(Constants.STETH).balanceOf(Constants.DEPOSITOR)
+        );
+
         vm.stopPrank();
         // assert(false);
     }
