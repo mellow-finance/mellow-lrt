@@ -31,9 +31,7 @@ contract DefaultBondMock is IDefaultBond, ERC20 {
         uint8,
         bytes32,
         bytes32
-    ) external pure returns (uint256) {
-        revert("Not implemented");
-    }
+    ) external pure returns (uint256) {}
 
     function withdraw(address recipient, uint256 amount) external {
         _burn(msg.sender, amount);
@@ -47,6 +45,7 @@ contract DefaultBondMock is IDefaultBond, ERC20 {
     function recipientRepaidDebt(address) external pure returns (uint256) {}
 
     function repaidDebt(address, address) external pure returns (uint256) {}
+
     function totalDebt() external pure returns (uint256) {}
 
     function issuerDebt(address) external pure returns (uint256) {}

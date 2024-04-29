@@ -132,7 +132,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         if (protocolGovernance.isExternalCallsApprovedFor(address(this)))
             revert("Vault: external calls are disabled");
         bytes4 selector = bytes4(data[:4]);
-        validator.validate(address(this), to, selector, data);
+        validator.validate(address(this), to, selector, data[4:]);
         (bool success, bytes memory response) = to.call(data);
         require(success, "Vault: external call failed");
         return response;
@@ -146,7 +146,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         if (!protocolGovernance.isDelegateModuleApproved(to))
             revert("Vault: module is not an approved delegate module");
         bytes4 selector = bytes4(data[:4]);
-        validator.validate(address(this), to, selector, data);
+        validator.validate(address(this), to, selector, data[4:]);
         (bool success, bytes memory response) = to.delegatecall(data);
         require(success, "Vault: delegate call failed");
         return response;

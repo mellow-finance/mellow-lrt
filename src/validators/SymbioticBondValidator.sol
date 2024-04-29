@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/utils/Strings.sol";
+
 import "../interfaces/validators/IValidator.sol";
 import "../utils/DefaultAccessControl.sol";
 
@@ -32,7 +34,15 @@ contract SymbioticBondValidator is IValidator, DefaultAccessControl {
             selector == DefaultBondDepositModule.deposit.selector ||
             selector == DefaultBondWithdrawalModule.withdraw.selector
         ) {
-            if (data.length != 64) revert("Invalid length. Need to validate");
+            if (data.length != 0x40)
+                revert(
+                    string(
+                        abi.encodePacked(
+                            "Invalid length. Need to validate: ",
+                            Strings.toString(data.length)
+                        )
+                    )
+                );
             (address bond, uint256 amount) = abi.decode(
                 data,
                 (address, uint256)

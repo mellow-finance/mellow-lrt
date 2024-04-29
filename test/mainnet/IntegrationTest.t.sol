@@ -44,6 +44,15 @@ contract Integration is Fixture {
             address(bondWithdrawalModule),
             Constants.DEFAULT_BOND_ROLE
         );
+        validator.setCustomValidator(
+            address(bondDepositModule),
+            address(customValidator)
+        );
+        validator.setCustomValidator(
+            address(bondWithdrawalModule),
+            address(customValidator)
+        );
+        customValidator.addSupported(address(stethDefaultBond));
 
         newPrank(Constants.VAULT_ADMIN);
         vault.addToken(Constants.STETH);
