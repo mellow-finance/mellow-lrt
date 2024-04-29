@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "../interfaces/validators/IValidator.sol";
 import "../utils/DefaultAccessControl.sol";
 
-import "../modules/deposit/symbiotic/DefaultBondDepositModule.sol";
-import "../modules/withdraw/symbiotic/DefaultBondWithdrawalModule.sol";
+import "../modules/symbiotic/DefaultBondDepositModule.sol";
+import "../modules/symbiotic/DefaultBondWithdrawalModule.sol";
 
 contract SymbioticBondValidator is IValidator, DefaultAccessControl {
     constructor(address admin) DefaultAccessControl(admin) {}

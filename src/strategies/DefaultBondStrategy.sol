@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/utils/IDepositCallback.sol";
 
-import "../modules/tvl/erc20/ERC20TvlModule.sol";
-import "../modules/deposit/symbiotic/DefaultBondDepositModule.sol";
-import "../modules/withdraw/symbiotic/DefaultBondWithdrawalModule.sol";
+import "../interfaces/modules/erc20/IERC20TvlModule.sol";
+import "../interfaces/modules/symbiotic/IDefaultBondDepositModule.sol";
+import "../interfaces/modules/symbiotic/IDefaultBondWithdrawalModule.sol";
 
 import "../libraries/external/FullMath.sol";
 
@@ -24,15 +24,15 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
     mapping(address => bytes) public tokenToData;
 
     ERC20TvlModule public immutable erc20TvlModule;
-    DefaultBondDepositModule public immutable depositModule;
-    DefaultBondWithdrawalModule public immutable withdrawalModule;
+    IDefaultBondDepositModule public immutable depositModule;
+    IDefaultBondWithdrawalModule public immutable withdrawalModule;
 
     constructor(
         address admin,
         IVault vault_,
-        ERC20TvlModule erc20TvlModule_,
-        DefaultBondDepositModule depositModule_,
-        DefaultBondWithdrawalModule withdrawalModule_
+        IERC20TvlModule erc20TvlModule_,
+        IDefaultBondDepositModule depositModule_,
+        IDefaultBondWithdrawalModule withdrawalModule_
     ) DefaultAccessControl(admin) {
         vault = vault_;
         erc20TvlModule = erc20TvlModule_;
@@ -42,12 +42,10 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
 
     function setData(address token, Data[] memory data) external {
         _requireAdmin();
-        if (token == address(0))
-            revert("DefaultBondStrategy: token address is 0");
+        if (token == address(0)) revert AddressZero();
         uint256 cumulativeRatio = 0;
         for (uint256 i = 0; i < data.length; i++) {
-            if (data[i].bond == address(0))
-                revert("DefaultBondStrategy: bond address is 0");
+            if (data[i].bond == address(0)) revert AddressZero();
             cumulativeRatio += data[i].ratioX96;
         }
         if (cumulativeRatio != Q96)

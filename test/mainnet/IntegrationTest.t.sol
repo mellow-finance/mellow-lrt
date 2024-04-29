@@ -61,7 +61,7 @@ contract Integration is Fixture {
         bonds[0] = address(stethDefaultBond);
         vault.setTvlModule(
             address(bondTvlModule),
-            abi.encode(DefaultBondTvlModule.Params({bonds: bonds}))
+            abi.encode(IDefaultBondTvlModule.Params({bonds: bonds}))
         );
 
         // initial deposit

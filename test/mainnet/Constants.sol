@@ -17,10 +17,10 @@ import "../../src/strategies/DefaultBondStrategy.sol";
 import "../../src/strategies/DefaultBondStrategy.sol";
 import "../../src/oracles/ChainlinkOracle.sol";
 import "../../src/oracles/ManagedRatiosOracle.sol";
-import "../../src/modules/deposit/symbiotic/DefaultBondDepositModule.sol";
-import "../../src/modules/tvl/erc20/ERC20TvlModule.sol";
-import "../../src/modules/tvl/symbiotic/DefaultBondTvlModule.sol";
-import "../../src/modules/withdraw/symbiotic/DefaultBondWithdrawalModule.sol";
+import "../../src/modules/symbiotic/DefaultBondDepositModule.sol";
+import "../../src/modules/erc20/ERC20TvlModule.sol";
+import "../../src/modules/symbiotic/DefaultBondTvlModule.sol";
+import "../../src/modules/symbiotic/DefaultBondWithdrawalModule.sol";
 
 import "../../src/libraries/external/FullMath.sol";
 
