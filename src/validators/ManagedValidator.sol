@@ -150,12 +150,12 @@ contract ManagedValidator is IValidator {
     function validate(
         address from,
         address to,
-        bytes4 selector,
-        bytes memory data
+        bytes calldata data
     ) external view {
-        requirePermission(from, to, selector);
+        if (data.length < 4) revert("ManagedValidator: invalid data");
+        requirePermission(from, to, bytes4(data[:4]));
         address validator = _contractStorage().customValidator[to];
         if (validator == address(0)) return;
-        IValidator(validator).validate(from, to, selector, data);
+        IValidator(validator).validate(from, to, data);
     }
 }

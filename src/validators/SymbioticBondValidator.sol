@@ -24,20 +24,16 @@ contract SymbioticBondValidator is IValidator, DefaultAccessControl {
         isSupportedBond[bond] = false;
     }
 
-    function validate(
-        address,
-        address,
-        bytes4 selector,
-        bytes memory data
-    ) external view {
+    function validate(address, address, bytes calldata data) external view {
+        if (data.length != 0x44)
+            revert("SymbioticBondValidator: invalid length");
+        bytes4 selector = bytes4(data[:4]);
         if (
             selector == DefaultBondDepositModule.deposit.selector ||
             selector == DefaultBondWithdrawalModule.withdraw.selector
         ) {
-            if (data.length != 0x40)
-                revert("SymbioticBondValidator: invalid length");
             (address bond, uint256 amount) = abi.decode(
-                data,
+                data[4:],
                 (address, uint256)
             );
             if (!isSupportedBond[bond]) revert Forbidden();

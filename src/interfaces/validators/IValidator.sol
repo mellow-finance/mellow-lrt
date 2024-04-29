@@ -5,7 +5,6 @@ interface IValidator {
     function validate(
         address from,
         address to,
-        bytes4 selector,
-        bytes memory data
+        bytes calldata data
     ) external view;
 }
