@@ -35,14 +35,7 @@ contract SymbioticBondValidator is IValidator, DefaultAccessControl {
             selector == DefaultBondWithdrawalModule.withdraw.selector
         ) {
             if (data.length != 0x40)
-                revert(
-                    string(
-                        abi.encodePacked(
-                            "Invalid length. Need to validate: ",
-                            Strings.toString(data.length)
-                        )
-                    )
-                );
+                revert("SymbioticBondValidator: invalid length");
             (address bond, uint256 amount) = abi.decode(
                 data,
                 (address, uint256)
