@@ -75,7 +75,7 @@ contract Integration is Fixture {
         IERC20(Constants.STETH).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
-        vault.deposit(amounts, amount);
+        vault.deposit(amounts, amount, type(uint256).max);
     }
 
     function testPrimitiveOperations() external {
@@ -92,7 +92,7 @@ contract Integration is Fixture {
             );
             uint256[] memory amounts = new uint256[](1);
             amounts[0] = amount;
-            vault.deposit(amounts, amount);
+            vault.deposit(amounts, amount, type(uint256).max);
         }
 
         console2.log(
@@ -123,7 +123,7 @@ contract Integration is Fixture {
         );
 
         newPrank(Constants.VAULT_ADMIN);
-        vm.expectRevert("Vault: token has non-zero balance");
+        vm.expectRevert(abi.encodeWithSignature("NonZeroValue()"));
         vault.removeToken(Constants.STETH);
 
         vm.stopPrank();
@@ -175,7 +175,7 @@ contract Integration is Fixture {
             );
             uint256[] memory amounts = new uint256[](1);
             amounts[0] = amount;
-            vault.deposit(amounts, amount);
+            vault.deposit(amounts, amount, type(uint256).max);
         }
 
         console2.log(

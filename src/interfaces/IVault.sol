@@ -18,6 +18,14 @@ import "./utils/IWithdrawalCallback.sol";
 import "./IProtocolGovernance.sol";
 
 interface IVault {
+    error Deadline();
+    error InvalidLength();
+    error InvalidToken();
+    error InvalidState();
+    error InsufficientLpAmount();
+    error LimitOverflow();
+    error NonZeroValue();
+
     struct WithdrawalRequest {
         address to;
         uint256 lpAmount;
@@ -83,7 +91,8 @@ interface IVault {
 
     function deposit(
         uint256[] memory amounts,
-        uint256 minLpAmount
+        uint256 minLpAmount,
+        uint256 deadline
     ) external returns (uint256[] memory actualAmounts, uint256 lpAmount);
 
     function closeWithdrawalRequest() external;

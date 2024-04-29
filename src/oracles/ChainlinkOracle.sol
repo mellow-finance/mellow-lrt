@@ -9,44 +9,45 @@ import "../libraries/external/FullMath.sol";
 import "../utils/DefaultAccessControl.sol";
 
 contract ChainlinkOracle is IOracle, DefaultAccessControl {
+    /// mb mutable?
     address public immutable baseToken;
 
     uint256 public constant MAX_ORACLE_AGE = 2 days;
     uint256 public constant Q96 = 2 ** 96;
 
-    mapping(address => address) public oracles;
+    mapping(address => address) public aggregatorsV3;
 
     constructor(address admin, address baseToken_) DefaultAccessControl(admin) {
         baseToken = baseToken_;
     }
 
-    function addChainlinkOracles(
+    function setChainlinkOracles(
         address[] memory tokens_,
         address[] memory oracles_
     ) external {
         _requireAdmin();
         if (tokens_.length != oracles_.length)
-            revert("ChainlinkOracle: Invalid length");
-
+            revert("ChainlinkOracle: invalid length");
         for (uint256 i = 0; i < tokens_.length; i++) {
-            oracles[tokens_[i]] = oracles_[i];
+            aggregatorsV3[tokens_[i]] = oracles_[i];
         }
     }
 
     function getPrice(
         address token
     ) public view returns (uint256 answer, uint8 decimals) {
-        address oracle = oracles[token];
-        if (oracle == address(0)) revert("ChainlinkOracle: Invalid oracle");
+        address aggregatorV3 = aggregatorsV3[token];
+        if (aggregatorV3 == address(0))
+            revert("ChainlinkOracle: aggregator not found");
         uint256 lastTimestamp;
 
         int256 signedAnswer;
-        (, signedAnswer, , lastTimestamp, ) = IAggregatorV3(oracle)
+        (, signedAnswer, , lastTimestamp, ) = IAggregatorV3(aggregatorV3)
             .latestRoundData();
         answer = uint256(signedAnswer);
         if (block.timestamp - MAX_ORACLE_AGE > lastTimestamp)
-            revert("ChainlinkOracle: Stale oracle");
-        decimals = IAggregatorV3(oracle).decimals();
+            revert("ChainlinkOracle: stale price feed");
+        decimals = IAggregatorV3(aggregatorV3).decimals();
     }
 
     function priceX96(address token) external view returns (uint256 priceX96_) {
