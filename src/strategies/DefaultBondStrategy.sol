@@ -23,7 +23,7 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
 
     mapping(address => bytes) public tokenToData;
 
-    ERC20TvlModule public immutable erc20TvlModule;
+    IERC20TvlModule public immutable erc20TvlModule;
     IDefaultBondDepositModule public immutable depositModule;
     IDefaultBondWithdrawalModule public immutable withdrawalModule;
 
