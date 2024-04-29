@@ -15,7 +15,7 @@ contract ProtocolGovernance is
 
     Data private _governanceDelay;
     mapping(address => Data) private _isDelegateModuleApproved;
-    mapping(address => Data) private _isExternalCallsApprovedFor;
+    mapping(address => Data) private _isExternalCallsApproved;
     mapping(address => Data) private _maxTotalSupply;
     mapping(address => Data) private _depositCallback;
     mapping(address => Data) private _withdrawalCallback;
@@ -27,10 +27,10 @@ contract ProtocolGovernance is
         return _isDelegateModuleApproved[target].value != bytes32(0);
     }
 
-    function isExternalCallsApprovedFor(
+    function isExternalCallsApproved(
         address target
     ) external view returns (bool) {
-        return _isExternalCallsApprovedFor[target].value != bytes32(0);
+        return _isExternalCallsApproved[target].value != bytes32(0);
     }
 
     function maximalTotalSupply(address vault) external view returns (uint256) {
@@ -79,10 +79,10 @@ contract ProtocolGovernance is
         return _isDelegateModuleApproved[target].stageTimestamp;
     }
 
-    function isExternalCallsApprovedForStagedTimestamp(
+    function isExternalCallsApprovedStagedTimestamp(
         address target
     ) external view returns (uint256) {
-        return _isExternalCallsApprovedFor[target].stageTimestamp;
+        return _isExternalCallsApproved[target].stageTimestamp;
     }
 
     function maximalTotalSupplyStagedTimestamp(
@@ -186,29 +186,29 @@ contract ProtocolGovernance is
         _revoke(_isDelegateModuleApproved[module]);
     }
 
-    function stageExternalCallsApprovalFor(
+    function stageExternalCallsApproval(
         address target
     ) external onlyAdmin nonReentrant {
         if (target == address(0)) revert("ProtocolGovernance: address zero");
-        _stage(_isExternalCallsApprovedFor[target], bytes32(uint256(1)));
+        _stage(_isExternalCallsApproved[target], bytes32(uint256(1)));
     }
 
-    function commitExternalCallsApprovalFor(
+    function commitExternalCallsApproval(
         address target
     ) external onlyAdmin nonReentrant {
-        _commit(_isExternalCallsApprovedFor[target]);
+        _commit(_isExternalCallsApproved[target]);
     }
 
-    function rollbackStagedExternalCallsApprovalFor(
+    function rollbackStagedExternalCallsApproval(
         address target
     ) external onlyAdmin nonReentrant {
-        _rollback(_isExternalCallsApprovedFor[target]);
+        _rollback(_isExternalCallsApproved[target]);
     }
 
-    function revokeExternalCallsApprovalFor(
+    function revokeExternalCallsApproval(
         address target
     ) external onlyAdmin nonReentrant {
-        _revoke(_isExternalCallsApprovedFor[target]);
+        _revoke(_isExternalCallsApproved[target]);
     }
 
     function stageMaximalTotalSupply(

@@ -24,7 +24,7 @@ interface IProtocolGovernance {
         address target
     ) external view returns (bool);
 
-    function isExternalCallsApprovedFor(
+    function isExternalCallsApproved(
         address target
     ) external view returns (bool);
 
@@ -56,7 +56,7 @@ interface IProtocolGovernance {
         address target
     ) external view returns (uint256);
 
-    function isExternalCallsApprovedForStagedTimestamp(
+    function isExternalCallsApprovedStagedTimestamp(
         address target
     ) external view returns (uint256);
 
@@ -84,13 +84,13 @@ interface IProtocolGovernance {
 
     function revokeDelegateModuleApproval(address module) external;
 
-    function stageExternalCallsApprovalFor(address target) external;
+    function stageExternalCallsApproval(address target) external;
 
-    function commitExternalCallsApprovalFor(address target) external;
+    function commitExternalCallsApproval(address target) external;
 
-    function rollbackStagedExternalCallsApprovalFor(address target) external;
+    function rollbackStagedExternalCallsApproval(address target) external;
 
-    function revokeExternalCallsApprovalFor(address target) external;
+    function revokeExternalCallsApproval(address target) external;
 
     function stageMaximalTotalSupply(
         address vault,

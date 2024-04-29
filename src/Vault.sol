@@ -129,7 +129,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     ) external onlyManager nonReentrant returns (bytes memory) {
         if (protocolGovernance.isDelegateModuleApproved(to))
             revert("Vault: module is an approved delegate module");
-        if (protocolGovernance.isExternalCallsApprovedFor(address(this)))
+        if (protocolGovernance.isExternalCallsApproved(address(this)))
             revert("Vault: external calls are disabled");
         bytes4 selector = bytes4(data[:4]);
         validator.validate(address(this), to, selector, data[4:]);
