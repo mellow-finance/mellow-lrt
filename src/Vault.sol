@@ -60,21 +60,19 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function addToken(address token) external onlyAdmin nonReentrant {
         if (_underlyingTokensSet.contains(token)) return;
         _underlyingTokensSet.add(token);
-        _underlyingTokens.push(token);
-        uint256 n = _underlyingTokens.length;
+        address[] storage tokens = _underlyingTokens;
+        tokens.push(token);
+        uint256 n = tokens.length;
         uint256 index = 0;
         for (uint256 i = 1; i < n; i++) {
-            address token_ = _underlyingTokens[n - 1 - i];
-            if (token_ > token) {
-                _underlyingTokens[n - i] = token_;
-            } else {
+            address token_ = tokens[n - 1 - i];
+            if (token_ < token) {
                 index = n - i;
                 break;
             }
+            tokens[n - i] = token_;
         }
-        if (index < n - 1) {
-            _underlyingTokens[index] = token;
-        }
+        if (index < n - 1) tokens[index] = token;
     }
 
     function removeToken(address token) external onlyAdmin nonReentrant {
@@ -89,7 +87,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             }
         }
         _underlyingTokensSet.remove(token);
-        while (index < tokens.length) {
+        while (index + 1 < tokens.length) {
             _underlyingTokens[index] = tokens[index + 1];
             index++;
         }
