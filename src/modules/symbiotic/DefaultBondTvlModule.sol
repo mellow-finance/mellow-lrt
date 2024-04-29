@@ -1,18 +1,9 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../interfaces/modules/symbiotic/IDefaultBondTvlModule.sol";
 
-import "../../../interfaces/external/symbiotic/IBond.sol";
-
-import "../../../interfaces/modules/ITvlModule.sol";
-import "../../../interfaces/IVault.sol";
-
-contract DefaultBondTvlModule is ITvlModule {
-    struct Params {
-        address[] bonds;
-    }
-
+contract DefaultBondTvlModule is IDefaultBondTvlModule {
     function tvl(
         address vault,
         bytes memory params
