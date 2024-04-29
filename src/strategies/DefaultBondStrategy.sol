@@ -104,15 +104,12 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
             if (data_.length == 0) continue;
             Data[] memory data = abi.decode(data_, (Data[]));
             for (uint256 i = 0; i < data.length; i++) {
-                uint256 balance = IERC20(data[i].bond).balanceOf(
-                    address(vault)
-                );
                 vault.delegateCall(
                     address(withdrawalModule),
                     abi.encodeWithSelector(
                         withdrawalModule.withdraw.selector,
                         data[i].bond,
-                        balance
+                        IERC20(data[i].bond).balanceOf(address(vault))
                     )
                 );
             }
