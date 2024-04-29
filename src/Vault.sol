@@ -208,7 +208,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
         uint256 depositValue = 0;
         uint256 totalValue = 0;
-
+        actualAmounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             if (ratiosX96[i] == 0) continue;
             uint256 amount = FullMath.mulDiv(ratioX96, ratiosX96[i], Q96);
@@ -221,13 +221,20 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         }
 
         uint256 totalSupply = totalSupply();
-        lpAmount = FullMath.mulDiv(depositValue, totalSupply, totalValue);
+        address to;
+        if (totalSupply == 0) {
+            lpAmount = minLpAmount;
+            to = address(this);
+        } else {
+            lpAmount = FullMath.mulDiv(depositValue, totalSupply, totalValue);
+            if (lpAmount < minLpAmount) revert("Vault: insufficient LP amount");
+            to = msg.sender;
+        }
         if (
             lpAmount + totalSupply >
             protocolGovernance.maximalTotalSupply(address(this))
         ) revert("Vault: max total supply exceeded");
-        if (lpAmount < minLpAmount) revert("Vault: insufficient LP amount");
-        _mint(msg.sender, lpAmount);
+        _mint(to, lpAmount);
 
         address callback = protocolGovernance.depositCallback(address(this));
         if (callback != address(0)) {
