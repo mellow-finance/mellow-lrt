@@ -41,50 +41,45 @@ contract WstethDepositWrapper {
         return IERC20(wsteth).balanceOf(address(this));
     }
 
-    function _claim() private {
-        address wrapper = address(this);
-        address recipient = msg.sender;
-        uint256 balance = IERC20(address(vault)).balanceOf(wrapper);
-        if (balance > 0)
-            IERC20(address(vault)).safeTransfer(recipient, balance);
-        balance = IERC20(weth).balanceOf(wrapper);
-        if (balance > 0) IERC20(weth).safeTransfer(recipient, balance);
-        balance = IERC20(steth).balanceOf(wrapper);
-        if (balance > 0) IERC20(steth).safeTransfer(recipient, balance);
-        balance = IERC20(wsteth).balanceOf(wrapper);
-        if (balance > 0) IERC20(wsteth).safeTransfer(recipient, balance);
-        balance = wrapper.balance;
-        if (balance > 0) payable(tx.origin).transfer(balance);
-    }
-
     function deposit(
         address token,
         uint256 amount,
         uint256 minLpAmount,
         uint256 deadline
     ) public payable {
+        address wrapper = address(this);
+        address sender = msg.sender;
         address[] memory tokens = vault.underlyingTokens();
         if (tokens.length != 1 || tokens[0] != wsteth)
             revert("Invalid token list");
         if (amount == 0) revert("Invalid amount");
         if (token == steth) {
-            IERC20(steth).safeTransferFrom(msg.sender, address(this), amount);
+            IERC20(steth).safeTransferFrom(sender, wrapper, amount);
             amount = _stethToWsteth(amount);
         } else if (token == weth) {
-            IERC20(weth).safeTransferFrom(msg.sender, address(this), amount);
+            IERC20(weth).safeTransferFrom(sender, wrapper, amount);
             amount = _wethToWsteth(amount);
         } else if (token == address(0)) {
             require(msg.value == amount, "Invalid amount");
             amount = _ethToWsteth(amount);
         } else if (wsteth == token) {
-            IERC20(wsteth).safeTransferFrom(msg.sender, address(this), amount);
+            IERC20(wsteth).safeTransferFrom(sender, wrapper, amount);
         } else revert("Invalid token");
 
         IERC20(wsteth).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
         vault.deposit(amounts, minLpAmount, deadline);
-        _claim();
+        uint256 balance = IERC20(address(vault)).balanceOf(wrapper);
+        if (balance > 0) IERC20(address(vault)).safeTransfer(sender, balance);
+        balance = IERC20(weth).balanceOf(wrapper);
+        if (balance > 0) IERC20(weth).safeTransfer(sender, balance);
+        balance = IERC20(steth).balanceOf(wrapper);
+        if (balance > 0) IERC20(steth).safeTransfer(sender, balance);
+        balance = IERC20(wsteth).balanceOf(wrapper);
+        if (balance > 0) IERC20(wsteth).safeTransfer(sender, balance);
+        balance = wrapper.balance;
+        if (balance > 0) payable(tx.origin).transfer(balance);
     }
 
     receive() external payable {
