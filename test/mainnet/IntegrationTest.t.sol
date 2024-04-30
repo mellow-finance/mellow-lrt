@@ -6,11 +6,14 @@ import "./Fixture.sol";
 contract Integration is Fixture {
     using SafeERC20 for IERC20;
 
+    address public constant uniswapSwapRouter =
+        address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+
     function _initializeVault() private {
         vm.startPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
 
         address[] memory tokens = new address[](1);
-        tokens[0] = Constants.STETH;
+        tokens[0] = Constants.WSTETH;
         uint256[] memory weights = new uint256[](1);
         weights[0] = 1 ether;
 
@@ -34,8 +37,15 @@ contract Integration is Fixture {
         protocolGovernance.commitDelegateModuleApproval(
             address(bondWithdrawalModule)
         );
+        protocolGovernance.stageDelegateModuleApproval(
+            address(erc20SwapModule)
+        );
+        protocolGovernance.commitDelegateModuleApproval(
+            address(erc20SwapModule)
+        );
 
         validator.grantRole(address(vault), Constants.DEFAULT_BOND_ROLE);
+        validator.grantRole(address(vault), Constants.SWAP_ROUTER_ROLE);
         validator.grantContractRole(
             address(bondDepositModule),
             Constants.DEFAULT_BOND_ROLE
@@ -43,6 +53,10 @@ contract Integration is Fixture {
         validator.grantContractRole(
             address(bondWithdrawalModule),
             Constants.DEFAULT_BOND_ROLE
+        );
+        validator.grantContractRole(
+            address(erc20SwapModule),
+            Constants.SWAP_ROUTER_ROLE
         );
         validator.setCustomValidator(
             address(bondDepositModule),
@@ -52,13 +66,21 @@ contract Integration is Fixture {
             address(bondWithdrawalModule),
             address(customValidator)
         );
-        customValidator.addSupported(address(stethDefaultBond));
+        validator.setCustomValidator(
+            address(erc20SwapModule),
+            address(erc20SwapValidator)
+        );
+
+        customValidator.setSupportedBond(address(wstethDefaultBond), true);
+        erc20SwapValidator.setSupportedRouter(uniswapSwapRouter, true);
+        erc20SwapValidator.setSupportedToken(Constants.WSTETH, true);
+        erc20SwapValidator.setSupportedToken(Constants.WETH, true);
 
         newPrank(Constants.VAULT_ADMIN);
-        vault.addToken(Constants.STETH);
+        vault.addToken(Constants.WSTETH);
         vault.setTvlModule(address(erc20TvlModule), new bytes(0));
         address[] memory bonds = new address[](1);
-        bonds[0] = address(stethDefaultBond);
+        bonds[0] = address(wstethDefaultBond);
         vault.setTvlModule(
             address(bondTvlModule),
             abi.encode(IDefaultBondTvlModule.Params({bonds: bonds}))
@@ -66,13 +88,13 @@ contract Integration is Fixture {
 
         // initial deposit
         newPrank(address(this));
-        mintSteth(address(this), 10 ether);
-        mintSteth(Constants.DEPOSITOR, 10 ether);
+        mintWsteth(address(this), 10 ether);
+        mintWsteth(Constants.DEPOSITOR, 10 ether);
     }
 
     function _initialDeposit() private {
         uint256 amount = 10 gwei;
-        IERC20(Constants.STETH).safeIncreaseAllowance(address(vault), amount);
+        IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
         vault.deposit(amounts, amount, type(uint256).max);
@@ -86,7 +108,7 @@ contract Integration is Fixture {
         newPrank(Constants.DEPOSITOR);
         {
             uint256 amount = 10 ether;
-            IERC20(Constants.STETH).safeIncreaseAllowance(
+            IERC20(Constants.WSTETH).safeIncreaseAllowance(
                 address(vault),
                 amount
             );
@@ -98,7 +120,7 @@ contract Integration is Fixture {
         console2.log(
             "Depositor balances before:",
             vault.balanceOf(Constants.DEPOSITOR),
-            IERC20(Constants.STETH).balanceOf(Constants.DEPOSITOR)
+            IERC20(Constants.WSTETH).balanceOf(Constants.DEPOSITOR)
         );
 
         vault.registerWithdrawal(
@@ -119,12 +141,12 @@ contract Integration is Fixture {
         console2.log(
             "Depositor balances after:",
             vault.balanceOf(Constants.DEPOSITOR),
-            IERC20(Constants.STETH).balanceOf(Constants.DEPOSITOR)
+            IERC20(Constants.WSTETH).balanceOf(Constants.DEPOSITOR)
         );
 
         newPrank(Constants.VAULT_ADMIN);
         vm.expectRevert(abi.encodeWithSignature("NonZeroValue()"));
-        vault.removeToken(Constants.STETH);
+        vault.removeToken(Constants.WSTETH);
 
         vm.stopPrank();
         // assert(false);
@@ -151,10 +173,10 @@ contract Integration is Fixture {
             DefaultBondStrategy.Data[]
                 memory data = new DefaultBondStrategy.Data[](1);
             data[0] = DefaultBondStrategy.Data({
-                bond: address(stethDefaultBond),
+                bond: address(wstethDefaultBond),
                 ratioX96: Q96
             });
-            strategy.setData(Constants.STETH, data);
+            strategy.setData(Constants.WSTETH, data);
         }
         protocolGovernance.stageDepositCallback(
             address(vault),
@@ -169,7 +191,7 @@ contract Integration is Fixture {
         newPrank(Constants.DEPOSITOR);
         {
             uint256 amount = 10 ether;
-            IERC20(Constants.STETH).safeIncreaseAllowance(
+            IERC20(Constants.WSTETH).safeIncreaseAllowance(
                 address(vault),
                 amount
             );
@@ -181,7 +203,7 @@ contract Integration is Fixture {
         console2.log(
             "Depositor balances before:",
             vault.balanceOf(Constants.DEPOSITOR),
-            IERC20(Constants.STETH).balanceOf(Constants.DEPOSITOR)
+            IERC20(Constants.WSTETH).balanceOf(Constants.DEPOSITOR)
         );
 
         vault.registerWithdrawal(
@@ -215,10 +237,103 @@ contract Integration is Fixture {
         console2.log(
             "Depositor balances after:",
             vault.balanceOf(Constants.DEPOSITOR),
-            IERC20(Constants.STETH).balanceOf(Constants.DEPOSITOR)
+            IERC20(Constants.WSTETH).balanceOf(Constants.DEPOSITOR)
         );
 
         vm.stopPrank();
         // assert(false);
+    }
+
+    function testERC20SwapModule() external {
+        _initializeVault();
+
+        DefaultBondStrategy strategy = new DefaultBondStrategy(
+            Constants.PROTOCOL_GOVERNANCE_ADMIN,
+            vault,
+            erc20TvlModule,
+            bondDepositModule,
+            bondWithdrawalModule
+        );
+
+        newPrank(Constants.VAULT_ADMIN);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
+        vault.grantRole(vault.OPERATOR(), address(strategy));
+
+        newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
+
+        {
+            DefaultBondStrategy.Data[]
+                memory data = new DefaultBondStrategy.Data[](1);
+            data[0] = DefaultBondStrategy.Data({
+                bond: address(wstethDefaultBond),
+                ratioX96: Q96
+            });
+            strategy.setData(Constants.WSTETH, data);
+        }
+        protocolGovernance.stageDepositCallback(
+            address(vault),
+            address(strategy)
+        );
+        protocolGovernance.commitDepositCallback(address(vault));
+
+        newPrank(address(this));
+        _initialDeposit();
+
+        // normal deposit
+        newPrank(Constants.DEPOSITOR);
+        {
+            uint256 amount = 10 ether;
+            IERC20(Constants.WSTETH).safeIncreaseAllowance(
+                address(vault),
+                amount
+            );
+            uint256[] memory amounts = new uint256[](1);
+            amounts[0] = amount;
+            vault.deposit(amounts, amount, type(uint256).max);
+        }
+
+        console2.log(
+            vault.balanceOf(Constants.DEPOSITOR),
+            IERC20(Constants.WSTETH).balanceOf(address(vault))
+        );
+
+        newPrank(Constants.VAULT_ADMIN);
+        vault.delegateCall(
+            address(bondWithdrawalModule),
+            abi.encodeWithSelector(
+                DefaultBondWithdrawalModule.withdraw.selector,
+                wstethDefaultBond,
+                wstethDefaultBond.balanceOf(address(vault))
+            )
+        );
+
+        vault.delegateCall(
+            address(erc20SwapModule),
+            abi.encodeWithSelector(
+                ERC20SwapModule.swap.selector,
+                ERC20SwapModule.SwapParams({
+                    tokenIn: Constants.WSTETH,
+                    tokenOut: Constants.WETH,
+                    amountIn: 0.1 ether,
+                    minAmountOut: 0.1 ether
+                }),
+                uniswapSwapRouter,
+                abi.encodeWithSelector(
+                    ISwapRouter.exactInputSingle.selector,
+                    ISwapRouter.ExactInputSingleParams({
+                        tokenIn: Constants.WSTETH,
+                        tokenOut: Constants.WETH,
+                        fee: 100,
+                        recipient: address(vault),
+                        deadline: type(uint256).max,
+                        amountIn: 0.1 ether,
+                        amountOutMinimum: 0.1 ether,
+                        sqrtPriceLimitX96: 0
+                    })
+                )
+            )
+        );
+
+        vm.stopPrank();
     }
 }

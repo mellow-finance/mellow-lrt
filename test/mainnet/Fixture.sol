@@ -22,14 +22,22 @@ contract Fixture is Test {
     DefaultBondWithdrawalModule public bondWithdrawalModule;
     DefaultBondTvlModule public bondTvlModule;
 
+    ERC20SwapModule public erc20SwapModule;
+    ERC20SwapValidator public erc20SwapValidator;
+
     ERC20TvlModule public erc20TvlModule;
 
-    DefaultBondMock public stethDefaultBond;
+    DefaultBondMock public wstethDefaultBond;
 
-    function mintSteth(address user, uint256 amount) public {
-        deal(address(this), amount + 1);
-        ISteth(payable(Constants.STETH)).submit{value: amount + 1}(address(0));
-        IERC20(Constants.STETH).safeTransfer(user, amount);
+    function mintWsteth(address user, uint256 amount) public {
+        deal(address(this), 2 * amount);
+        ISteth(payable(Constants.STETH)).submit{value: 2 * amount}(address(0));
+        IERC20(Constants.STETH).safeIncreaseAllowance(
+            Constants.WSTETH,
+            2 * amount
+        );
+        IWSteth(Constants.WSTETH).wrap(2 * amount);
+        IERC20(Constants.WSTETH).safeTransfer(user, amount);
     }
 
     function newPrank(address newUser) public {
@@ -46,7 +54,7 @@ contract Fixture is Test {
         );
         oracle = new ChainlinkOracle(
             Constants.PROTOCOL_GOVERNANCE_ADMIN,
-            Constants.STETH
+            Constants.WSTETH
         );
         validator = new ManagedValidator(Constants.PROTOCOL_GOVERNANCE_ADMIN);
         customValidator = new SymbioticBondValidator(
@@ -57,7 +65,12 @@ contract Fixture is Test {
         bondWithdrawalModule = new DefaultBondWithdrawalModule();
         bondTvlModule = new DefaultBondTvlModule();
 
-        stethDefaultBond = new DefaultBondMock(Constants.STETH);
+        erc20SwapModule = new ERC20SwapModule();
+        erc20SwapValidator = new ERC20SwapValidator(
+            Constants.PROTOCOL_GOVERNANCE_ADMIN
+        );
+
+        wstethDefaultBond = new DefaultBondMock(Constants.WSTETH);
 
         erc20TvlModule = new ERC20TvlModule();
 

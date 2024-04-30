@@ -12,43 +12,35 @@ contract ERC20SwapValidator is IValidator, DefaultAccessControl {
     constructor(address admin) DefaultAccessControl(admin) {}
 
     mapping(address => bool) public isSupportedRouter;
+    mapping(address => bool) public isSupportedToken;
 
-    function addSupported(address router) external {
+    function setSupportedRouter(address router, bool flag) external {
         _requireAdmin();
-        isSupportedRouter[router] = true;
+        isSupportedRouter[router] = flag;
     }
 
-    function removeSupported(address router) external {
+    function setSupportedToken(address router, bool flag) external {
         _requireAdmin();
-        isSupportedRouter[router] = false;
+        isSupportedToken[router] = flag;
     }
 
     function validate(address, address, bytes calldata data) external view {
-        if (data.length != 0x44)
-            revert(
-                string(
-                    abi.encodePacked(
-                        "ERC20SwapValidator: invalid length: ",
-                        Strings.toString(data.length)
-                    )
-                )
-            );
+        if (data.length < 0x104)
+            revert("ERC20SwapValidator: invalid data length.");
         bytes4 selector = bytes4(data[:4]);
         if (ERC20SwapModule.swap.selector != selector) revert Forbidden();
-
         (
             ERC20SwapModule.SwapParams memory params,
             address to,
             bytes memory swapData
         ) = abi.decode(data[4:], (ERC20SwapModule.SwapParams, address, bytes));
-
-        if (!isSupportedRouter[to]) revert Forbidden();
         if (
+            !isSupportedRouter[to] ||
+            !isSupportedToken[params.tokenIn] ||
+            !isSupportedToken[params.tokenOut] ||
+            params.tokenIn == params.tokenOut ||
             params.amountIn == 0 ||
-            params.minAmountOut == 0 ||
-            params.tokenIn == address(0) ||
-            params.tokenOut == address(0)
+            params.minAmountOut == 0
         ) revert Forbidden();
-        if (swapData.length < 0x4) revert Forbidden();
     }
 }

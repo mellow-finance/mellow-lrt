@@ -14,14 +14,9 @@ contract SymbioticBondValidator is IValidator, DefaultAccessControl {
 
     mapping(address => bool) public isSupportedBond;
 
-    function addSupported(address bond) external {
+    function setSupportedBond(address bond, bool flag) external {
         _requireAdmin();
-        isSupportedBond[bond] = true;
-    }
-
-    function removeSupported(address bond) external {
-        _requireAdmin();
-        isSupportedBond[bond] = false;
+        isSupportedBond[bond] = flag;
     }
 
     function validate(address, address, bytes calldata data) external view {
@@ -38,8 +33,6 @@ contract SymbioticBondValidator is IValidator, DefaultAccessControl {
             );
             if (!isSupportedBond[bond]) revert Forbidden();
             if (amount == 0) revert Forbidden();
-        } else {
-            revert Forbidden();
-        }
+        } else revert Forbidden();
     }
 }
