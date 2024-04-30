@@ -15,7 +15,6 @@ contract WstethDepositWrapper {
     address public immutable weth;
     address public immutable steth;
     address public immutable wsteth;
-
     IVault public immutable vault;
 
     constructor(IVault vault_, address weth_, address steth_, address wsteth_) {
