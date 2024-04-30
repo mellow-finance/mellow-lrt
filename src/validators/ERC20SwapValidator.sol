@@ -25,8 +25,7 @@ contract ERC20SwapValidator is IValidator, DefaultAccessControl {
     }
 
     function validate(address, address, bytes calldata data) external view {
-        if (data.length < 0x104)
-            revert("ERC20SwapValidator: invalid data length");
+        if (data.length <= 0x104) revert("ERC20SwapValidator: invalid length");
         bytes4 selector = bytes4(data[:4]);
         if (ERC20SwapModule.swap.selector != selector) revert Forbidden();
         (
