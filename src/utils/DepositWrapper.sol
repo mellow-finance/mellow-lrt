@@ -36,7 +36,6 @@ contract WstethDepositWrapper {
     }
 
     function _stethToWsteth(uint256 amount) internal returns (uint256) {
-        IERC20(steth).safeTransferFrom(msg.sender, address(this), amount);
         IERC20(steth).safeIncreaseAllowance(wsteth, amount);
         IWSteth(wsteth).wrap(amount);
         return IERC20(wsteth).balanceOf(address(this));
@@ -64,18 +63,22 @@ contract WstethDepositWrapper {
         uint256 minLpAmount,
         uint256 deadline
     ) public payable {
+        address[] memory tokens = vault.underlyingTokens();
+        if (tokens.length != 1 || tokens[0] != wsteth)
+            revert("Invalid token list");
         if (amount == 0) revert("Invalid amount");
         if (token == steth) {
+            IERC20(steth).safeTransferFrom(msg.sender, address(this), amount);
             amount = _stethToWsteth(amount);
         } else if (token == weth) {
+            IERC20(weth).safeTransferFrom(msg.sender, address(this), amount);
             amount = _wethToWsteth(amount);
         } else if (token == address(0)) {
             require(msg.value == amount, "Invalid amount");
             amount = _ethToWsteth(amount);
-        } else {
-            if (wsteth != token) revert("Invalid token");
+        } else if (wsteth == token) {
             IERC20(wsteth).safeTransferFrom(msg.sender, address(this), amount);
-        }
+        } else revert("Invalid token");
 
         IERC20(wsteth).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
