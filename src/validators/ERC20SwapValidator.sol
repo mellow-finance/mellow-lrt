@@ -19,9 +19,9 @@ contract ERC20SwapValidator is IValidator, DefaultAccessControl {
         isSupportedRouter[router] = flag;
     }
 
-    function setSupportedToken(address router, bool flag) external {
+    function setSupportedToken(address token, bool flag) external {
         _requireAdmin();
-        isSupportedToken[router] = flag;
+        isSupportedToken[token] = flag;
     }
 
     function validate(address, address, bytes calldata data) external view {
