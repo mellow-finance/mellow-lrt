@@ -19,10 +19,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     IValidator public immutable validator;
     IProtocolGovernance public immutable protocolGovernance;
 
+    bool public isDepositsLocked;
     mapping(address => bytes) public tvlModuleParams;
 
     mapping(address => WithdrawalRequest) private _withdrawalRequest;
-
     address[] private _underlyingTokens;
     EnumerableSet.AddressSet private _withdrawers;
     EnumerableSet.AddressSet private _tvlModules;
@@ -55,6 +55,14 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         oracle = IOracle(oracle_);
         validator = IValidator(validator_);
         protocolGovernance = IProtocolGovernance(protocolGovernance_);
+    }
+
+    function lockDeposits() external onlyManager nonReentrant {
+        isDepositsLocked = true;
+    }
+
+    function unlockDeposits() external onlyManager nonReentrant {
+        isDepositsLocked = false;
     }
 
     function addToken(address token) external onlyAdmin nonReentrant {
@@ -186,6 +194,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         returns (uint256[] memory actualAmounts, uint256 lpAmount)
     {
         if (block.timestamp > deadline) revert Deadline();
+        if (isDepositsLocked) revert Forbidden();
         (address[] memory tokens, uint256[] memory totalAmounts) = tvl();
         uint256[] memory ratiosX96 = ratiosOracle.getTargetRatiosX96(
             address(this)
