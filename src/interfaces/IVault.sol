@@ -9,13 +9,13 @@ import "@openzeppelin/contracts/utils/Arrays.sol";
 import "./modules/ITvlModule.sol";
 import "./validators/IValidator.sol";
 
-import "./oracles/IOracle.sol";
+import "./oracles/IPriceOracle.sol";
 import "./oracles/IRatiosOracle.sol";
 
 import "./utils/IDepositCallback.sol";
 import "./utils/IWithdrawalCallback.sol";
 
-import "./IProtocolGovernance.sol";
+import "./IVaultConfigurator.sol";
 
 interface IVault {
     error Deadline();
@@ -25,20 +25,21 @@ interface IVault {
     error InsufficientLpAmount();
     error LimitOverflow();
     error NonZeroValue();
+    error ValueZero();
 
     struct WithdrawalRequest {
         address to;
         uint256 lpAmount;
         uint256 deadline;
+        uint256 timestamp;
         address[] tokens;
         uint256[] minAmounts;
     }
 
-    // for stack reduction
-    struct ProcessWithdrawalsStorage {
+    struct ProcessWithdrawalsStack {
         uint256 totalValue;
-        uint256 x96Value;
-        uint256[] ratiosX96;
+        uint256 ratiosX96Value;
+        uint128[] ratiosX96;
         uint256[] amounts;
     }
 
@@ -48,11 +49,11 @@ interface IVault {
 
     function ratiosOracle() external view returns (IRatiosOracle);
 
-    function oracle() external view returns (IOracle);
+    function priceOracle() external view returns (IPriceOracle);
 
     function validator() external view returns (IValidator);
 
-    function protocolGovernance() external view returns (IProtocolGovernance);
+    function configurator() external view returns (IVaultConfigurator);
 
     function tvlModuleParams(address) external view returns (bytes memory);
 
@@ -60,7 +61,7 @@ interface IVault {
         address
     ) external view returns (WithdrawalRequest memory);
 
-    function withdrawers() external view returns (address[] memory);
+    function pendingWithdrawers() external view returns (address[] memory);
 
     function tvlModules() external view returns (address[] memory);
 
@@ -75,12 +76,12 @@ interface IVault {
     function externalCall(
         address to,
         bytes calldata data
-    ) external returns (bytes memory);
+    ) external returns (bool, bytes memory);
 
     function delegateCall(
         address to,
         bytes calldata data
-    ) external returns (bytes memory);
+    ) external returns (bool, bytes memory);
 
     function underlyingTokens() external view returns (address[] memory);
 
@@ -90,18 +91,20 @@ interface IVault {
         returns (address[] memory tokens, uint256[] memory amounts);
 
     function deposit(
+        address to,
         uint256[] memory amounts,
         uint256 minLpAmount,
         uint256 deadline
     ) external returns (uint256[] memory actualAmounts, uint256 lpAmount);
 
-    function closeWithdrawalRequest() external;
+    function cancleWithdrawalRequest() external;
 
     function registerWithdrawal(
         address to,
         uint256 lpAmount,
         uint256[] memory minAmounts,
-        uint256 deadline
+        uint256 deadline,
+        bool closePrevious
     ) external;
 
     function processWithdrawals(

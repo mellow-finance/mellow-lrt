@@ -1,43 +1,30 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "../interfaces/utils/IDepositCallback.sol";
-
-import "../interfaces/modules/erc20/IERC20TvlModule.sol";
-import "../interfaces/modules/symbiotic/IDefaultBondDepositModule.sol";
-import "../interfaces/modules/symbiotic/IDefaultBondWithdrawalModule.sol";
+import "../interfaces/strategies/IDefaultBondStrategy.sol";
 
 import "../libraries/external/FullMath.sol";
 
 import "../utils/DefaultAccessControl.sol";
 
-contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
-    struct Data {
-        address bond;
-        uint256 ratioX96;
-    }
-
+contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
     uint256 public constant Q96 = 2 ** 96;
 
     IVault public immutable vault;
+    IERC20TvlModule public immutable erc20TvlModule;
+    IDefaultBondModule public immutable bondModule;
 
     mapping(address => bytes) public tokenToData;
-
-    IERC20TvlModule public immutable erc20TvlModule;
-    IDefaultBondDepositModule public immutable depositModule;
-    IDefaultBondWithdrawalModule public immutable withdrawalModule;
 
     constructor(
         address admin,
         IVault vault_,
         IERC20TvlModule erc20TvlModule_,
-        IDefaultBondDepositModule depositModule_,
-        IDefaultBondWithdrawalModule withdrawalModule_
+        IDefaultBondModule bondModule_
     ) DefaultAccessControl(admin) {
         vault = vault_;
         erc20TvlModule = erc20TvlModule_;
-        depositModule = depositModule_;
-        withdrawalModule = withdrawalModule_;
+        bondModule = bondModule_;
     }
 
     function setData(address token, Data[] memory data) external {
@@ -48,8 +35,7 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
             if (data[i].bond == address(0)) revert AddressZero();
             cumulativeRatio += data[i].ratioX96;
         }
-        if (cumulativeRatio != Q96)
-            revert("DefaultBondStrategy: cumulative ratio is not equal to 1");
+        if (cumulativeRatio != Q96) revert InvalidCumulativeRatio();
         tokenToData[token] = abi.encode(data);
     }
 
@@ -69,9 +55,9 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
                 );
                 if (amount == 0) continue;
                 vault.delegateCall(
-                    address(depositModule),
+                    address(bondModule),
                     abi.encodeWithSelector(
-                        depositModule.deposit.selector,
+                        IDefaultBondModule.deposit.selector,
                         data[j].bond,
                         amount
                     )
@@ -87,7 +73,7 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
 
     function processAll() external {
         _requireAtLeastOperator();
-        _processWithdrawals(vault.withdrawers());
+        _processWithdrawals(vault.pendingWithdrawers());
     }
 
     function processWithdrawals(address[] memory users) external {
@@ -105,9 +91,9 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
             Data[] memory data = abi.decode(data_, (Data[]));
             for (uint256 i = 0; i < data.length; i++) {
                 vault.delegateCall(
-                    address(withdrawalModule),
+                    address(bondModule),
                     abi.encodeWithSelector(
-                        withdrawalModule.withdraw.selector,
+                        IDefaultBondModule.withdraw.selector,
                         data[i].bond,
                         IERC20(data[i].bond).balanceOf(address(vault))
                     )

@@ -1,53 +1,42 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../interfaces/oracles/IRatiosOracle.sol";
-import "../interfaces/IVault.sol";
-
-import "../utils/DefaultAccessControl.sol";
+import "../interfaces/oracles/IManagedRatiosOracle.sol";
 
 import "../libraries/external/FullMath.sol";
 
-contract ManagedRatiosOracle is IRatiosOracle, DefaultAccessControl {
+contract ManagedRatiosOracle is IManagedRatiosOracle {
     uint256 public constant Q96 = 2 ** 96;
 
-    mapping(address => mapping(address => uint256)) public vaultToTokenToWeight;
+    mapping(address => bytes) public vaultToData;
 
-    constructor(address admin) DefaultAccessControl(admin) {}
-
-    function updateRatios(
-        address vault,
-        address[] memory tokens,
-        uint256[] memory weights
-    ) external {
-        _requireAdmin();
+    function updateRatios(address vault, Data memory data) external override {
+        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
+            revert Forbidden();
+        address[] memory tokens = IVault(vault).underlyingTokens();
+        if (
+            tokens.length != data.tokens.length ||
+            data.tokens.length != data.ratiosX96.length
+        ) revert InvalidLength();
+        uint256 cumulativeRatioX96 = 0;
         for (uint256 i = 0; i < tokens.length; i++) {
-            vaultToTokenToWeight[vault][tokens[i]] = weights[i];
+            if (tokens[i] != data.tokens[i]) revert InvalidToken();
+            cumulativeRatioX96 += data.ratiosX96[i];
         }
+        if (cumulativeRatioX96 != Q96) revert InvalidCumulativeRatio();
+        vaultToData[vault] = abi.encode(data);
     }
 
     function getTargetRatiosX96(
-        address rootVault
-    ) external view returns (uint256[] memory ratiosX96) {
-        address[] memory tokens = IVault(rootVault).underlyingTokens();
-        uint256 cumulativeWeight = 0;
-        uint256[] memory weights = new uint256[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
-            weights[i] = vaultToTokenToWeight[rootVault][tokens[i]];
-            cumulativeWeight += weights[i];
-        }
-        if (cumulativeWeight == 0) {
-            revert("ManagedRatiosOracle: cumulative weight is 0");
-        }
-
-        ratiosX96 = new uint256[](tokens.length);
-        uint256 index = 0;
-        uint256 cumulativeRatios = 0;
-        for (uint256 i = 0; i < tokens.length; i++) {
-            ratiosX96[i] = FullMath.mulDiv(weights[i], Q96, cumulativeWeight);
-            if (ratiosX96[i] > ratiosX96[index]) index = i;
-            cumulativeRatios += ratiosX96[i];
-        }
-        if (cumulativeRatios != Q96) ratiosX96[index] += Q96 - cumulativeRatios;
+        address vault
+    ) external view override returns (uint128[] memory) {
+        address[] memory tokens = IVault(vault).underlyingTokens();
+        bytes memory data_ = vaultToData[vault];
+        if (data_.length == 0) revert InvalidLength();
+        Data memory data = abi.decode(data_, (Data));
+        if (data.tokens.length != tokens.length) revert InvalidLength();
+        for (uint256 i = 0; i < tokens.length; i++)
+            if (data.tokens[i] != tokens[i]) revert InvalidToken();
+        return data.ratiosX96;
     }
 }

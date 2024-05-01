@@ -9,6 +9,8 @@ import "../../IVault.sol";
 import "../ITvlModule.sol";
 
 interface IDefaultBondTvlModule is ITvlModule {
+    error InvalidToken();
+
     struct Params {
         address[] bonds;
     }

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../interfaces/oracles/IOracle.sol";
+import "../interfaces/oracles/IPriceOracle.sol";
 import "../interfaces/external/chainlink/IAggregatorV3.sol";
 
 import "../libraries/external/FullMath.sol";
 
 import "../utils/DefaultAccessControl.sol";
 
-contract ChainlinkOracle is IOracle, DefaultAccessControl {
+contract ChainlinkOracle is IPriceOracle, DefaultAccessControl {
     /// mb mutable?
     address public immutable baseToken;
 
@@ -49,6 +49,20 @@ contract ChainlinkOracle is IOracle, DefaultAccessControl {
             revert("ChainlinkOracle: stale price feed");
         decimals = IAggregatorV3(aggregatorV3).decimals();
     }
+
+    /*
+        chainlink prices:
+        basePrice = X
+        token1Price = y1
+        token2Price = y2
+
+        oracle price:
+        token1price = y1 / x
+        token2price = y2 / x
+        token3price = 1
+
+        // TODO: fix problem with eth/usd oracles
+    */
 
     function priceX96(address token) external view returns (uint256 priceX96_) {
         if (token == baseToken) return Q96;

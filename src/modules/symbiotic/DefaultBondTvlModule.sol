@@ -17,11 +17,14 @@ contract DefaultBondTvlModule is IDefaultBondTvlModule {
         amounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < bonds.length; i++) {
             address token = IBond(bonds[i]).asset();
+            uint256 index = tokens.length;
             for (uint256 j = 0; j < tokens.length; j++) {
                 if (token != tokens[j]) continue;
-                amounts[j] += IBond(bonds[i]).balanceOf(vault);
+                index = j;
                 break;
             }
+            if (index == tokens.length) revert InvalidToken();
+            amounts[index] += IBond(bonds[i]).balanceOf(vault);
         }
     }
 }
