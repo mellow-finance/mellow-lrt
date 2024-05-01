@@ -25,14 +25,14 @@ contract ERC20SwapValidator is IValidator, DefaultAccessControl {
     }
 
     function validate(address, address, bytes calldata data) external view {
-        if (data.length <= 0x104) revert("ERC20SwapValidator: invalid length");
+        if (data.length <= 0x124) revert("ERC20SwapValidator: invalid length");
         bytes4 selector = bytes4(data[:4]);
-        if (ERC20SwapModule.swap.selector != selector) revert Forbidden();
+        if (IERC20SwapModule.swap.selector != selector) revert Forbidden();
         (
-            ERC20SwapModule.SwapParams memory params,
+            IERC20SwapModule.SwapParams memory params,
             address to,
             bytes memory swapData
-        ) = abi.decode(data[4:], (ERC20SwapModule.SwapParams, address, bytes));
+        ) = abi.decode(data[4:], (IERC20SwapModule.SwapParams, address, bytes));
         if (
             !isSupportedRouter[to] ||
             !isSupportedToken[params.tokenIn] ||

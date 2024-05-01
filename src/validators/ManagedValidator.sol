@@ -1,21 +1,11 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "../interfaces/validators/IValidator.sol";
+import "../interfaces/validators/IManagedValidator.sol";
 
 import "../utils/DefaultAccessControl.sol";
 
-contract ManagedValidator is IValidator {
-    error Forbidden();
-
-    struct Storage {
-        mapping(address => uint256) userRoles;
-        uint256 publicRoles;
-        mapping(address => uint256) allowAllSignaturesRoles;
-        mapping(address => mapping(bytes4 => uint256)) allowSignatureRoles;
-        mapping(address => address) customValidator;
-    }
-
+contract ManagedValidator is IManagedValidator {
     uint256 public constant ADMIN_ROLE_MASK = 1 << 255;
     bytes32 public constant STORAGE_POSITION =
         keccak256("mellow.lrt.permissions.storage");
@@ -152,7 +142,7 @@ contract ManagedValidator is IValidator {
         address to,
         bytes calldata data
     ) external view {
-        if (data.length < 4) revert("ManagedValidator: invalid data");
+        if (data.length < 0x4) revert("ManagedValidator: invalid data");
         requirePermission(from, to, bytes4(data[:4]));
         address validator = _contractStorage().customValidator[to];
         if (validator == address(0)) return;

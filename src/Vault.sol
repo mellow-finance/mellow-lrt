@@ -180,9 +180,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         //     data
         // );
         validator.validate(address(this), to, data);
-        (bool success, bytes memory response) = to.call(data);
-        // TODO: fix
-        return (success, response);
+        return to.call(data);
     }
 
     function delegateCall(
@@ -198,8 +196,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         //     data
         // );
         validator.validate(address(this), to, data);
-        (bool success, bytes memory response) = to.delegatecall(data);
-        return (success, response);
+        return to.delegatecall(data);
     }
 
     function deposit(

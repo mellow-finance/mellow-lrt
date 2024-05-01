@@ -1,29 +1,20 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "../interfaces/utils/IDepositCallback.sol";
-
-import "../interfaces/modules/erc20/IERC20TvlModule.sol";
-import "../interfaces/modules/symbiotic/IDefaultBondModule.sol";
+import "../interfaces/strategies/IDefaultBondStrategy.sol";
 
 import "../libraries/external/FullMath.sol";
 
 import "../utils/DefaultAccessControl.sol";
 
-contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
-    struct Data {
-        address bond;
-        uint256 ratioX96;
-    }
-
+contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
     uint256 public constant Q96 = 2 ** 96;
 
     IVault public immutable vault;
-
-    mapping(address => bytes) public tokenToData;
-
     IERC20TvlModule public immutable erc20TvlModule;
     IDefaultBondModule public immutable bondModule;
+
+    mapping(address => bytes) public tokenToData;
 
     constructor(
         address admin,
@@ -67,7 +58,7 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
                 vault.delegateCall(
                     address(bondModule),
                     abi.encodeWithSelector(
-                        bondModule.deposit.selector,
+                        IDefaultBondModule.deposit.selector,
                         data[j].bond,
                         amount
                     )
@@ -103,7 +94,7 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
                 vault.delegateCall(
                     address(bondModule),
                     abi.encodeWithSelector(
-                        bondModule.withdraw.selector,
+                        IDefaultBondModule.withdraw.selector,
                         data[i].bond,
                         IERC20(data[i].bond).balanceOf(address(vault))
                     )

@@ -151,9 +151,9 @@ contract Integration is Fixture {
         newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
 
         {
-            DefaultBondStrategy.Data[]
-                memory data = new DefaultBondStrategy.Data[](1);
-            data[0] = DefaultBondStrategy.Data({
+            IDefaultBondStrategy.Data[]
+                memory data = new IDefaultBondStrategy.Data[](1);
+            data[0] = IDefaultBondStrategy.Data({
                 bond: address(wstethDefaultBond),
                 ratioX96: Q96
             });
@@ -245,9 +245,9 @@ contract Integration is Fixture {
         newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
 
         {
-            DefaultBondStrategy.Data[]
-                memory data = new DefaultBondStrategy.Data[](1);
-            data[0] = DefaultBondStrategy.Data({
+            IDefaultBondStrategy.Data[]
+                memory data = new IDefaultBondStrategy.Data[](1);
+            data[0] = IDefaultBondStrategy.Data({
                 bond: address(wstethDefaultBond),
                 ratioX96: Q96
             });
@@ -292,33 +292,60 @@ contract Integration is Fixture {
             )
         );
 
-        vault.delegateCall(
-            address(erc20SwapModule),
-            abi.encodeWithSelector(
-                ERC20SwapModule.swap.selector,
-                ERC20SwapModule.SwapParams({
-                    tokenIn: Constants.WSTETH,
-                    tokenOut: Constants.WETH,
-                    amountIn: 0.1 ether,
-                    minAmountOut: 0.1 ether,
-                    deadline: type(uint256).max
-                }),
-                uniswapSwapRouter,
+        {
+            vm.expectRevert("ERC20SwapValidator: invalid length");
+            vault.delegateCall(
+                address(erc20SwapModule),
                 abi.encodeWithSelector(
-                    ISwapRouter.exactInputSingle.selector,
-                    ISwapRouter.ExactInputSingleParams({
+                    IERC20SwapModule.swap.selector,
+                    IERC20SwapModule.SwapParams({
                         tokenIn: Constants.WSTETH,
                         tokenOut: Constants.WETH,
-                        fee: 100,
-                        recipient: address(vault),
-                        deadline: type(uint256).max,
                         amountIn: 0.1 ether,
-                        amountOutMinimum: 0.1 ether,
-                        sqrtPriceLimitX96: 0
-                    })
+                        minAmountOut: 0.1 ether,
+                        deadline: type(uint256).max
+                    }),
+                    uniswapSwapRouter,
+                    abi.encodeWithSelector(
+                        ISwapRouter.exactInputSingle.selector
+                    )
                 )
-            )
-        );
+            );
+        }
+
+        {
+            (bool success, ) = vault.delegateCall(
+                address(erc20SwapModule),
+                abi.encodeWithSelector(
+                    IERC20SwapModule.swap.selector,
+                    IERC20SwapModule.SwapParams({
+                        tokenIn: Constants.WSTETH,
+                        tokenOut: Constants.WETH,
+                        amountIn: 0.1 ether,
+                        minAmountOut: 0.1 ether,
+                        deadline: type(uint256).max
+                    }),
+                    uniswapSwapRouter,
+                    abi.encodeWithSelector(
+                        ISwapRouter.exactInputSingle.selector,
+                        ISwapRouter.ExactInputSingleParams({
+                            tokenIn: Constants.WSTETH,
+                            tokenOut: Constants.WETH,
+                            fee: 100,
+                            recipient: address(vault),
+                            deadline: type(uint256).max,
+                            amountIn: 0.1 ether,
+                            amountOutMinimum: 0.1 ether,
+                            sqrtPriceLimitX96: 0
+                        })
+                    )
+                )
+            );
+            if (!success) {
+                console2.log("Unsuccessful swap");
+                assert(success);
+            }
+        }
 
         vm.stopPrank();
     }

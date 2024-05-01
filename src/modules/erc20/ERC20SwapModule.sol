@@ -1,18 +1,10 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../../interfaces/modules/erc20/IERC20SwapModule.sol";
 
-contract ERC20SwapModule {
+contract ERC20SwapModule is IERC20SwapModule {
     using SafeERC20 for IERC20;
-
-    struct SwapParams {
-        address tokenIn;
-        address tokenOut;
-        uint256 amountIn;
-        uint256 minAmountOut;
-        uint256 deadline;
-    }
 
     function swap(
         SwapParams calldata params,
