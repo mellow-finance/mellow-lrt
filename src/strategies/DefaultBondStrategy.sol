@@ -73,7 +73,7 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
 
     function processAll() external {
         _requireAtLeastOperator();
-        _processWithdrawals(vault.withdrawers());
+        _processWithdrawals(vault.pendingWithdrawers());
     }
 
     function processWithdrawals(address[] memory users) external {

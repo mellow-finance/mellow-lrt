@@ -7,14 +7,14 @@ import "../IVault.sol";
 import "../utils/IDefaultAccessControl.sol";
 
 interface IManagedRatiosOracle is IRatiosOracle {
-    error InvalidToken();
-    error InvalidDataLength();
     error Forbidden();
     error InvalidCumulativeRatio();
+    error InvalidLength();
+    error InvalidToken();
 
     struct Data {
         address[] tokens;
-        uint256[] ratiosX96;
+        uint128[] ratiosX96;
     }
 
     function Q96() external view returns (uint256);

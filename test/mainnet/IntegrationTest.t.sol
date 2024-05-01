@@ -12,8 +12,8 @@ contract Integration is Fixture {
     function _initializeVault() private {
         vm.startPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
 
-        configurator.stageMaximalTotalSupply(address(vault), type(uint256).max);
-        configurator.commitMaximalTotalSupply(address(vault));
+        configurator.stageMaximalTotalSupply(type(uint256).max);
+        configurator.commitMaximalTotalSupply();
 
         configurator.stageDelegateModuleApproval(address(bondModule));
         configurator.commitDelegateModuleApproval(address(bondModule));
@@ -22,6 +22,10 @@ contract Integration is Fixture {
 
         validator.grantRole(address(vault), Constants.DEFAULT_BOND_ROLE);
         validator.grantRole(address(vault), Constants.SWAP_ROUTER_ROLE);
+        validator.grantContractRole(
+            address(vault),
+            Constants.BOND_STRATEGY_ROLE
+        );
         validator.grantContractRole(
             address(bondModule),
             Constants.DEFAULT_BOND_ROLE
@@ -48,9 +52,9 @@ contract Integration is Fixture {
 
         IManagedRatiosOracle.Data memory data;
         data.tokens = new address[](1);
-        data.ratiosX96 = new uint256[](1);
+        data.ratiosX96 = new uint128[](1);
         data.tokens[0] = Constants.WSTETH;
-        data.ratiosX96[0] = Q96;
+        data.ratiosX96[0] = uint128(Q96);
         vault.addToken(Constants.WSTETH);
         ratiosOracle.updateRatios(address(vault), data);
         vault.setTvlModule(address(erc20TvlModule), new bytes(0));
@@ -143,6 +147,9 @@ contract Integration is Fixture {
             bondModule
         );
 
+        newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
+        validator.grantRole(address(strategy), Constants.BOND_STRATEGY_ROLE);
+
         newPrank(Constants.VAULT_ADMIN);
         vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
         vault.grantRole(vault.OPERATOR(), address(strategy));
@@ -158,8 +165,8 @@ contract Integration is Fixture {
             });
             strategy.setData(Constants.WSTETH, data);
         }
-        configurator.stageDepositCallback(address(vault), address(strategy));
-        configurator.commitDepositCallback(address(vault));
+        configurator.stageDepositCallback(address(strategy));
+        configurator.commitDepositCallback();
 
         newPrank(address(this));
         _initialDeposit();
@@ -237,6 +244,13 @@ contract Integration is Fixture {
             bondModule
         );
 
+        newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
+        validator.grantRole(address(strategy), Constants.BOND_STRATEGY_ROLE);
+        validator.grantRole(
+            Constants.VAULT_ADMIN,
+            Constants.BOND_STRATEGY_ROLE
+        );
+
         newPrank(Constants.VAULT_ADMIN);
         vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
         vault.grantRole(vault.OPERATOR(), address(strategy));
@@ -252,8 +266,8 @@ contract Integration is Fixture {
             });
             strategy.setData(Constants.WSTETH, data);
         }
-        configurator.stageDepositCallback(address(vault), address(strategy));
-        configurator.commitDepositCallback(address(vault));
+        configurator.stageDepositCallback(address(strategy));
+        configurator.commitDepositCallback();
 
         newPrank(address(this));
         _initialDeposit();
@@ -347,5 +361,17 @@ contract Integration is Fixture {
         }
 
         vm.stopPrank();
+    }
+
+    function testGovernance() external {
+        /*
+        bytes32[] memory slots = configurator.viewSlots();
+        for (uint256 i = 0; i < slots.length; i++) {
+            console2.log(";\nbytes32 public constant DEFAULT_DELAY_SLOT =");
+            console2.logBytes32(slots[i]);
+        }
+        */
+
+        console2.log(configurator.baseDelay());
     }
 }

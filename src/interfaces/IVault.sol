@@ -25,6 +25,7 @@ interface IVault {
     error InsufficientLpAmount();
     error LimitOverflow();
     error NonZeroValue();
+    error ValueZero();
 
     struct WithdrawalRequest {
         address to;
@@ -35,12 +36,10 @@ interface IVault {
         uint256[] minAmounts;
     }
 
-    // for stack reduction
-    // rename to Stack
-    struct ProcessWithdrawalsStorage {
+    struct ProcessWithdrawalsStack {
         uint256 totalValue;
-        uint256 x96Value;
-        uint256[] ratiosX96;
+        uint256 ratiosX96Value;
+        uint128[] ratiosX96;
         uint256[] amounts;
     }
 
@@ -62,7 +61,7 @@ interface IVault {
         address
     ) external view returns (WithdrawalRequest memory);
 
-    function withdrawers() external view returns (address[] memory);
+    function pendingWithdrawers() external view returns (address[] memory);
 
     function tvlModules() external view returns (address[] memory);
 

@@ -17,7 +17,7 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
         if (
             tokens.length != data.tokens.length ||
             data.tokens.length != data.ratiosX96.length
-        ) revert InvalidDataLength();
+        ) revert InvalidLength();
         uint256 cumulativeRatioX96 = 0;
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i] != data.tokens[i]) revert InvalidToken();
@@ -29,12 +29,12 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
 
     function getTargetRatiosX96(
         address vault
-    ) external view override returns (uint256[] memory) {
+    ) external view override returns (uint128[] memory) {
         address[] memory tokens = IVault(vault).underlyingTokens();
         bytes memory data_ = vaultToData[vault];
-        if (data_.length == 0) revert InvalidDataLength();
+        if (data_.length == 0) revert InvalidLength();
         Data memory data = abi.decode(data_, (Data));
-        if (data.tokens.length != tokens.length) revert InvalidDataLength();
+        if (data.tokens.length != tokens.length) revert InvalidLength();
         for (uint256 i = 0; i < tokens.length; i++)
             if (data.tokens[i] != tokens[i]) revert InvalidToken();
         return data.ratiosX96;

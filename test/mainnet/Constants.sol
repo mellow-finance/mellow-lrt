@@ -40,6 +40,7 @@ library Constants {
 
     uint8 public constant DEFAULT_BOND_ROLE = 1;
     uint8 public constant SWAP_ROUTER_ROLE = 2;
+    uint8 public constant BOND_STRATEGY_ROLE = 3;
 
     address public constant STETH =
         address(0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84);
