@@ -5,6 +5,7 @@ import "./IValidator.sol";
 
 interface IManagedValidator is IValidator {
     error Forbidden();
+    error InvalidData();
 
     struct Storage {
         mapping(address => uint256) userRoles;

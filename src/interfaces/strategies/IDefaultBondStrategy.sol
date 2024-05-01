@@ -7,6 +7,8 @@ import "../modules/erc20/IERC20TvlModule.sol";
 import "../modules/symbiotic/IDefaultBondModule.sol";
 
 interface IDefaultBondStrategy is IDepositCallback {
+    error InvalidCumulativeRatio();
+
     struct Data {
         address bond;
         uint256 ratioX96;

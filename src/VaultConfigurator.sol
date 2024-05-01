@@ -128,17 +128,17 @@ contract VaultConfigurator is
     }
 
     modifier onlyAdmin() {
-        if (!isAdmin(msg.sender))
-            revert("ProtocolGovernance: caller is not the admin");
+        if (!isAdmin(msg.sender)) revert Forbidden();
         _;
     }
 
     constructor(address admin) DefaultAccessControl(admin) {}
 
     function _validateTimestamp(uint256 timestamp) private view {
-        if (timestamp == 0) revert("ProtocolGovernance: timestamp is not set");
-        if (block.timestamp - timestamp < uint256(_governanceDelay.value))
-            revert("ProtocolGovernance: stage delay has not passed");
+        if (
+            timestamp == 0 ||
+            block.timestamp - timestamp < uint256(_governanceDelay.value)
+        ) revert InvalidTimestamp();
     }
 
     function _stage(Data storage s, bytes32 value) private {
@@ -165,7 +165,7 @@ contract VaultConfigurator is
     function stageDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        if (module == address(0)) revert("ProtocolGovernance: address zero");
+        if (module == address(0)) revert AddressZero();
         _stage(_isDelegateModuleApproved[module], bytes32(uint256(1)));
     }
 
@@ -190,7 +190,7 @@ contract VaultConfigurator is
     function stageExternalCallsApproval(
         address target
     ) external onlyAdmin nonReentrant {
-        if (target == address(0)) revert("ProtocolGovernance: address zero");
+        if (target == address(0)) revert AddressZero();
         _stage(_isExternalCallsApproved[target], bytes32(uint256(1)));
     }
 
@@ -216,7 +216,7 @@ contract VaultConfigurator is
         address vault,
         uint256 maximalTotalSupply_
     ) external onlyAdmin nonReentrant {
-        if (vault == address(0)) revert("ProtocolGovernance: address zero");
+        if (vault == address(0)) revert AddressZero();
         _stage(_maxTotalSupply[vault], bytes32(maximalTotalSupply_));
     }
 
@@ -236,8 +236,7 @@ contract VaultConfigurator is
         address vault,
         address callback
     ) external onlyAdmin nonReentrant {
-        if (callback == address(0) || vault == address(0))
-            revert("ProtocolGovernance: address zero");
+        if (callback == address(0) || vault == address(0)) revert AddressZero();
         _stage(_depositCallback[vault], bytes32(bytes20(callback)));
     }
 
@@ -263,8 +262,7 @@ contract VaultConfigurator is
         address vault,
         address callback
     ) external onlyAdmin nonReentrant {
-        if (callback == address(0) || vault == address(0))
-            revert("ProtocolGovernance: address zero");
+        if (callback == address(0) || vault == address(0)) revert AddressZero();
         _stage(_withdrawalCallback[vault], bytes32(bytes20(callback)));
     }
 
@@ -290,7 +288,7 @@ contract VaultConfigurator is
         uint256 delay
     ) external onlyAdmin nonReentrant {
         if (delay == 0 || delay > MAX_GOVERNANCE_DELAY)
-            revert("ProtocolGovernance: invalid governance delay");
+            revert InvalidGovernanceDelay();
         _stage(_governanceDelay, bytes32(delay));
     }
 
@@ -306,9 +304,8 @@ contract VaultConfigurator is
         address vault,
         uint256 feeD9
     ) external onlyAdmin nonReentrant {
-        if (vault == address(0)) revert("ProtocolGovernance: invalid vault");
-        if (feeD9 > MAX_WITHDRAWAL_FEE)
-            revert("ProtocolGovernance: fee is too high");
+        if (vault == address(0)) revert AddressZero();
+        if (feeD9 > MAX_WITHDRAWAL_FEE) revert InvalidWithdrawalFee();
         _stage(_withdrawalFeeD9[vault], bytes32(feeD9));
     }
 

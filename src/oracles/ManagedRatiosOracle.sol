@@ -12,13 +12,14 @@ contract ManagedRatiosOracle is IRatiosOracle {
     uint256 public constant Q96 = 2 ** 96;
 
     mapping(address => mapping(address => uint256)) public vaultToTokenToWeight;
+
     function updateRatios(
         address vault,
         address[] memory tokens,
         uint256[] memory weights
     ) external {
-        // TODO: Fix
-        require(IDefaultAccessControl(vault).isAdmin(msg.sender));
+        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
+            revert("ManagedRatiosOracle: vault admin required");
         for (uint256 i = 0; i < tokens.length; i++) {
             vaultToTokenToWeight[vault][tokens[i]] = weights[i];
         }

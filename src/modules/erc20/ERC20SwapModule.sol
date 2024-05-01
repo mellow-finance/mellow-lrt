@@ -11,8 +11,7 @@ contract ERC20SwapModule is IERC20SwapModule {
         address to,
         bytes calldata data
     ) external returns (bytes memory) {
-        if (params.deadline < block.timestamp)
-            revert("ERC20SwapModule: deadline");
+        if (params.deadline < block.timestamp) revert Deadline();
         uint256 tokenInBefore = IERC20(params.tokenIn).balanceOf(address(this));
         uint256 tokenOutBefore = IERC20(params.tokenOut).balanceOf(
             address(this)
@@ -20,7 +19,7 @@ contract ERC20SwapModule is IERC20SwapModule {
 
         IERC20(params.tokenIn).safeIncreaseAllowance(to, params.amountIn);
         (bool success, bytes memory response) = to.call(data);
-        if (!success) revert("ERC20SwapModule: swap failed");
+        if (!success) revert SwapFailed();
 
         uint256 tokenInDelta = tokenInBefore -
             IERC20(params.tokenIn).balanceOf(address(this));
@@ -31,7 +30,7 @@ contract ERC20SwapModule is IERC20SwapModule {
         if (
             tokenInDelta > params.amountIn ||
             tokenOutDelta < params.minAmountOut
-        ) revert("ERC20SwapModule: invalid swap");
+        ) revert InvalidSwapAmounts();
 
         if (IERC20(params.tokenIn).allowance(address(this), to) != 0) {
             IERC20(params.tokenIn).forceApprove(to, 0);

@@ -23,7 +23,7 @@ contract DefaultBondTvlModule is IDefaultBondTvlModule {
                 index = j;
                 break;
             }
-            if (index == tokens.length) revert();
+            if (index == tokens.length) revert InvalidToken();
             amounts[index] += IBond(bonds[i]).balanceOf(vault);
         }
     }

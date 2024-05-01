@@ -4,6 +4,10 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface IVaultConfigurator {
+    error InvalidTimestamp();
+    error InvalidWithdrawalFee();
+    error InvalidGovernanceDelay();
+
     struct Data {
         bytes32 value;
         bytes32 stagedValue;

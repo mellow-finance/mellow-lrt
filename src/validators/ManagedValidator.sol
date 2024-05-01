@@ -142,7 +142,7 @@ contract ManagedValidator is IManagedValidator {
         address to,
         bytes calldata data
     ) external view {
-        if (data.length < 0x4) revert("ManagedValidator: invalid data");
+        if (data.length < 0x4) revert InvalidData();
         requirePermission(from, to, bytes4(data[:4]));
         address validator = _contractStorage().customValidator[to];
         if (validator == address(0)) return;

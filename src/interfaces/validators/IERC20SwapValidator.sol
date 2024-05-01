@@ -8,10 +8,15 @@ import "./IValidator.sol";
 import "../modules/erc20/IERC20SwapModule.sol";
 
 interface IERC20SwapValidator is IValidator {
+    error InvalidLength();
+
     function isSupportedRouter(address) external view returns (bool);
+
     function isSupportedToken(address) external view returns (bool);
 
     function setSupportedRouter(address router, bool flag) external;
+
     function setSupportedToken(address token, bool flag) external;
+
     function validate(address, address, bytes calldata data) external view;
 }

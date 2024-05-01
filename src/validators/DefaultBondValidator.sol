@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Strings.sol";
-
-import "../interfaces/validators/IValidator.sol";
-import "../interfaces/modules/symbiotic/IDefaultBondModule.sol";
+import "../interfaces/validators/IDefaultBondValidator.sol";
 
 import "../utils/DefaultAccessControl.sol";
 
-contract SymbioticBondValidator is IValidator, DefaultAccessControl {
+contract DefaultBondValidator is IDefaultBondValidator, DefaultAccessControl {
     constructor(address admin) DefaultAccessControl(admin) {}
 
     mapping(address => bool) public isSupportedBond;
@@ -19,8 +16,7 @@ contract SymbioticBondValidator is IValidator, DefaultAccessControl {
     }
 
     function validate(address, address, bytes calldata data) external view {
-        if (data.length != 0x44)
-            revert("SymbioticBondValidator: invalid length");
+        if (data.length != 0x44) revert InvalidLength();
         bytes4 selector = bytes4(data[:4]);
         if (
             selector == IDefaultBondModule.deposit.selector ||
@@ -30,8 +26,7 @@ contract SymbioticBondValidator is IValidator, DefaultAccessControl {
                 data[4:],
                 (address, uint256)
             );
-            if (!isSupportedBond[bond]) revert Forbidden();
-            if (amount == 0) revert Forbidden();
+            if (!isSupportedBond[bond] || amount == 0) revert Forbidden();
         } else revert Forbidden();
     }
 }

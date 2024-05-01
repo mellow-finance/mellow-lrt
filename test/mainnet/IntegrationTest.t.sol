@@ -293,7 +293,7 @@ contract Integration is Fixture {
         );
 
         {
-            vm.expectRevert("ERC20SwapValidator: invalid length");
+            vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
             vault.delegateCall(
                 address(erc20SwapModule),
                 abi.encodeWithSelector(

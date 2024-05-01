@@ -1,31 +1,33 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Strings.sol";
-
-import "../interfaces/validators/IValidator.sol";
+import "../interfaces/validators/IERC20SwapValidator.sol";
 import "../utils/DefaultAccessControl.sol";
 
-import "../modules/erc20/ERC20SwapModule.sol";
-
-contract ERC20SwapValidator is IValidator, DefaultAccessControl {
+contract ERC20SwapValidator is IERC20SwapValidator, DefaultAccessControl {
     constructor(address admin) DefaultAccessControl(admin) {}
 
+    /// @inheritdoc IERC20SwapValidator
     mapping(address => bool) public isSupportedRouter;
+
+    /// @inheritdoc IERC20SwapValidator
     mapping(address => bool) public isSupportedToken;
 
+    /// @inheritdoc IERC20SwapValidator
     function setSupportedRouter(address router, bool flag) external {
         _requireAdmin();
         isSupportedRouter[router] = flag;
     }
 
+    /// @inheritdoc IERC20SwapValidator
     function setSupportedToken(address token, bool flag) external {
         _requireAdmin();
         isSupportedToken[token] = flag;
     }
 
+    /// @inheritdoc IValidator
     function validate(address, address, bytes calldata data) external view {
-        if (data.length <= 0x124) revert("ERC20SwapValidator: invalid length");
+        if (data.length <= 0x124) revert InvalidLength();
         bytes4 selector = bytes4(data[:4]);
         if (IERC20SwapModule.swap.selector != selector) revert Forbidden();
         (

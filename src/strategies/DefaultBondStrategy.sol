@@ -35,8 +35,7 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
             if (data[i].bond == address(0)) revert AddressZero();
             cumulativeRatio += data[i].ratioX96;
         }
-        if (cumulativeRatio != Q96)
-            revert("DefaultBondStrategy: cumulative ratio is not equal to 1");
+        if (cumulativeRatio != Q96) revert InvalidCumulativeRatio();
         tokenToData[token] = abi.encode(data);
     }
 

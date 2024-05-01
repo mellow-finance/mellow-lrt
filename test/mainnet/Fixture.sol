@@ -15,7 +15,7 @@ contract Fixture is Test {
     ManagedRatiosOracle public ratiosOracle;
     ChainlinkOracle public oracle;
     ManagedValidator public validator;
-    SymbioticBondValidator public customValidator;
+    DefaultBondValidator public customValidator;
     Vault public vault;
 
     DefaultBondModule public bondModule;
@@ -54,7 +54,7 @@ contract Fixture is Test {
             Constants.WSTETH
         );
         validator = new ManagedValidator(Constants.PROTOCOL_GOVERNANCE_ADMIN);
-        customValidator = new SymbioticBondValidator(
+        customValidator = new DefaultBondValidator(
             Constants.PROTOCOL_GOVERNANCE_ADMIN
         );
 
