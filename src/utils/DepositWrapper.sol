@@ -9,7 +9,7 @@ import "../interfaces/external/lido/IWSteth.sol";
 
 import "../interfaces/IVault.sol";
 
-contract WstethDepositWrapper {
+contract DepositWrapper {
     using SafeERC20 for IERC20;
 
     address public immutable weth;
