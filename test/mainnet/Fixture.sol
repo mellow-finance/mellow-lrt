@@ -11,15 +11,14 @@ contract Fixture is Test {
     uint256 public constant Q96 = 2 ** 96;
     uint256 public constant D9 = 1e9;
 
-    ProtocolGovernance public protocolGovernance;
+    VaultConfigurator public configurator;
     ManagedRatiosOracle public ratiosOracle;
     ChainlinkOracle public oracle;
     ManagedValidator public validator;
     SymbioticBondValidator public customValidator;
     Vault public vault;
 
-    DefaultBondDepositModule public bondDepositModule;
-    DefaultBondWithdrawalModule public bondWithdrawalModule;
+    DefaultBondModule public bondModule;
     DefaultBondTvlModule public bondTvlModule;
 
     ERC20SwapModule public erc20SwapModule;
@@ -46,12 +45,10 @@ contract Fixture is Test {
     }
 
     function setUp() external {
-        protocolGovernance = new ProtocolGovernance(
+        configurator = new VaultConfigurator(
             Constants.PROTOCOL_GOVERNANCE_ADMIN
         );
-        ratiosOracle = new ManagedRatiosOracle(
-            Constants.PROTOCOL_GOVERNANCE_ADMIN
-        );
+        ratiosOracle = new ManagedRatiosOracle();
         oracle = new ChainlinkOracle(
             Constants.PROTOCOL_GOVERNANCE_ADMIN,
             Constants.WSTETH
@@ -61,8 +58,7 @@ contract Fixture is Test {
             Constants.PROTOCOL_GOVERNANCE_ADMIN
         );
 
-        bondDepositModule = new DefaultBondDepositModule();
-        bondWithdrawalModule = new DefaultBondWithdrawalModule();
+        bondModule = new DefaultBondModule();
         bondTvlModule = new DefaultBondTvlModule();
 
         erc20SwapModule = new ERC20SwapModule();
@@ -78,7 +74,7 @@ contract Fixture is Test {
             "name",
             "symbol",
             Constants.VAULT_ADMIN,
-            address(protocolGovernance),
+            address(configurator),
             address(ratiosOracle),
             address(oracle),
             address(validator)

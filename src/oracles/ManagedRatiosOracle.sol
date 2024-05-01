@@ -4,36 +4,34 @@ pragma solidity ^0.8.0;
 import "../interfaces/oracles/IRatiosOracle.sol";
 import "../interfaces/IVault.sol";
 
-import "../utils/DefaultAccessControl.sol";
+import "../interfaces/utils/IDefaultAccessControl.sol";
 
 import "../libraries/external/FullMath.sol";
 
-contract ManagedRatiosOracle is IRatiosOracle, DefaultAccessControl {
+contract ManagedRatiosOracle is IRatiosOracle {
     uint256 public constant Q96 = 2 ** 96;
 
     mapping(address => mapping(address => uint256)) public vaultToTokenToWeight;
-
-    constructor(address admin) DefaultAccessControl(admin) {}
-
     function updateRatios(
         address vault,
         address[] memory tokens,
         uint256[] memory weights
     ) external {
-        _requireAdmin();
+        // TODO: Fix
+        require(IDefaultAccessControl(vault).isAdmin(msg.sender));
         for (uint256 i = 0; i < tokens.length; i++) {
             vaultToTokenToWeight[vault][tokens[i]] = weights[i];
         }
     }
 
     function getTargetRatiosX96(
-        address rootVault
+        address vault
     ) external view returns (uint256[] memory ratiosX96) {
-        address[] memory tokens = IVault(rootVault).underlyingTokens();
+        address[] memory tokens = IVault(vault).underlyingTokens();
         uint256 cumulativeWeight = 0;
         uint256[] memory weights = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
-            weights[i] = vaultToTokenToWeight[rootVault][tokens[i]];
+            weights[i] = vaultToTokenToWeight[vault][tokens[i]];
             cumulativeWeight += weights[i];
         }
         if (cumulativeWeight == 0) {

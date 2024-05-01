@@ -4,8 +4,7 @@ pragma solidity ^0.8.0;
 import "../interfaces/utils/IDepositCallback.sol";
 
 import "../interfaces/modules/erc20/IERC20TvlModule.sol";
-import "../interfaces/modules/symbiotic/IDefaultBondDepositModule.sol";
-import "../interfaces/modules/symbiotic/IDefaultBondWithdrawalModule.sol";
+import "../interfaces/modules/symbiotic/IDefaultBondModule.sol";
 
 import "../libraries/external/FullMath.sol";
 
@@ -24,20 +23,17 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
     mapping(address => bytes) public tokenToData;
 
     IERC20TvlModule public immutable erc20TvlModule;
-    IDefaultBondDepositModule public immutable depositModule;
-    IDefaultBondWithdrawalModule public immutable withdrawalModule;
+    IDefaultBondModule public immutable bondModule;
 
     constructor(
         address admin,
         IVault vault_,
         IERC20TvlModule erc20TvlModule_,
-        IDefaultBondDepositModule depositModule_,
-        IDefaultBondWithdrawalModule withdrawalModule_
+        IDefaultBondModule bondModule_
     ) DefaultAccessControl(admin) {
         vault = vault_;
         erc20TvlModule = erc20TvlModule_;
-        depositModule = depositModule_;
-        withdrawalModule = withdrawalModule_;
+        bondModule = bondModule_;
     }
 
     function setData(address token, Data[] memory data) external {
@@ -69,9 +65,9 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
                 );
                 if (amount == 0) continue;
                 vault.delegateCall(
-                    address(depositModule),
+                    address(bondModule),
                     abi.encodeWithSelector(
-                        depositModule.deposit.selector,
+                        bondModule.deposit.selector,
                         data[j].bond,
                         amount
                     )
@@ -105,9 +101,9 @@ contract DefaultBondStrategy is IDepositCallback, DefaultAccessControl {
             Data[] memory data = abi.decode(data_, (Data[]));
             for (uint256 i = 0; i < data.length; i++) {
                 vault.delegateCall(
-                    address(withdrawalModule),
+                    address(bondModule),
                     abi.encodeWithSelector(
-                        withdrawalModule.withdraw.selector,
+                        bondModule.withdraw.selector,
                         data[i].bond,
                         IERC20(data[i].bond).balanceOf(address(vault))
                     )

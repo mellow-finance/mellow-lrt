@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-interface IProtocolGovernance {
+interface IVaultConfigurator {
     struct Data {
         bytes32 value;
         bytes32 stagedValue;

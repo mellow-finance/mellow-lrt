@@ -11,6 +11,7 @@ contract ERC20SwapModule {
         address tokenOut;
         uint256 amountIn;
         uint256 minAmountOut;
+        uint256 deadline;
     }
 
     function swap(
@@ -18,6 +19,8 @@ contract ERC20SwapModule {
         address to,
         bytes calldata data
     ) external returns (bytes memory) {
+        if (params.deadline < block.timestamp)
+            revert("ERC20SwapModule: deadline");
         uint256 tokenInBefore = IERC20(params.tokenIn).balanceOf(address(this));
         uint256 tokenOutBefore = IERC20(params.tokenOut).balanceOf(
             address(this)

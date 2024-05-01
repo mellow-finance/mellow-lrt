@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "../../src/Vault.sol";
-import "../../src/ProtocolGovernance.sol";
+import "../../src/VaultConfigurator.sol";
 import "../../src/validators/ManagedValidator.sol";
 import "../../src/validators/SymbioticBondValidator.sol";
 import "../../src/validators/ERC20SwapValidator.sol";
@@ -18,12 +18,11 @@ import "../../src/strategies/DefaultBondStrategy.sol";
 import "../../src/strategies/DefaultBondStrategy.sol";
 import "../../src/oracles/ChainlinkOracle.sol";
 import "../../src/oracles/ManagedRatiosOracle.sol";
-import "../../src/modules/symbiotic/DefaultBondDepositModule.sol";
 import "../../src/modules/erc20/ERC20TvlModule.sol";
 import "../../src/modules/erc20/ERC20SwapModule.sol";
 
+import "../../src/modules/symbiotic/DefaultBondModule.sol";
 import "../../src/modules/symbiotic/DefaultBondTvlModule.sol";
-import "../../src/modules/symbiotic/DefaultBondWithdrawalModule.sol";
 
 import "../../src/libraries/external/FullMath.sol";
 

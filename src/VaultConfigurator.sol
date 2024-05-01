@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "./interfaces/IProtocolGovernance.sol";
+import "./interfaces/IVaultConfigurator.sol";
 
 import "./utils/DefaultAccessControl.sol";
 
-contract ProtocolGovernance is
-    IProtocolGovernance,
+contract VaultConfigurator is
+    IVaultConfigurator,
     ReentrancyGuard,
     DefaultAccessControl
 {
     uint256 public constant MAX_GOVERNANCE_DELAY = 30 days;
     uint256 public constant MAX_WITHDRAWAL_FEE = 5e7; // 5%
 
+    // add custom delays for parameters
     Data private _governanceDelay;
     mapping(address => Data) private _isDelegateModuleApproved;
     mapping(address => Data) private _isExternalCallsApproved;

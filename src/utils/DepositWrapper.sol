@@ -41,6 +41,7 @@ contract WstethDepositWrapper {
     }
 
     function deposit(
+        address to,
         address token,
         uint256 amount,
         uint256 minLpAmount,
@@ -68,7 +69,7 @@ contract WstethDepositWrapper {
         IERC20(wsteth).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
-        vault.deposit(amounts, minLpAmount, deadline);
+        vault.deposit(to, amounts, minLpAmount, deadline);
         uint256 balance = IERC20(address(vault)).balanceOf(wrapper);
         if (balance > 0) IERC20(address(vault)).safeTransfer(sender, balance);
         balance = IERC20(weth).balanceOf(wrapper);

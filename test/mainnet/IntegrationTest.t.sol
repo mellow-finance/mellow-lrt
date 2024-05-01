@@ -12,46 +12,18 @@ contract Integration is Fixture {
     function _initializeVault() private {
         vm.startPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = Constants.WSTETH;
-        uint256[] memory weights = new uint256[](1);
-        weights[0] = 1 ether;
+        configurator.stageMaximalTotalSupply(address(vault), type(uint256).max);
+        configurator.commitMaximalTotalSupply(address(vault));
 
-        ratiosOracle.updateRatios(address(vault), tokens, weights);
-
-        protocolGovernance.stageMaximalTotalSupply(
-            address(vault),
-            type(uint256).max
-        );
-        protocolGovernance.commitMaximalTotalSupply(address(vault));
-
-        protocolGovernance.stageDelegateModuleApproval(
-            address(bondDepositModule)
-        );
-        protocolGovernance.stageDelegateModuleApproval(
-            address(bondWithdrawalModule)
-        );
-        protocolGovernance.commitDelegateModuleApproval(
-            address(bondDepositModule)
-        );
-        protocolGovernance.commitDelegateModuleApproval(
-            address(bondWithdrawalModule)
-        );
-        protocolGovernance.stageDelegateModuleApproval(
-            address(erc20SwapModule)
-        );
-        protocolGovernance.commitDelegateModuleApproval(
-            address(erc20SwapModule)
-        );
+        configurator.stageDelegateModuleApproval(address(bondModule));
+        configurator.commitDelegateModuleApproval(address(bondModule));
+        configurator.stageDelegateModuleApproval(address(erc20SwapModule));
+        configurator.commitDelegateModuleApproval(address(erc20SwapModule));
 
         validator.grantRole(address(vault), Constants.DEFAULT_BOND_ROLE);
         validator.grantRole(address(vault), Constants.SWAP_ROUTER_ROLE);
         validator.grantContractRole(
-            address(bondDepositModule),
-            Constants.DEFAULT_BOND_ROLE
-        );
-        validator.grantContractRole(
-            address(bondWithdrawalModule),
+            address(bondModule),
             Constants.DEFAULT_BOND_ROLE
         );
         validator.grantContractRole(
@@ -59,11 +31,7 @@ contract Integration is Fixture {
             Constants.SWAP_ROUTER_ROLE
         );
         validator.setCustomValidator(
-            address(bondDepositModule),
-            address(customValidator)
-        );
-        validator.setCustomValidator(
-            address(bondWithdrawalModule),
+            address(bondModule),
             address(customValidator)
         );
         validator.setCustomValidator(
@@ -77,6 +45,14 @@ contract Integration is Fixture {
         erc20SwapValidator.setSupportedToken(Constants.WETH, true);
 
         newPrank(Constants.VAULT_ADMIN);
+
+        address[] memory tokens = new address[](1);
+        tokens[0] = Constants.WSTETH;
+        uint256[] memory weights = new uint256[](1);
+        weights[0] = 1 ether;
+
+        ratiosOracle.updateRatios(address(vault), tokens, weights);
+
         vault.addToken(Constants.WSTETH);
         vault.setTvlModule(address(erc20TvlModule), new bytes(0));
         address[] memory bonds = new address[](1);
@@ -97,7 +73,7 @@ contract Integration is Fixture {
         IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
-        vault.deposit(amounts, amount, type(uint256).max);
+        vault.deposit(address(vault), amounts, amount, type(uint256).max);
     }
 
     function testPrimitiveOperations() external {
@@ -114,7 +90,12 @@ contract Integration is Fixture {
             );
             uint256[] memory amounts = new uint256[](1);
             amounts[0] = amount;
-            vault.deposit(amounts, amount, type(uint256).max);
+            vault.deposit(
+                Constants.DEPOSITOR,
+                amounts,
+                amount,
+                type(uint256).max
+            );
         }
 
         console2.log(
@@ -127,7 +108,8 @@ contract Integration is Fixture {
             Constants.DEPOSITOR,
             vault.balanceOf(Constants.DEPOSITOR) / 2,
             new uint256[](1),
-            type(uint256).max
+            type(uint256).max,
+            false
         );
 
         newPrank(Constants.VAULT_ADMIN);
@@ -159,8 +141,7 @@ contract Integration is Fixture {
             Constants.PROTOCOL_GOVERNANCE_ADMIN,
             vault,
             erc20TvlModule,
-            bondDepositModule,
-            bondWithdrawalModule
+            bondModule
         );
 
         newPrank(Constants.VAULT_ADMIN);
@@ -178,11 +159,8 @@ contract Integration is Fixture {
             });
             strategy.setData(Constants.WSTETH, data);
         }
-        protocolGovernance.stageDepositCallback(
-            address(vault),
-            address(strategy)
-        );
-        protocolGovernance.commitDepositCallback(address(vault));
+        configurator.stageDepositCallback(address(vault), address(strategy));
+        configurator.commitDepositCallback(address(vault));
 
         newPrank(address(this));
         _initialDeposit();
@@ -197,7 +175,12 @@ contract Integration is Fixture {
             );
             uint256[] memory amounts = new uint256[](1);
             amounts[0] = amount;
-            vault.deposit(amounts, amount, type(uint256).max);
+            vault.deposit(
+                Constants.DEPOSITOR,
+                amounts,
+                amount,
+                type(uint256).max
+            );
         }
 
         console2.log(
@@ -210,7 +193,8 @@ contract Integration is Fixture {
             Constants.DEPOSITOR,
             vault.balanceOf(Constants.DEPOSITOR) / 2,
             new uint256[](1),
-            type(uint256).max
+            type(uint256).max,
+            false
         );
 
         newPrank(Constants.VAULT_ADMIN);
@@ -251,8 +235,7 @@ contract Integration is Fixture {
             Constants.PROTOCOL_GOVERNANCE_ADMIN,
             vault,
             erc20TvlModule,
-            bondDepositModule,
-            bondWithdrawalModule
+            bondModule
         );
 
         newPrank(Constants.VAULT_ADMIN);
@@ -270,11 +253,8 @@ contract Integration is Fixture {
             });
             strategy.setData(Constants.WSTETH, data);
         }
-        protocolGovernance.stageDepositCallback(
-            address(vault),
-            address(strategy)
-        );
-        protocolGovernance.commitDepositCallback(address(vault));
+        configurator.stageDepositCallback(address(vault), address(strategy));
+        configurator.commitDepositCallback(address(vault));
 
         newPrank(address(this));
         _initialDeposit();
@@ -289,7 +269,12 @@ contract Integration is Fixture {
             );
             uint256[] memory amounts = new uint256[](1);
             amounts[0] = amount;
-            vault.deposit(amounts, amount, type(uint256).max);
+            vault.deposit(
+                Constants.DEPOSITOR,
+                amounts,
+                amount,
+                type(uint256).max
+            );
         }
 
         console2.log(
@@ -299,9 +284,9 @@ contract Integration is Fixture {
 
         newPrank(Constants.VAULT_ADMIN);
         vault.delegateCall(
-            address(bondWithdrawalModule),
+            address(bondModule),
             abi.encodeWithSelector(
-                DefaultBondWithdrawalModule.withdraw.selector,
+                DefaultBondModule.withdraw.selector,
                 wstethDefaultBond,
                 wstethDefaultBond.balanceOf(address(vault))
             )
@@ -315,7 +300,8 @@ contract Integration is Fixture {
                     tokenIn: Constants.WSTETH,
                     tokenOut: Constants.WETH,
                     amountIn: 0.1 ether,
-                    minAmountOut: 0.1 ether
+                    minAmountOut: 0.1 ether,
+                    deadline: type(uint256).max
                 }),
                 uniswapSwapRouter,
                 abi.encodeWithSelector(
