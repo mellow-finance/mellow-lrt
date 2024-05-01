@@ -46,14 +46,13 @@ contract Integration is Fixture {
 
         newPrank(Constants.VAULT_ADMIN);
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = Constants.WSTETH;
-        uint256[] memory weights = new uint256[](1);
-        weights[0] = 1 ether;
-
-        ratiosOracle.updateRatios(address(vault), tokens, weights);
-
+        IManagedRatiosOracle.Data memory data;
+        data.tokens = new address[](1);
+        data.ratiosX96 = new uint256[](1);
+        data.tokens[0] = Constants.WSTETH;
+        data.ratiosX96[0] = Q96;
         vault.addToken(Constants.WSTETH);
+        ratiosOracle.updateRatios(address(vault), data);
         vault.setTvlModule(address(erc20TvlModule), new bytes(0));
         address[] memory bonds = new address[](1);
         bonds[0] = address(wstethDefaultBond);
