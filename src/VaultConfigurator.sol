@@ -37,7 +37,7 @@ contract VaultConfigurator is
         _;
     }
 
-    modifier atLeastOpeartor() {
+    modifier atLeastOperator() {
         if (!isAdmin(msg.sender) && !isOperator(msg.sender)) revert Forbidden();
         _;
     }
@@ -116,15 +116,15 @@ contract VaultConfigurator is
         _isDelegateModuleApproved[module] = bytes32(0);
     }
 
-    function stageDepositsLock() external atLeastOpeartor nonReentrant {
+    function stageDepositsLock() external atLeastOperator nonReentrant {
         _stage(_isDepositsLocked, bytes32(uint256(1)));
     }
 
-    function commitDepositsLock() external atLeastOpeartor nonReentrant {
+    function commitDepositsLock() external atLeastOperator nonReentrant {
         _commit(_isDepositsLocked, _isDepositsLockedDelay);
     }
 
-    function rollbackDepositsLock() external atLeastOpeartor nonReentrant {
+    function rollbackDepositsLock() external atLeastOperator nonReentrant {
         _rollback(_isDepositsLocked);
     }
 
