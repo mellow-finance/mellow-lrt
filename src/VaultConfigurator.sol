@@ -30,20 +30,6 @@ contract VaultConfigurator is
 
     mapping(address => Data) private _isDelegateModuleApproved;
 
-    function _getSlot(Data storage s) internal pure returns (bytes32 slot) {
-        assembly {
-            slot := s.slot
-        }
-    }
-
-    function _getSlot(
-        mapping(address => Data) storage s
-    ) internal pure returns (bytes32 slot) {
-        assembly {
-            slot := s.slot
-        }
-    }
-
     constructor(address admin) DefaultAccessControl(admin) {}
 
     modifier onlyAdmin() {
@@ -56,23 +42,16 @@ contract VaultConfigurator is
         _;
     }
 
-    function _validateTimestamp(
-        Data storage s,
-        Data storage delay
-    ) private view {
-        uint256 timestamp = s.stageTimestamp;
-        if (
-            timestamp == 0 || block.timestamp - timestamp < uint256(delay.value)
-        ) revert InvalidTimestamp();
-    }
-
     function _stage(Data storage s, bytes32 value) private {
         s.stageTimestamp = block.timestamp;
         s.stagedValue = value;
     }
 
     function _commit(Data storage s, Data storage delay) private {
-        _validateTimestamp(s, delay);
+        uint256 timestamp = s.stageTimestamp;
+        if (
+            timestamp == 0 || block.timestamp - timestamp < uint256(delay.value)
+        ) revert InvalidTimestamp();
         s.value = s.stagedValue;
         delete s.stageTimestamp;
         delete s.stagedValue;
@@ -81,10 +60,6 @@ contract VaultConfigurator is
     function _rollback(Data storage s) private {
         delete s.stageTimestamp;
         delete s.stagedValue;
-    }
-
-    function _revoke(Data storage s) private {
-        delete s.value;
     }
 
     function isDelegateModuleApproved(
@@ -138,7 +113,7 @@ contract VaultConfigurator is
     function revokeDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        _revoke(_isDelegateModuleApproved[module]);
+        _isDelegateModuleApproved[module] = bytes32(0);
     }
 
     function stageDepositsLock() external atLeastOpeartor nonReentrant {
@@ -186,10 +161,6 @@ contract VaultConfigurator is
         _rollback(_depositCallback);
     }
 
-    function revokeDepositCallback() external onlyAdmin nonReentrant {
-        _revoke(_depositCallback);
-    }
-
     function stageWithdrawalCallback(
         address callback
     ) external onlyAdmin nonReentrant {
@@ -207,10 +178,6 @@ contract VaultConfigurator is
         nonReentrant
     {
         _rollback(_withdrawalCallback);
-    }
-
-    function revokeWithdrawlCallback() external onlyAdmin nonReentrant {
-        _revoke(_withdrawalCallback);
     }
 
     function stageWithdrawalFeeD9(
