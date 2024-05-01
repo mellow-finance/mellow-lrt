@@ -113,7 +113,7 @@ contract VaultConfigurator is
     function revokeDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        _isDelegateModuleApproved[module] = bytes32(0);
+        _isDelegateModuleApproved[module].value = bytes32(0);
     }
 
     function stageDepositsLock() external atLeastOperator nonReentrant {

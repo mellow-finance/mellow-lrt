@@ -11,7 +11,6 @@ interface IVaultConfigurator {
 
     struct Data {
         bytes32 value;
-        bytes32 delaySlot;
         bytes32 stagedValue;
         uint256 stageTimestamp;
     }
@@ -27,14 +26,17 @@ interface IVaultConfigurator {
     function depositCallback() external view returns (address);
 
     function withdrawalCallback() external view returns (address);
+
     function withdrawalFeeD9() external view returns (uint256);
 
     function stageDelegateModuleApproval(address module) external;
+
     function commitDelegateModuleApproval(address module) external;
 
     function rollbackStagedDelegateModuleApproval(address module) external;
 
     function revokeDelegateModuleApproval(address module) external;
+
     function stageMaximalTotalSupply(uint256 maximalTotalSupply_) external;
 
     function commitMaximalTotalSupply() external;
@@ -47,14 +49,11 @@ interface IVaultConfigurator {
 
     function rollbackStagedDepositCallback() external;
 
-    function revokeDepositCallback() external;
-
     function stageWithdrawalCallback(address callback) external;
 
     function commitWithdrawalCallback() external;
 
     function rollbackStagedWithdrawalCallback() external;
-    function revokeWithdrawlCallback() external;
 
     function stageWithdrawalFeeD9(uint256 feeD9) external;
 
