@@ -56,8 +56,6 @@ interface IVault {
 
     function configurator() external view returns (IVaultConfigurator);
 
-    function tvlModuleParams(address) external view returns (bytes memory);
-
     function withdrawalRequest(
         address
     ) external view returns (WithdrawalRequest memory);
@@ -70,7 +68,7 @@ interface IVault {
 
     function removeToken(address token) external;
 
-    function setTvlModule(address module, bytes memory params) external;
+    function setTvlModule(address module) external;
 
     function removeTvlModule(address module) external;
 

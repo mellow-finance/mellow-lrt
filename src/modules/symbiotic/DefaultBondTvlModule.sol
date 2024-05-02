@@ -2,18 +2,32 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/modules/symbiotic/IDefaultBondTvlModule.sol";
+import "../../interfaces/utils/IDefaultAccessControl.sol";
 
 contract DefaultBondTvlModule is IDefaultBondTvlModule {
-    function tvl(
+    error Forbidden();
+
+    mapping(address => bytes) public vaultTvls;
+
+    function setVaultParameters(
         address vault,
-        bytes memory params
-    ) external view returns (Data[] memory data) {
-        address[] memory bonds = abi.decode(params, (Params)).bonds;
+        address[] memory bonds
+    ) external {
+        // TODO: fix permissions
+        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
+            revert Forbidden();
+        vaultTvls[vault] = abi.encode(bonds);
+    }
+
+    function tvl(address vault) external view returns (Data[] memory data) {
+        bytes memory data_ = vaultTvls[vault];
+        if (data_.length == 0) return data;
+        address[] memory bonds = abi.decode(data_, (address[]));
         data = new Data[](bonds.length);
         for (uint256 i = 0; i < bonds.length; i++) {
             data[i].token = bonds[i];
             data[i].underlyingToken = IBond(bonds[i]).asset();
-            if (IVault(vault).isUnderlyingToken(data[i].underlyingToken))
+            if (!IVault(vault).isUnderlyingToken(data[i].underlyingToken))
                 revert InvalidToken();
             data[i].amount = IERC20(bonds[i]).balanceOf(vault);
             data[i].underlyingAmount = data[i].amount;

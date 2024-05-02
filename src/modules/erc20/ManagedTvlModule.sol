@@ -17,10 +17,7 @@ contract ManagedTvlModule is ITvlModule {
         vaultTvls[vault] = abi.encode(data);
     }
 
-    function tvl(
-        address vault,
-        bytes memory
-    ) external view returns (Data[] memory data) {
+    function tvl(address vault) external view returns (Data[] memory data) {
         bytes memory data_ = vaultTvls[vault];
         if (data_.length == 0) return data;
         data = abi.decode(data_, (Data[]));

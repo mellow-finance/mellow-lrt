@@ -10,8 +10,5 @@ interface ITvlModule {
         bool isDebt;
     }
 
-    function tvl(
-        address user,
-        bytes memory params
-    ) external view returns (Data[] memory data);
+    function tvl(address user) external view returns (Data[] memory data);
 }

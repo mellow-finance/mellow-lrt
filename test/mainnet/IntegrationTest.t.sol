@@ -57,13 +57,11 @@ contract Integration is Fixture {
         data.ratiosX96[0] = uint128(Q96);
         vault.addToken(Constants.WSTETH);
         ratiosOracle.updateRatios(address(vault), data);
-        vault.setTvlModule(address(erc20TvlModule), new bytes(0));
+        vault.setTvlModule(address(erc20TvlModule));
         address[] memory bonds = new address[](1);
         bonds[0] = address(wstethDefaultBond);
-        vault.setTvlModule(
-            address(bondTvlModule),
-            abi.encode(IDefaultBondTvlModule.Params({bonds: bonds}))
-        );
+        bondTvlModule.setVaultParameters(address(vault), bonds);
+        vault.setTvlModule(address(bondTvlModule));
 
         // initial deposit
         newPrank(address(this));
