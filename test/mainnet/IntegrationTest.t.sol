@@ -294,6 +294,7 @@ contract Integration is Fixture {
         );
 
         newPrank(Constants.VAULT_ADMIN);
+
         vault.delegateCall(
             address(bondModule),
             abi.encodeWithSelector(

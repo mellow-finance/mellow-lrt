@@ -44,15 +44,11 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         return _underlyingTokens;
     }
 
-    function isUnderlyingToken(address token) external view returns (bool) {
-        return _underlyingTokensSet.contains(token);
-    }
-
     function pendingWithdrawers() external view returns (address[] memory) {
         return _pendingWithdrawers.values();
     }
 
-    function tvl()
+    function underlyingTvl()
         public
         view
         returns (address[] memory tokens, uint256[] memory amounts)
@@ -163,7 +159,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 index = 0;
         for (uint256 i = 0; i < responses.length; i++) {
             for (uint256 j = 0; j < responses[i].length; j++) {
-                data[index++] = responses[j][i];
+                data[index++] = responses[i][j];
             }
         }
     }
@@ -208,7 +204,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
     function removeToken(address token) external onlyAdmin nonReentrant {
         if (!_underlyingTokensSet.contains(token)) revert InvalidToken();
-        (address[] memory tokens, uint256[] memory amounts) = tvl();
+        (address[] memory tokens, uint256[] memory amounts) = underlyingTvl();
         uint256 index = tokens.length;
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i] == token) {
@@ -284,7 +280,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     {
         if (block.timestamp > deadline) revert Deadline();
         if (configurator.isDepositsLocked()) revert Forbidden();
-        (address[] memory tokens, uint256[] memory totalAmounts) = tvl();
+        (
+            address[] memory tokens,
+            uint256[] memory totalAmounts
+        ) = underlyingTvl();
         uint128[] memory ratiosX96 = ratiosOracle.getTargetRatiosX96(
             address(this)
         );
@@ -438,7 +437,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             ratiosX96Value: 0
         });
         address[] memory tokens;
-        (tokens, s.amounts) = tvl();
+        (tokens, s.amounts) = underlyingTvl();
 
         uint256[] memory erc20Balances = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {

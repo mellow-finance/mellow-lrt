@@ -7,6 +7,9 @@ import "../modules/symbiotic/IDefaultBondModule.sol";
 
 interface IDefaultBondValidator is IValidator {
     error InvalidLength();
+    error ZeroAmount();
+    error InvalidSelector();
+    error UnsupportedBond();
 
     function isSupportedBond(address bond) external view returns (bool);
 

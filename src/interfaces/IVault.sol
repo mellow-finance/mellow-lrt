@@ -84,7 +84,7 @@ interface IVault {
 
     function underlyingTokens() external view returns (address[] memory);
 
-    function tvl()
+    function underlyingTvl()
         external
         view
         returns (address[] memory tokens, uint256[] memory amounts);
@@ -109,6 +109,4 @@ interface IVault {
     function processWithdrawals(
         address[] memory users
     ) external returns (bool[] memory statuses);
-
-    function isUnderlyingToken(address token) external view returns (bool);
 }

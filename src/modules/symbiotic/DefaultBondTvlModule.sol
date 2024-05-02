@@ -27,8 +27,6 @@ contract DefaultBondTvlModule is IDefaultBondTvlModule {
         for (uint256 i = 0; i < bonds.length; i++) {
             data[i].token = bonds[i];
             data[i].underlyingToken = IBond(bonds[i]).asset();
-            if (!IVault(vault).isUnderlyingToken(data[i].underlyingToken))
-                revert InvalidToken();
             data[i].amount = IERC20(bonds[i]).balanceOf(vault);
             data[i].underlyingAmount = data[i].amount;
         }

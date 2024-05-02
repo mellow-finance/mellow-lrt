@@ -42,7 +42,7 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
     function _deposit() private {
         ITvlModule.Data[] memory tvl = erc20TvlModule.tvl(address(vault));
         for (uint256 i = 0; i < tvl.length; i++) {
-            if (tvl[i].token == tvl[i].underlyingToken) continue;
+            if (tvl[i].token != tvl[i].underlyingToken) continue;
             address token = tvl[i].token;
             bytes memory data_ = tokenToData[token];
             if (data_.length == 0) continue;

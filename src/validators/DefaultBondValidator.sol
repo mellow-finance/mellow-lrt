@@ -26,7 +26,8 @@ contract DefaultBondValidator is IDefaultBondValidator, DefaultAccessControl {
                 data[4:],
                 (address, uint256)
             );
-            if (!isSupportedBond[bond] || amount == 0) revert Forbidden();
-        } else revert Forbidden();
+            if (amount == 0) revert ZeroAmount();
+            if (!isSupportedBond[bond]) revert UnsupportedBond();
+        } else revert InvalidSelector();
     }
 }
