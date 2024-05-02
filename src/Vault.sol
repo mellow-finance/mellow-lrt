@@ -242,7 +242,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
         address callback = configurator.depositCallback();
         if (callback != address(0)) {
-            IDepositCallback(callback).depositCallback();
+            IDepositCallback(callback).depositCallback(actualAmounts, lpAmount);
         }
     }
 

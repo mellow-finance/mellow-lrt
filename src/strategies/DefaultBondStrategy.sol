@@ -66,7 +66,7 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
         }
     }
 
-    function depositCallback() external {
+    function depositCallback(uint256[] memory, uint256) external override {
         if (msg.sender != address(vault)) _requireAtLeastOperator();
         _deposit();
     }
