@@ -28,16 +28,59 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
     EnumerableSet.AddressSet private _tvlModules;
 
-    function tvlModules() external view returns (address[] memory) {
-        return _tvlModules.values();
+    function withdrawalRequest(
+        address user
+    ) external view returns (WithdrawalRequest memory) {
+        return _withdrawalRequest[user];
+    }
+
+    function pendingWithdrawers() external view returns (address[] memory) {
+        return _pendingWithdrawers.values();
     }
 
     function underlyingTokens() external view returns (address[] memory) {
         return _underlyingTokens;
     }
 
-    function pendingWithdrawers() external view returns (address[] memory) {
-        return _pendingWithdrawers.values();
+    function tvlModules() external view returns (address[] memory) {
+        return _tvlModules.values();
+    }
+
+    function _calculateTvl(
+        address[] memory tokens,
+        bool isUnderlying
+    ) private view returns (uint256[] memory amounts) {
+        amounts = new uint256[](tokens.length);
+        ITvlModule.Data[] memory data = _tvls();
+        for (uint256 i = 0; i < data.length; i++) {
+            if (data[i].isDebt) continue;
+            for (uint256 j = 0; j < tokens.length; j++) {
+                if (isUnderlying && data[i].underlyingToken == tokens[j]) {
+                    amounts[j] += data[i].underlyingAmount;
+                    break;
+                }
+                if (!isUnderlying && data[i].token == tokens[j]) {
+                    amounts[j] += data[i].amount;
+                    break;
+                }
+            }
+        }
+        for (uint256 i = 0; i < data.length; i++) {
+            if (!data[i].isDebt) continue;
+            for (uint256 j = 0; j < tokens.length; j++) {
+                if (isUnderlying && data[i].underlyingToken == tokens[j]) {
+                    if (amounts[j] < data[i].underlyingAmount)
+                        revert InvalidState();
+                    amounts[j] -= data[i].underlyingAmount;
+                    break;
+                }
+                if (!isUnderlying && data[i].token == tokens[j]) {
+                    if (amounts[j] < data[i].amount) revert InvalidState();
+                    amounts[j] -= data[i].amount;
+                    break;
+                }
+            }
+        }
     }
 
     function underlyingTvl()
@@ -46,30 +89,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         returns (address[] memory tokens, uint256[] memory amounts)
     {
         tokens = _underlyingTokens;
-        amounts = new uint256[](tokens.length);
-        ITvlModule.Data[] memory data = _fetchLockedAmounts();
-        for (uint256 i = 0; i < data.length; i++) {
-            if (data[i].isDebt) continue;
-            for (uint256 j = 0; j < tokens.length; j++) {
-                if (data[i].underlyingToken == tokens[j]) {
-                    amounts[j] += data[i].underlyingAmount;
-                    break;
-                }
-            }
-        }
-        for (uint256 i = 0; i < data.length; i++) {
-            if (!data[i].isDebt) continue;
-            for (uint256 j = 0; j < tokens.length; j++) {
-                if (data[i].underlyingToken == tokens[j]) {
-                    if (amounts[j] < data[i].underlyingAmount)
-                        revert InvalidState();
-                    unchecked {
-                        amounts[j] -= data[i].underlyingAmount;
-                    }
-                    break;
-                }
-            }
-        }
+        amounts = _calculateTvl(tokens, true);
     }
 
     function baseTvl()
@@ -77,67 +97,30 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         view
         returns (address[] memory tokens, uint256[] memory amounts)
     {
-        ITvlModule.Data[] memory data = _fetchLockedAmounts();
+        ITvlModule.Data[] memory data = _tvls();
         tokens = new address[](data.length);
-        uint256 index = 0;
+        uint256 length = 0;
         for (uint256 i = 0; i < data.length; i++) {
             if (data[i].token == address(0)) revert InvalidState();
-            uint256 tokenIndex = index;
-            for (uint256 j = 0; j < index; j++) {
+            uint256 tokenIndex = length;
+            for (uint256 j = 0; j < length; j++) {
                 if (tokens[j] == data[i].token) {
                     tokenIndex = j;
                     break;
                 }
             }
-            if (tokenIndex == index) {
+            if (tokenIndex == length) {
                 tokens[tokenIndex] = data[i].token;
-                index++;
+                length++;
             }
         }
-
-        for (uint256 i = 0; i < index; i++) {
-            for (uint256 j = i + 1; j < index; j++) {
-                if (tokens[i] > tokens[j]) {
-                    address token = tokens[i];
-                    tokens[i] = tokens[j];
-                    tokens[j] = token;
-                }
-            }
-        }
-
         assembly {
-            mstore(tokens, index)
+            mstore(tokens, length)
         }
-        amounts = new uint256[](index);
-
-        for (uint256 i = 0; i < data.length; i++) {
-            if (data[i].isDebt) continue;
-            for (uint256 j = 0; j < index; j++) {
-                if (data[i].token == tokens[j]) {
-                    amounts[j] += data[i].amount;
-                    break;
-                }
-            }
-        }
-        for (uint256 i = 0; i < data.length; i++) {
-            if (!data[i].isDebt) continue;
-            for (uint256 j = 0; j < index; j++) {
-                if (data[i].token == tokens[j]) {
-                    if (amounts[j] < data[i].amount) revert InvalidState();
-                    unchecked {
-                        amounts[j] -= data[i].amount;
-                    }
-                    break;
-                }
-            }
-        }
+        amounts = _calculateTvl(tokens, false);
     }
 
-    function _fetchLockedAmounts()
-        internal
-        view
-        returns (ITvlModule.Data[] memory data)
-    {
+    function _tvls() private view returns (ITvlModule.Data[] memory data) {
         ITvlModule.Data[][] memory responses = new ITvlModule.Data[][](
             _tvlModules.length()
         );
@@ -365,12 +348,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         }
 
         _burn(to, lpAmount);
-    }
-
-    function withdrawalRequest(
-        address user
-    ) external view returns (WithdrawalRequest memory) {
-        return _withdrawalRequest[user];
     }
 
     function cancleWithdrawalRequest() external nonReentrant {

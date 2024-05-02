@@ -128,6 +128,10 @@ contract VaultConfigurator is
         _rollback(_isDepositsLocked);
     }
 
+    function revokeDepositsLock() external atLeastOperator nonReentrant {
+        _isDepositsLocked.value = bytes32(0);
+    }
+
     function stageMaximalTotalSupply(
         uint256 maximalTotalSupply_
     ) external onlyAdmin nonReentrant {
