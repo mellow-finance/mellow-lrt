@@ -68,7 +68,7 @@ interface IVault {
 
     function removeToken(address token) external;
 
-    function setTvlModule(address module) external;
+    function addTvlModule(address module) external;
 
     function removeTvlModule(address module) external;
 

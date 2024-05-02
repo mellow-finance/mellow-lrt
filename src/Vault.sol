@@ -7,7 +7,7 @@ import "./utils/DefaultAccessControl.sol";
 
 import "./libraries/external/FullMath.sol";
 
-// TODO: add events
+// TODO: events, tests, docs
 contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
@@ -21,20 +21,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     IVaultConfigurator public immutable configurator;
 
     mapping(address => WithdrawalRequest) private _withdrawalRequest;
+    EnumerableSet.AddressSet private _pendingWithdrawers;
+
     address[] private _underlyingTokens;
     EnumerableSet.AddressSet private _underlyingTokensSet;
-    EnumerableSet.AddressSet private _pendingWithdrawers;
+
     EnumerableSet.AddressSet private _tvlModules;
-
-    modifier onlyOperator() {
-        if (!isOperator(msg.sender)) revert Forbidden();
-        _;
-    }
-
-    modifier onlyAdmin() {
-        if (!isAdmin(msg.sender)) revert Forbidden();
-        _;
-    }
 
     function tvlModules() external view returns (address[] memory) {
         return _tvlModules.values();
@@ -183,7 +175,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         configurator = IVaultConfigurator(vaultConfigurator_);
     }
 
-    function addToken(address token) external onlyAdmin nonReentrant {
+    function addToken(address token) external nonReentrant {
+        _requireAdmin();
         if (_underlyingTokensSet.contains(token) || token == address(this))
             revert InvalidToken();
         _underlyingTokensSet.add(token);
@@ -202,7 +195,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         if (index < n - 1) tokens[index] = token;
     }
 
-    function removeToken(address token) external onlyAdmin nonReentrant {
+    function removeToken(address token) external nonReentrant {
+        _requireAdmin();
         if (!_underlyingTokensSet.contains(token)) revert InvalidToken();
         (address[] memory tokens, uint256[] memory amounts) = underlyingTvl();
         uint256 index = tokens.length;
@@ -221,7 +215,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         _underlyingTokens.pop();
     }
 
-    function setTvlModule(address module) external onlyAdmin nonReentrant {
+    function addTvlModule(address module) external nonReentrant {
+        _requireAdmin();
         ITvlModule.Data[] memory data = ITvlModule(module).tvl(address(this));
         for (uint256 i = 0; i < data.length; i++) {
             if (!_underlyingTokensSet.contains(data[i].underlyingToken))
@@ -235,7 +230,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         _tvlModules.add(module);
     }
 
-    function removeTvlModule(address module) external onlyAdmin nonReentrant {
+    function removeTvlModule(address module) external nonReentrant {
+        _requireAdmin();
         if (!_tvlModules.contains(module)) revert InvalidState();
         _tvlModules.remove(module);
     }
@@ -243,7 +239,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function externalCall(
         address to,
         bytes calldata data
-    ) external onlyOperator nonReentrant returns (bool, bytes memory) {
+    ) external nonReentrant returns (bool, bytes memory) {
+        _requireAtLeastOperator();
         if (configurator.isDelegateModuleApproved(to)) revert Forbidden();
         validator.validate(
             msg.sender,
@@ -257,7 +254,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function delegateCall(
         address to,
         bytes calldata data
-    ) external onlyOperator returns (bool, bytes memory) {
+    ) external returns (bool, bytes memory) {
+        _requireAtLeastOperator();
         if (!configurator.isDelegateModuleApproved(to)) revert Forbidden();
         validator.validate(
             msg.sender,
@@ -426,7 +424,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
     function processWithdrawals(
         address[] memory users
-    ) external nonReentrant onlyOperator returns (bool[] memory statuses) {
+    ) external nonReentrant returns (bool[] memory statuses) {
+        _requireAtLeastOperator();
         if (configurator.isProportionalWithdrawalsApproved())
             revert Forbidden();
         statuses = new bool[](users.length);
