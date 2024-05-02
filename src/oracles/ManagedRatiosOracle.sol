@@ -10,20 +10,21 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
 
     mapping(address => bytes) public vaultToData;
 
-    function updateRatios(address vault, Data memory data) external override {
+    function updateRatios(
+        address vault,
+        uint128[] memory ratiosX96
+    ) external override {
         if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
             revert Forbidden();
         address[] memory tokens = IVault(vault).underlyingTokens();
-        if (
-            tokens.length != data.tokens.length ||
-            data.tokens.length != data.ratiosX96.length
-        ) revert InvalidLength();
-        uint256 cumulativeRatioX96 = 0;
-        for (uint256 i = 0; i < tokens.length; i++) {
-            if (tokens[i] != data.tokens[i]) revert InvalidToken();
-            cumulativeRatioX96 += data.ratiosX96[i];
-        }
-        if (cumulativeRatioX96 != Q96) revert InvalidCumulativeRatio();
+        if (tokens.length != ratiosX96.length) revert InvalidLength();
+        Data memory data = Data({
+            tokensHash: keccak256(abi.encode(tokens)),
+            ratiosX96: ratiosX96
+        });
+        uint256 total = 0;
+        for (uint256 i = 0; i < tokens.length; i++) total += ratiosX96[i];
+        if (total != Q96) revert InvalidCumulativeRatio();
         vaultToData[vault] = abi.encode(data);
     }
 
@@ -34,9 +35,8 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
         bytes memory data_ = vaultToData[vault];
         if (data_.length == 0) revert InvalidLength();
         Data memory data = abi.decode(data_, (Data));
-        if (data.tokens.length != tokens.length) revert InvalidLength();
-        for (uint256 i = 0; i < tokens.length; i++)
-            if (data.tokens[i] != tokens[i]) revert InvalidToken();
+        if (data.tokensHash != keccak256(abi.encode(tokens)))
+            revert InvalidToken();
         return data.ratiosX96;
     }
 }

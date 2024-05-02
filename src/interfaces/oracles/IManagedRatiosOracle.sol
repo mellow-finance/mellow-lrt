@@ -13,13 +13,13 @@ interface IManagedRatiosOracle is IRatiosOracle {
     error InvalidToken();
 
     struct Data {
-        address[] tokens;
+        bytes32 tokensHash;
         uint128[] ratiosX96;
     }
 
     function Q96() external view returns (uint256);
 
-    function updateRatios(address vault, Data memory data) external;
+    function updateRatios(address vault, uint128[] memory ratiosX96) external;
 
     function vaultToData(address vault) external view returns (bytes memory);
 }
