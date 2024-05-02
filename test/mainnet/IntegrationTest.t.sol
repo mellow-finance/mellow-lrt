@@ -60,7 +60,7 @@ contract Integration is Fixture {
         vault.setTvlModule(address(erc20TvlModule));
         address[] memory bonds = new address[](1);
         bonds[0] = address(wstethDefaultBond);
-        bondTvlModule.setVaultParameters(address(vault), bonds);
+        bondTvlModule.setParams(address(vault), bonds);
         vault.setTvlModule(address(bondTvlModule));
 
         // initial deposit

@@ -7,20 +7,17 @@ import "../../interfaces/utils/IDefaultAccessControl.sol";
 contract DefaultBondTvlModule is IDefaultBondTvlModule {
     error Forbidden();
 
-    mapping(address => bytes) public vaultTvls;
+    mapping(address => bytes) public vaultParams;
 
-    function setVaultParameters(
-        address vault,
-        address[] memory bonds
-    ) external {
+    function setParams(address vault, address[] memory bonds) external {
         // TODO: fix permissions
         if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
             revert Forbidden();
-        vaultTvls[vault] = abi.encode(bonds);
+        vaultParams[vault] = abi.encode(bonds);
     }
 
     function tvl(address vault) external view returns (Data[] memory data) {
-        bytes memory data_ = vaultTvls[vault];
+        bytes memory data_ = vaultParams[vault];
         if (data_.length == 0) return data;
         address[] memory bonds = abi.decode(data_, (address[]));
         data = new Data[](bonds.length);

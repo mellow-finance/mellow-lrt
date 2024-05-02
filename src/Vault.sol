@@ -22,9 +22,9 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
     mapping(address => WithdrawalRequest) private _withdrawalRequest;
     address[] private _underlyingTokens;
+    EnumerableSet.AddressSet private _underlyingTokensSet;
     EnumerableSet.AddressSet private _pendingWithdrawers;
     EnumerableSet.AddressSet private _tvlModules;
-    EnumerableSet.AddressSet private _underlyingTokensSet;
 
     modifier onlyOperator() {
         if (!isOperator(msg.sender)) revert Forbidden();
