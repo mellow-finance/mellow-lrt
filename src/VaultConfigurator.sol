@@ -353,4 +353,6 @@ contract VaultConfigurator is
     {
         _rollback(_maximalTotalSupplyDelay);
     }
+
+    function isProportionalWithdrawalsApproved() external view returns (bool) {}
 }

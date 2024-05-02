@@ -46,6 +46,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         return _underlyingTokens;
     }
 
+    function isUnderlyingToken(address token) external view returns (bool) {
+        return _underlyingTokensSet.contains(token);
+    }
+
     function pendingWithdrawers() external view returns (address[] memory) {
         return _pendingWithdrawers.values();
     }
@@ -57,18 +61,49 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     {
         tokens = _underlyingTokens;
         amounts = new uint256[](tokens.length);
-        address[] memory modules = _tvlModules.values();
-        for (uint256 i = 0; i < modules.length; i++) {
-            (address[] memory tokens_, uint256[] memory amounts_) = ITvlModule(
-                modules[i]
-            ).tvl(address(this), tvlModuleParams[modules[i]]);
-            uint256 index = 0;
-            for (uint256 j = 0; j < tokens_.length; j++) {
-                while (index < tokens.length && tokens[index] != tokens_[j])
-                    index++;
-                if (index == tokens.length) revert InvalidToken();
-                amounts[index] += amounts_[j];
-                index++;
+        ITvlModule.Data[] memory data = rawTvl();
+        for (uint256 i = 0; i < data.length; i++) {
+            if (data[i].isDebt) continue;
+            for (uint256 j = 0; j < tokens.length; j++) {
+                if (data[i].underlyingToken == tokens[j]) {
+                    amounts[j] += data[i].underlyingAmount;
+                    break;
+                }
+            }
+        }
+        for (uint256 i = 0; i < data.length; i++) {
+            if (!data[i].isDebt) continue;
+            for (uint256 j = 0; j < tokens.length; j++) {
+                if (data[i].underlyingToken == tokens[j]) {
+                    if (amounts[j] < data[i].underlyingAmount)
+                        revert InvalidState();
+                    unchecked {
+                        amounts[j] -= data[i].underlyingAmount;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    function rawTvl() public view returns (ITvlModule.Data[] memory data) {
+        ITvlModule.Data[][] memory responses = new ITvlModule.Data[][](
+            _tvlModules.length()
+        );
+        uint256 length = 0;
+        for (uint256 i = 0; i < responses.length; i++) {
+            address module = _tvlModules.at(i);
+            responses[i] = ITvlModule(module).tvl(
+                address(this),
+                tvlModuleParams[module]
+            );
+            length += responses[i].length;
+        }
+        data = new ITvlModule.Data[](length);
+        uint256 index = 0;
+        for (uint256 i = 0; i < responses.length; i++) {
+            for (uint256 j = 0; j < responses[i].length; j++) {
+                data[index++] = responses[j][i];
             }
         }
     }
@@ -134,13 +169,15 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         address module,
         bytes memory params
     ) external onlyAdmin nonReentrant {
-        (address[] memory tokens, uint256[] memory amounts) = ITvlModule(module)
-            .tvl(address(this), params);
-        if (tokens.length != amounts.length) revert InvalidState();
-        for (uint256 i = 0; i < tokens.length; i++) {
-            if (!_underlyingTokensSet.contains(tokens[i]))
+        ITvlModule.Data[] memory data = ITvlModule(module).tvl(
+            address(this),
+            params
+        );
+        for (uint256 i = 0; i < data.length; i++) {
+            if (!_underlyingTokensSet.contains(data[i].underlyingToken))
                 revert InvalidToken();
-            if (i > 0 && tokens[i] <= tokens[i - 1]) revert InvalidState();
+            if (i > 0 && data[i].underlyingToken <= data[i - 1].underlyingToken)
+                revert InvalidState();
         }
         _tvlModules.add(module);
         tvlModuleParams[module] = params;
@@ -246,6 +283,78 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         }
     }
 
+    function proportionalWithdraw(
+        uint256 lpAmount,
+        uint256[] memory minAmounts,
+        uint256 deadline,
+        address to
+    ) external nonReentrant returns (uint256[] memory actualAmounts) {
+        if (block.timestamp > deadline) revert Deadline();
+        if (!configurator.isProportionalWithdrawalsApproved())
+            revert Forbidden();
+        if (lpAmount == 0) revert ValueZero();
+        if (to == address(0)) revert AddressZero();
+        uint256 totalSupply = totalSupply();
+        uint256 balance = balanceOf(to);
+        if (balance < lpAmount) {
+            lpAmount = balance;
+        }
+        ITvlModule.Data[] memory data = rawTvl();
+        address[] memory tokens = new address[](data.length);
+        uint256[] memory amounts = new uint256[](data.length);
+
+        uint256 index = 0;
+        for (uint256 i = 0; i < data.length; i++) {
+            if (data[i].isDebt) continue;
+            address token = data[i].token;
+            uint256 tokenIndex = index;
+            for (uint256 j = 0; j < index; j++) {
+                if (tokens[j] == token) {
+                    tokenIndex = j;
+                    break;
+                }
+            }
+            if (tokenIndex == index) {
+                tokens[index] = token;
+                index++;
+            }
+            amounts[tokenIndex] += data[i].amount;
+        }
+        for (uint256 i = 0; i < data.length; i++) {
+            if (!data[i].isDebt) continue;
+            address token = data[i].token;
+            uint256 tokenIndex = index;
+            for (uint256 j = 0; j < index; j++) {
+                if (tokens[j] == token) {
+                    tokenIndex = j;
+                    break;
+                }
+            }
+            if (tokenIndex == index) revert InvalidState();
+            if (amounts[tokenIndex] < data[i].amount)
+                revert InsufficientAmount();
+            unchecked {
+                amounts[tokenIndex] -= data[i].amount;
+            }
+        }
+
+        for (uint256 i = 0; i < index; i++) {
+            if (amounts[i] == 0) continue;
+            if (tokens[i] == address(0) || tokens[i] == address(this))
+                revert InvalidState();
+            uint256 amount = FullMath.mulDiv(
+                IERC20(tokens[i]).balanceOf(address(this)),
+                lpAmount,
+                totalSupply
+            );
+            if (amount < minAmounts[i]) revert InsufficientAmount();
+            IERC20(tokens[i]).safeTransfer(to, amount);
+            actualAmounts[i] = amount;
+        }
+
+        _burn(to, lpAmount);
+    }
+
     function withdrawalRequest(
         address user
     ) external view returns (WithdrawalRequest memory) {
@@ -304,6 +413,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function processWithdrawals(
         address[] memory users
     ) external nonReentrant onlyOperator returns (bool[] memory statuses) {
+        if (configurator.isProportionalWithdrawalsApproved())
+            revert Forbidden();
         statuses = new bool[](users.length);
         ProcessWithdrawalsStack memory s = ProcessWithdrawalsStack({
             ratiosX96: ratiosOracle.getTargetRatiosX96(address(this)),

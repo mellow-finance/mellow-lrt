@@ -15,6 +15,8 @@ interface IVaultConfigurator {
         uint256 stageTimestamp;
     }
 
+    function isProportionalWithdrawalsApproved() external view returns (bool);
+
     function isDelegateModuleApproved(
         address target
     ) external view returns (bool);

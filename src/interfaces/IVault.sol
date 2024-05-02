@@ -23,6 +23,7 @@ interface IVault {
     error InvalidToken();
     error InvalidState();
     error InsufficientLpAmount();
+    error InsufficientAmount();
     error LimitOverflow();
     error NonZeroValue();
     error ValueZero();
@@ -110,4 +111,6 @@ interface IVault {
     function processWithdrawals(
         address[] memory users
     ) external returns (bool[] memory statuses);
+
+    function isUnderlyingToken(address token) external view returns (bool);
 }

@@ -40,16 +40,20 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
     }
 
     function _deposit() private {
-        (address[] memory tokens, uint256[] memory amounts) = erc20TvlModule
-            .tvl(address(vault), new bytes(0));
-        for (uint256 i = 0; i < tokens.length; i++) {
-            bytes memory data_ = tokenToData[tokens[i]];
+        ITvlModule.Data[] memory tvl = erc20TvlModule.tvl(
+            address(vault),
+            new bytes(0)
+        );
+        for (uint256 i = 0; i < tvl.length; i++) {
+            if (tvl[i].token == tvl[i].underlyingToken) continue;
+            address token = tvl[i].token;
+            bytes memory data_ = tokenToData[token];
             if (data_.length == 0) continue;
             Data[] memory data = abi.decode(data_, (Data[]));
             if (data.length == 0) continue;
             for (uint256 j = 0; j < data.length; j++) {
                 uint256 amount = FullMath.mulDiv(
-                    amounts[i],
+                    tvl[i].amount,
                     data[j].ratioX96,
                     Q96
                 );
@@ -77,7 +81,9 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
     }
 
     function processWithdrawals(address[] memory users) external {
-        _requireAtLeastOperator();
+        if (users.length == 0) return;
+        if (users.length > 1 || users[0] != msg.sender)
+            _requireAtLeastOperator();
         _processWithdrawals(users);
     }
 
