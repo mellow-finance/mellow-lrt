@@ -281,7 +281,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 totalValue = 0;
         actualAmounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
-            uint256 priceX96 = priceOracle.priceX96(tokens[i]);
+            uint256 priceX96 = priceOracle.priceX96(address(this), tokens[i]);
             if (totalAmounts[i] > 0) {
                 totalValue += FullMath.mulDiv(totalAmounts[i], priceX96, Q96);
             }
@@ -417,7 +417,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
         uint256[] memory erc20Balances = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
-            uint256 priceX96 = priceOracle.priceX96(tokens[i]);
+            uint256 priceX96 = priceOracle.priceX96(address(this), tokens[i]);
             s.totalValue += FullMath.mulDiv(s.amounts[i], priceX96, Q96);
             s.ratiosX96Value += FullMath.mulDiv(s.ratiosX96[i], priceX96, Q96);
             erc20Balances[i] = IERC20(tokens[i]).balanceOf(address(this));

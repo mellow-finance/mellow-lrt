@@ -49,10 +49,7 @@ contract Fixture is Test {
             Constants.PROTOCOL_GOVERNANCE_ADMIN
         );
         ratiosOracle = new ManagedRatiosOracle();
-        oracle = new ChainlinkOracle(
-            Constants.PROTOCOL_GOVERNANCE_ADMIN,
-            Constants.WSTETH
-        );
+        oracle = new ChainlinkOracle();
         validator = new ManagedValidator(Constants.PROTOCOL_GOVERNANCE_ADMIN);
         customValidator = new DefaultBondValidator(
             Constants.PROTOCOL_GOVERNANCE_ADMIN

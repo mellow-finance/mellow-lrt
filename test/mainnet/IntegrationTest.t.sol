@@ -53,6 +53,7 @@ contract Integration is Fixture {
         uint128[] memory ratiosX96 = new uint128[](1);
         ratiosX96[0] = uint128(Q96);
         vault.addToken(Constants.WSTETH);
+        oracle.setBaseToken(address(vault), Constants.WSTETH);
         ratiosOracle.updateRatios(address(vault), ratiosX96);
         vault.addTvlModule(address(erc20TvlModule));
         address[] memory bonds = new address[](1);

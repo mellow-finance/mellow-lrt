@@ -1,73 +1,71 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+import "../interfaces/utils/IDefaultAccessControl.sol";
 import "../interfaces/oracles/IPriceOracle.sol";
 import "../interfaces/external/chainlink/IAggregatorV3.sol";
 
 import "../libraries/external/FullMath.sol";
 
-import "../utils/DefaultAccessControl.sol";
-
-contract ChainlinkOracle is IPriceOracle, DefaultAccessControl {
-    /// mb mutable?
-    address public immutable baseToken;
+contract ChainlinkOracle is IPriceOracle {
+    error AddressZero();
+    error InvalidLength();
+    error Forbidden();
+    error StaleOracle();
 
     uint256 public constant MAX_ORACLE_AGE = 2 days;
     uint256 public constant Q96 = 2 ** 96;
 
-    mapping(address => address) public aggregatorsV3;
+    mapping(address => mapping(address => address)) public aggregatorsV3;
+    mapping(address => address) public baseTokens;
 
-    constructor(address admin, address baseToken_) DefaultAccessControl(admin) {
-        baseToken = baseToken_;
+    function setBaseToken(address vault, address baseToken) external {
+        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
+            revert Forbidden();
+        baseTokens[vault] = baseToken;
     }
 
     function setChainlinkOracles(
-        address[] memory tokens_,
-        address[] memory oracles_
+        address vault,
+        address[] memory tokens,
+        address[] memory oracles
     ) external {
-        _requireAdmin();
-        if (tokens_.length != oracles_.length)
-            revert("ChainlinkOracle: invalid length");
-        for (uint256 i = 0; i < tokens_.length; i++) {
-            aggregatorsV3[tokens_[i]] = oracles_[i];
+        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
+            revert Forbidden();
+        if (tokens.length != oracles.length) revert InvalidLength();
+        for (uint256 i = 0; i < tokens.length; i++) {
+            aggregatorsV3[vault][tokens[i]] = oracles[i];
         }
     }
 
     function getPrice(
+        address vault,
         address token
     ) public view returns (uint256 answer, uint8 decimals) {
-        address aggregatorV3 = aggregatorsV3[token];
-        if (aggregatorV3 == address(0))
-            revert("ChainlinkOracle: aggregator not found");
+        address aggregatorV3 = aggregatorsV3[vault][token];
+        if (aggregatorV3 == address(0)) revert AddressZero();
         uint256 lastTimestamp;
-
         int256 signedAnswer;
         (, signedAnswer, , lastTimestamp, ) = IAggregatorV3(aggregatorV3)
             .latestRoundData();
         answer = uint256(signedAnswer);
         if (block.timestamp - MAX_ORACLE_AGE > lastTimestamp)
-            revert("ChainlinkOracle: stale price feed");
+            revert StaleOracle();
         decimals = IAggregatorV3(aggregatorV3).decimals();
     }
 
-    /*
-        chainlink prices:
-        basePrice = X
-        token1Price = y1
-        token2Price = y2
-
-        oracle price:
-        token1price = y1 / x
-        token2price = y2 / x
-        token3price = 1
-
-        // TODO: fix problem with eth/usd oracles
-    */
-
-    function priceX96(address token) external view returns (uint256 priceX96_) {
+    function priceX96(
+        address vault,
+        address token
+    ) external view returns (uint256 priceX96_) {
+        address baseToken = baseTokens[vault];
+        if (baseToken == address(0)) revert AddressZero();
         if (token == baseToken) return Q96;
-        (uint256 tokenPrice, uint8 decimals) = getPrice(token);
-        (uint256 baseTokenPrice, uint8 baseDecimals) = getPrice(baseToken);
+        (uint256 tokenPrice, uint8 decimals) = getPrice(vault, token);
+        (uint256 baseTokenPrice, uint8 baseDecimals) = getPrice(
+            vault,
+            baseToken
+        );
         priceX96_ = FullMath.mulDiv(
             tokenPrice * 10 ** baseDecimals,
             Q96,
