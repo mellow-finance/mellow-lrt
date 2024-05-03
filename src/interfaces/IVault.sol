@@ -110,13 +110,25 @@ interface IVault {
         address[] memory users
     ) external returns (bool[] memory statuses);
 
-    event WithdrawalRequestCanceled(address indexed user);
+    function analyzeRequest(
+        ProcessWithdrawalsStack memory s,
+        WithdrawalRequest memory request
+    ) external view returns (bool, bool, uint256[] memory expectedAmounts);
 
-    event WithdrawalRequested(
-        address indexed user,
-        uint256 lpAmount,
+    function calculateStack()
+        external
+        view
+        returns (ProcessWithdrawalsStack memory s);
+
+    function baseTvl()
+        external
+        view
+        returns (address[] memory tokens, uint256[] memory amounts);
+
+    function emergencyWithdraw(
+        uint256[] memory minAmounts,
         uint256 deadline
-    );
+    ) external returns (uint256[] memory actualAmounts);
 
     event WithdrawalProcessed(
         address indexed user,

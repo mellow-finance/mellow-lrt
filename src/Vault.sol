@@ -9,14 +9,17 @@ import "./libraries/external/FullMath.sol";
 
 import "./VaultConfigurator.sol";
 
-// TODO: events, tests, docs
 contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IVault
     uint256 public constant Q96 = 2 ** 96;
+
+    /// @inheritdoc IVault
     uint256 public constant D9 = 1e9;
 
+    /// @inheritdoc IVault
     IVaultConfigurator public immutable configurator;
 
     mapping(address => WithdrawalRequest) private _withdrawalRequest;
@@ -32,20 +35,24 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         _;
     }
 
+    /// @inheritdoc IVault
     function withdrawalRequest(
         address user
     ) external view returns (WithdrawalRequest memory) {
         return _withdrawalRequest[user];
     }
 
+    /// @inheritdoc IVault
     function pendingWithdrawers() external view returns (address[] memory) {
         return _pendingWithdrawers.values();
     }
 
+    /// @inheritdoc IVault
     function underlyingTokens() external view returns (address[] memory) {
         return _underlyingTokens;
     }
 
+    /// @inheritdoc IVault
     function tvlModules() external view returns (address[] memory) {
         return _tvlModules.values();
     }
@@ -87,6 +94,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         }
     }
 
+    /// @inheritdoc IVault
     function underlyingTvl()
         public
         view
@@ -96,6 +104,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         amounts = _calculateTvl(tokens, true);
     }
 
+    /// @inheritdoc IVault
     function baseTvl()
         public
         view
@@ -156,6 +165,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         configurator = new VaultConfigurator();
     }
 
+    /// @inheritdoc IVault
     function addToken(address token) external nonReentrant {
         _requireAdmin();
         if (_underlyingTokensSet.contains(token) || token == address(this))
@@ -177,6 +187,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit TokenAdded(token);
     }
 
+    /// @inheritdoc IVault
     function removeToken(address token) external nonReentrant {
         _requireAdmin();
         if (!_underlyingTokensSet.contains(token)) revert InvalidToken();
@@ -198,6 +209,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit TokenRemoved(token);
     }
 
+    /// @inheritdoc IVault
     function addTvlModule(address module) external nonReentrant {
         _requireAdmin();
         ITvlModule.Data[] memory data = ITvlModule(module).tvl(address(this));
@@ -210,6 +222,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit TvlModuleAdded(module);
     }
 
+    /// @inheritdoc IVault
     function removeTvlModule(address module) external nonReentrant {
         _requireAdmin();
         if (!_tvlModules.contains(module)) revert InvalidState();
@@ -217,6 +230,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit TvlModuleRemoved(module);
     }
 
+    /// @inheritdoc IVault
     function externalCall(
         address to,
         bytes calldata data
@@ -234,6 +248,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit ExternalCall(to, data, success, response);
     }
 
+    /// @inheritdoc IVault
     function delegateCall(
         address to,
         bytes calldata data
@@ -251,6 +266,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit DelegateCall(to, data, success, response);
     }
 
+    /// @inheritdoc IVault
     function deposit(
         address to,
         uint256[] memory amounts,
@@ -323,6 +339,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         }
     }
 
+    /// @inheritdoc IVault
     function emergencyWithdraw(
         uint256[] memory minAmounts,
         uint256 deadline
@@ -366,6 +383,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit EmergencyWithdrawal(sender, request, actualAmounts);
     }
 
+    /// @inheritdoc IVault
     function cancleWithdrawalRequest() external nonReentrant {
         _cancleWithdrawalRequest(msg.sender);
     }
@@ -379,6 +397,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit WithdrawalRequestCanceled(sender, tx.origin);
     }
 
+    /// @inheritdoc IVault
     function registerWithdrawal(
         address to,
         uint256 lpAmount,
@@ -416,6 +435,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit WithdrawalRequested(sender, request);
     }
 
+    /// @inheritdoc IVault
     function analyzeRequest(
         ProcessWithdrawalsStack memory s,
         WithdrawalRequest memory request
@@ -451,6 +471,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         return (true, true, expectedAmounts);
     }
 
+    /// @inheritdoc IVault
     function calculateStack()
         public
         view
@@ -479,6 +500,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         }
     }
 
+    /// @inheritdoc IVault
     function processWithdrawals(
         address[] memory users
     ) external nonReentrant returns (bool[] memory statuses) {

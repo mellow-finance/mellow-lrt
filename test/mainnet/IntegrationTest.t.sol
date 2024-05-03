@@ -71,7 +71,6 @@ contract Integration is Fixture {
         bondTvlModule.setParams(address(vault), bonds);
         vault.addTvlModule(address(bondTvlModule));
 
-        // initial deposit
         newPrank(address(this));
         mintWsteth(address(this), 10 ether);
         mintWsteth(Constants.DEPOSITOR, 10 ether);
@@ -79,6 +78,8 @@ contract Integration is Fixture {
 
     function _initialDeposit() private {
         uint256 amount = 10 gwei;
+        IERC20(Constants.WSTETH).safeTransfer(Constants.VAULT_ADMIN, amount);
+        newPrank(Constants.VAULT_ADMIN);
         IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
