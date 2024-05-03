@@ -10,8 +10,8 @@ interface IVaultConfigurator {
     error InvalidSlot();
 
     struct Data {
-        bytes32 value;
-        bytes32 stagedValue;
+        uint256 value;
+        uint256 stagedValue;
         uint256 stageTimestamp;
     }
 

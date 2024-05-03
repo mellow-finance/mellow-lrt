@@ -12,6 +12,8 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     uint256 public constant MAX_DELAY = 365 days;
     uint256 public constant MAX_WITHDRAWAL_FEE = 5e7; // 5%
 
+    address public immutable vault;
+
     Data private _baseDelay;
 
     Data private _depositCallbackDelay;
@@ -36,8 +38,6 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
 
     mapping(address => Data) private _isDelegateModuleApproved;
 
-    address public immutable vault;
-
     constructor() {
         vault = msg.sender;
     }
@@ -52,16 +52,16 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _;
     }
 
-    function _stage(Data storage s, bytes32 value) private {
+    function _stage(Data storage s, uint256 value) private {
         s.stageTimestamp = block.timestamp;
         s.stagedValue = value;
     }
 
     function _commit(Data storage s, Data storage delay) private {
         uint256 timestamp = s.stageTimestamp;
-        if (
-            timestamp == 0 || block.timestamp - timestamp < uint256(delay.value)
-        ) revert InvalidTimestamp();
+        if (timestamp == 0) revert InvalidTimestamp();
+        if (block.timestamp - timestamp < delay.value)
+            revert InvalidTimestamp();
         s.value = s.stagedValue;
         delete s.stageTimestamp;
         delete s.stagedValue;
@@ -75,34 +75,34 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     function isDelegateModuleApproved(
         address module
     ) external view returns (bool) {
-        return _isDelegateModuleApproved[module].value != bytes32(0);
+        return _isDelegateModuleApproved[module].value != 0;
     }
 
     function isDepositsLocked() external view returns (bool) {
-        return _isDepositsLocked.value != bytes32(0);
+        return _isDepositsLocked.value != 0;
     }
 
     function maximalTotalSupply() external view returns (uint256) {
-        return uint256(_maximalTotalSupply.value);
+        return _maximalTotalSupply.value;
     }
 
     function depositCallback() external view returns (address) {
-        return address(bytes20(_depositCallback.value));
+        return address(uint160(_depositCallback.value));
     }
 
     function withdrawalCallback() external view returns (address) {
-        return address(bytes20(_withdrawalCallback.value));
+        return address(uint160(_withdrawalCallback.value));
     }
 
     function withdrawalFeeD9() external view returns (uint256) {
-        return uint256(_withdrawalFeeD9.value);
+        return _withdrawalFeeD9.value;
     }
 
     function stageDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
         if (module == address(0)) revert AddressZero();
-        _stage(_isDelegateModuleApproved[module], bytes32(uint256(1)));
+        _stage(_isDelegateModuleApproved[module], 1);
     }
 
     function commitDelegateModuleApproval(
@@ -123,11 +123,11 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     function revokeDelegateModuleApproval(
         address module
     ) external onlyAdmin nonReentrant {
-        _isDelegateModuleApproved[module].value = bytes32(0);
+        _isDelegateModuleApproved[module].value = 0;
     }
 
     function stageDepositsLock() external atLeastOperator nonReentrant {
-        _stage(_isDepositsLocked, bytes32(uint256(1)));
+        _stage(_isDepositsLocked, 1);
     }
 
     function commitDepositsLock() external atLeastOperator nonReentrant {
@@ -139,13 +139,13 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function revokeDepositsLock() external atLeastOperator nonReentrant {
-        _isDepositsLocked.value = bytes32(0);
+        _isDepositsLocked.value = 0;
     }
 
     function stageMaximalTotalSupply(
         uint256 maximalTotalSupply_
     ) external onlyAdmin nonReentrant {
-        _stage(_maximalTotalSupply, bytes32(maximalTotalSupply_));
+        _stage(_maximalTotalSupply, maximalTotalSupply_);
     }
 
     function commitMaximalTotalSupply() external onlyAdmin nonReentrant {
@@ -164,7 +164,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         address callback
     ) external onlyAdmin nonReentrant {
         if (callback == address(0)) revert AddressZero();
-        _stage(_depositCallback, bytes32(bytes20(callback)));
+        _stage(_depositCallback, uint160(callback));
     }
 
     function commitDepositCallback() external onlyAdmin nonReentrant {
@@ -179,7 +179,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         address callback
     ) external onlyAdmin nonReentrant {
         if (callback == address(0)) revert AddressZero();
-        _stage(_withdrawalCallback, bytes32(bytes20(callback)));
+        _stage(_withdrawalCallback, uint160(callback));
     }
 
     function commitWithdrawalCallback() external onlyAdmin nonReentrant {
@@ -198,7 +198,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         uint256 feeD9
     ) external onlyAdmin nonReentrant {
         if (feeD9 > MAX_WITHDRAWAL_FEE) revert InvalidWithdrawalFee();
-        _stage(_withdrawalFeeD9, bytes32(feeD9));
+        _stage(_withdrawalFeeD9, feeD9);
     }
 
     function commitWithdrawalFeeD9() external onlyAdmin nonReentrant {
@@ -210,12 +210,12 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function baseDelay() public view returns (uint256) {
-        return uint256(_baseDelay.value);
+        return _baseDelay.value;
     }
 
     function stageBaseDelay(uint256 delay_) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_baseDelay, bytes32(delay_));
+        _stage(_baseDelay, delay_);
     }
 
     function commitBaseDelay() external onlyAdmin nonReentrant {
@@ -227,14 +227,14 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function deployCallbackDelay() public view returns (uint256) {
-        return uint256(_depositCallbackDelay.value);
+        return _depositCallbackDelay.value;
     }
 
     function stageDeployCallbackDelay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_depositCallbackDelay, bytes32(delay_));
+        _stage(_depositCallbackDelay, delay_);
     }
 
     function commitDeployCallbackDelay() external onlyAdmin nonReentrant {
@@ -250,14 +250,14 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function withdrawalCallbackDelay() public view returns (uint256) {
-        return uint256(_withdrawalCallbackDelay.value);
+        return _withdrawalCallbackDelay.value;
     }
 
     function stageWithdrawalCallbackDelay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_withdrawalCallbackDelay, bytes32(delay_));
+        _stage(_withdrawalCallbackDelay, delay_);
     }
 
     function commitWithdrawalCallbackDelay() external onlyAdmin nonReentrant {
@@ -273,14 +273,14 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function withdrawFeeD9Delay() public view returns (uint256) {
-        return uint256(_withdrawalFeeD9Delay.value);
+        return _withdrawalFeeD9Delay.value;
     }
 
     function stageWithdrawFeeD9Delay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_withdrawalFeeD9Delay, bytes32(delay_));
+        _stage(_withdrawalFeeD9Delay, delay_);
     }
 
     function commitWithdrawFeeD9Delay() external onlyAdmin nonReentrant {
@@ -296,14 +296,14 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function isDepositsLockedDelay() public view returns (uint256) {
-        return uint256(_isDepositsLockedDelay.value);
+        return _isDepositsLockedDelay.value;
     }
 
     function stageDepositsLockedDelay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_isDepositsLockedDelay, bytes32(delay_));
+        _stage(_isDepositsLockedDelay, delay_);
     }
 
     function commitDepositsLockedDelay() external onlyAdmin nonReentrant {
@@ -319,14 +319,14 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function delegateModuleApprovalDelay() public view returns (uint256) {
-        return uint256(_isDelegateModuleApprovedDelay.value);
+        return _isDelegateModuleApprovedDelay.value;
     }
 
     function stageDelegateModuleApprovalDelay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_isDelegateModuleApprovedDelay, bytes32(delay_));
+        _stage(_isDelegateModuleApprovedDelay, delay_);
     }
 
     function commitDelegateModuleApprovalDelay()
@@ -346,14 +346,14 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function maximalTotalSupplyDelay() public view returns (uint256) {
-        return uint256(_maximalTotalSupplyDelay.value);
+        return _maximalTotalSupplyDelay.value;
     }
 
     function stageMaximalTotalSupplyDelay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_maximalTotalSupplyDelay, bytes32(delay_));
+        _stage(_maximalTotalSupplyDelay, delay_);
     }
 
     function commitMaximalTotalSupplyDelay() external onlyAdmin nonReentrant {
@@ -369,20 +369,20 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function ratiosOracle() external view returns (address) {
-        return address(bytes20(_ratiosOracle.value));
+        return address(uint160(_ratiosOracle.value));
     }
 
     function priceOracle() external view returns (address) {
-        return address(bytes20(_priceOracle.value));
+        return address(uint160(_priceOracle.value));
     }
 
     function validator() external view returns (address) {
-        return address(bytes20(_validator.value));
+        return address(uint160(_validator.value));
     }
 
     function stageRatiosOracle(address oracle) external onlyAdmin nonReentrant {
         if (oracle == address(0)) revert AddressZero();
-        _stage(_ratiosOracle, bytes32(bytes20(oracle)));
+        _stage(_ratiosOracle, uint160(oracle));
     }
 
     function commitRatiosOracle() external onlyAdmin nonReentrant {
@@ -395,7 +395,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
 
     function stagePriceOracle(address oracle) external onlyAdmin nonReentrant {
         if (oracle == address(0)) revert AddressZero();
-        _stage(_priceOracle, bytes32(bytes20(oracle)));
+        _stage(_priceOracle, uint160(oracle));
     }
 
     function commitPriceOracle() external onlyAdmin nonReentrant {
@@ -410,7 +410,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         address validator_
     ) external onlyAdmin nonReentrant {
         if (validator_ == address(0)) revert AddressZero();
-        _stage(_validator, bytes32(bytes20(validator_)));
+        _stage(_validator, uint160(validator_));
     }
 
     function commitValidator() external onlyAdmin nonReentrant {
@@ -422,14 +422,14 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function validatorDelay() public view returns (uint256) {
-        return uint256(_validatorDelay.value);
+        return _validatorDelay.value;
     }
 
     function stageValidatorDelay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_validatorDelay, bytes32(delay_));
+        _stage(_validatorDelay, delay_);
     }
 
     function commitValidatorDelay() external onlyAdmin nonReentrant {
@@ -444,7 +444,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_priceOracleDelay, bytes32(delay_));
+        _stage(_priceOracleDelay, delay_);
     }
 
     function commitPriceOracleDelay() external onlyAdmin nonReentrant {
@@ -459,7 +459,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_ratiosOracleDelay, bytes32(delay_));
+        _stage(_ratiosOracleDelay, delay_);
     }
 
     function commitRatiosOracleDelay() external onlyAdmin nonReentrant {
@@ -471,14 +471,14 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     function emergencyWithdrawalDelay() public view returns (uint256) {
-        return uint256(_emergencyWithdrawalDelay.value);
+        return _emergencyWithdrawalDelay.value;
     }
 
     function stageEmergencyWithdrawalDelay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
-        _stage(_emergencyWithdrawalDelay, bytes32(delay_));
+        _stage(_emergencyWithdrawalDelay, delay_);
     }
 
     function commitEmergencyWithdrawalDelay() external onlyAdmin nonReentrant {
