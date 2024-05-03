@@ -6,10 +6,13 @@ import "../interfaces/oracles/IManagedRatiosOracle.sol";
 import "../libraries/external/FullMath.sol";
 
 contract ManagedRatiosOracle is IManagedRatiosOracle {
+    /// @inheritdoc IManagedRatiosOracle
     uint256 public constant Q96 = 2 ** 96;
 
+    /// @inheritdoc IManagedRatiosOracle
     mapping(address => bytes) public vaultToData;
 
+    /// @inheritdoc IManagedRatiosOracle
     function updateRatios(
         address vault,
         uint128[] memory ratiosX96
@@ -28,6 +31,7 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
         vaultToData[vault] = abi.encode(data);
     }
 
+    /// @inheritdoc IRatiosOracle
     function getTargetRatiosX96(
         address vault
     ) external view override returns (uint128[] memory) {

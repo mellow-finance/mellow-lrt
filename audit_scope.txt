@@ -6,12 +6,12 @@
    21 ./src/modules/symbiotic/DefaultBondModule.sol
    31 ./src/modules/symbiotic/DefaultBondTvlModule.sol
    75 ./src/oracles/ChainlinkOracle.sol
-   42 ./src/oracles/ManagedRatiosOracle.sol
-  110 ./src/strategies/DefaultBondStrategy.sol
+   46 ./src/oracles/ManagedRatiosOracle.sol
+  119 ./src/strategies/DefaultBondStrategy.sol
    50 ./src/utils/DefaultAccessControl.sol
    88 ./src/utils/DepositWrapper.sol
-    8 ./src/validators/AllowAllValidator.sol
-   33 ./src/validators/DefaultBondValidator.sol
+    9 ./src/validators/AllowAllValidator.sol
+   36 ./src/validators/DefaultBondValidator.sol
    48 ./src/validators/ERC20SwapValidator.sol
   151 ./src/validators/ManagedValidator.sol
- 1785 total
+ 1802 total

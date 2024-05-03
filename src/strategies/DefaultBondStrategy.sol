@@ -8,12 +8,17 @@ import "../libraries/external/FullMath.sol";
 import "../utils/DefaultAccessControl.sol";
 
 contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
+    /// @inheritdoc IDefaultBondStrategy
     uint256 public constant Q96 = 2 ** 96;
 
+    /// @inheritdoc IDefaultBondStrategy
     IVault public immutable vault;
+    /// @inheritdoc IDefaultBondStrategy
     IERC20TvlModule public immutable erc20TvlModule;
+    /// @inheritdoc IDefaultBondStrategy
     IDefaultBondModule public immutable bondModule;
 
+    /// @inheritdoc IDefaultBondStrategy
     mapping(address => bytes) public tokenToData;
 
     constructor(
@@ -27,6 +32,7 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
         bondModule = bondModule_;
     }
 
+    /// @inheritdoc IDefaultBondStrategy
     function setData(address token, Data[] memory data) external {
         _requireAdmin();
         if (token == address(0)) revert AddressZero();
@@ -67,16 +73,19 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
         }
     }
 
+    /// @inheritdoc IDepositCallback
     function depositCallback(uint256[] memory, uint256) external override {
         if (msg.sender != address(vault)) _requireAtLeastOperator();
         _deposit();
     }
 
+    /// @inheritdoc IDefaultBondStrategy
     function processAll() external {
         _requireAtLeastOperator();
         _processWithdrawals(vault.pendingWithdrawers());
     }
 
+    /// @inheritdoc IDefaultBondStrategy
     function processWithdrawals(address[] memory users) external {
         if (users.length == 0) return;
         if (users.length > 1 || users[0] != msg.sender)
