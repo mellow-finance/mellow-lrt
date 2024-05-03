@@ -3,18 +3,22 @@ pragma solidity ^0.8.0;
 
 import "../../interfaces/modules/symbiotic/IDefaultBondTvlModule.sol";
 import "../../interfaces/utils/IDefaultAccessControl.sol";
+import "../DefaultModule.sol";
 
-contract DefaultBondTvlModule is IDefaultBondTvlModule {
-    error Forbidden();
-
+contract DefaultBondTvlModule is IDefaultBondTvlModule, DefaultModule {
     mapping(address => bytes) public vaultParams;
 
-    function setParams(address vault, address[] memory bonds) external {
+    function setParams(
+        address vault,
+        address[] memory bonds
+    ) external noDelegateCall {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
         vaultParams[vault] = abi.encode(bonds);
     }
 
-    function tvl(address vault) external view returns (Data[] memory data) {
+    function tvl(
+        address vault
+    ) external view noDelegateCall returns (Data[] memory data) {
         bytes memory data_ = vaultParams[vault];
         if (data_.length == 0) return data;
         address[] memory bonds = abi.decode(data_, (address[]));

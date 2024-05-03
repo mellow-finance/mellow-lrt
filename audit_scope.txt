@@ -1,10 +1,11 @@
   550 ./src/Vault.sol
   495 ./src/VaultConfigurator.sol
-   41 ./src/modules/erc20/ERC20SwapModule.sol
-   17 ./src/modules/erc20/ERC20TvlModule.sol
-   19 ./src/modules/erc20/ManagedTvlModule.sol
-   21 ./src/modules/symbiotic/DefaultBondModule.sol
-   29 ./src/modules/symbiotic/DefaultBondTvlModule.sol
+   18 ./src/modules/DefaultModule.sol
+   42 ./src/modules/erc20/ERC20SwapModule.sol
+   20 ./src/modules/erc20/ERC20TvlModule.sol
+   25 ./src/modules/erc20/ManagedTvlModule.sol
+   22 ./src/modules/symbiotic/DefaultBondModule.sol
+   33 ./src/modules/symbiotic/DefaultBondTvlModule.sol
    73 ./src/oracles/ChainlinkOracle.sol
    45 ./src/oracles/ManagedRatiosOracle.sol
   119 ./src/strategies/DefaultBondStrategy.sol
@@ -13,5 +14,5 @@
     9 ./src/validators/AllowAllValidator.sol
    36 ./src/validators/DefaultBondValidator.sol
    48 ./src/validators/ERC20SwapValidator.sol
-  151 ./src/validators/ManagedValidator.sol
- 1805 total
+  141 ./src/validators/ManagedValidator.sol
+ 1828 total

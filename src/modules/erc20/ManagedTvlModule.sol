@@ -2,16 +2,22 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/modules/erc20/IManagedTvlModule.sol";
+import "../DefaultModule.sol";
 
-contract ManagedTvlModule is IManagedTvlModule {
+contract ManagedTvlModule is IManagedTvlModule, DefaultModule {
     mapping(address => bytes) public vaultParams;
 
-    function setParams(address vault, Data[] memory data) external {
+    function setParams(
+        address vault,
+        Data[] memory data
+    ) external noDelegateCall {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
         vaultParams[vault] = abi.encode(data);
     }
 
-    function tvl(address vault) external view returns (Data[] memory data) {
+    function tvl(
+        address vault
+    ) external view noDelegateCall returns (Data[] memory data) {
         bytes memory data_ = vaultParams[vault];
         if (data_.length == 0) return data;
         data = abi.decode(data_, (Data[]));

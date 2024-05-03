@@ -16,11 +16,11 @@ contract ManagedValidator is IManagedValidator {
     }
 
     constructor(address admin) {
-        Storage storage ds = _contractStorage();
+        Storage storage ds = _storage();
         ds.userRoles[admin] = ADMIN_ROLE_MASK;
     }
 
-    function _contractStorage() internal pure returns (Storage storage ds) {
+    function _storage() internal pure returns (Storage storage ds) {
         bytes32 position = STORAGE_POSITION;
 
         assembly {
@@ -33,12 +33,12 @@ contract ManagedValidator is IManagedValidator {
         address contractAddress,
         bytes4 signature
     ) public view returns (bool) {
-        Storage storage ds = _contractStorage();
-        uint256 roleSet = ds.userRoles[user] | ds.publicRoles;
+        Storage storage s = _storage();
+        uint256 roleSet = s.userRoles[user] | s.publicRoles;
         if ((roleSet & ADMIN_ROLE_MASK) > 0) return true;
-        if ((roleSet & ds.allowAllSignaturesRoles[contractAddress]) > 0)
+        if ((roleSet & s.allowAllSignaturesRoles[contractAddress]) > 0)
             return true;
-        if ((roleSet & ds.allowSignatureRoles[contractAddress][signature]) > 0)
+        if ((roleSet & s.allowSignatureRoles[contractAddress][signature]) > 0)
             return true;
         return false;
     }
@@ -48,53 +48,45 @@ contract ManagedValidator is IManagedValidator {
         address contractAddress,
         bytes4 signature
     ) public view {
-        if (!hasPermission(user, contractAddress, signature)) {
+        if (!hasPermission(user, contractAddress, signature))
             revert Forbidden();
-        }
     }
 
     function grantPublicRole(uint8 role) external authorized {
-        Storage storage ds = _contractStorage();
-        ds.publicRoles |= 1 << role;
+        _storage().publicRoles |= 1 << role;
     }
 
     function revokePublicRole(uint8 role) external authorized {
-        Storage storage ds = _contractStorage();
-        ds.publicRoles &= ~(1 << role);
+        _storage().publicRoles &= ~(1 << role);
     }
 
     function grantRole(address user, uint8 role) external authorized {
-        Storage storage ds = _contractStorage();
-        ds.userRoles[user] |= 1 << role;
+        _storage().userRoles[user] |= 1 << role;
     }
 
     function revokeRole(address user, uint8 role) external authorized {
-        Storage storage ds = _contractStorage();
-        ds.userRoles[user] &= ~(1 << role);
+        _storage().userRoles[user] &= ~(1 << role);
     }
 
     function setCustomValidator(
         address contractAddress,
         address validator
     ) external authorized {
-        Storage storage ds = _contractStorage();
-        ds.customValidator[contractAddress] = validator;
+        _storage().customValidator[contractAddress] = validator;
     }
 
     function grantContractRole(
         address contractAddress,
         uint8 role
     ) external authorized {
-        Storage storage ds = _contractStorage();
-        ds.allowAllSignaturesRoles[contractAddress] |= 1 << role;
+        _storage().allowAllSignaturesRoles[contractAddress] |= 1 << role;
     }
 
     function revokeContractRole(
         address contractAddress,
         uint8 role
     ) external authorized {
-        Storage storage ds = _contractStorage();
-        ds.allowAllSignaturesRoles[contractAddress] &= ~(1 << role);
+        _storage().allowAllSignaturesRoles[contractAddress] &= ~(1 << role);
     }
 
     function grantContractSignatureRole(
@@ -102,8 +94,7 @@ contract ManagedValidator is IManagedValidator {
         bytes4 signature,
         uint8 role
     ) external authorized {
-        Storage storage ds = _contractStorage();
-        ds.allowSignatureRoles[contractAddress][signature] |= 1 << role;
+        _storage().allowSignatureRoles[contractAddress][signature] |= 1 << role;
     }
 
     function revokeContractSignatureRole(
@@ -111,30 +102,29 @@ contract ManagedValidator is IManagedValidator {
         bytes4 signature,
         uint8 role
     ) external authorized {
-        Storage storage ds = _contractStorage();
-        ds.allowSignatureRoles[contractAddress][signature] &= ~(1 << role);
+        _storage().allowSignatureRoles[contractAddress][signature] &= ~(1 <<
+            role);
     }
 
     function userRoles(address user) external view returns (uint256) {
-        return _contractStorage().userRoles[user];
+        return _storage().userRoles[user];
     }
 
     function publicRoles() external view returns (uint256) {
-        return _contractStorage().publicRoles;
+        return _storage().publicRoles;
     }
 
     function allowAllSignaturesRoles(
         address contractAddress
     ) external view returns (uint256) {
-        return _contractStorage().allowAllSignaturesRoles[contractAddress];
+        return _storage().allowAllSignaturesRoles[contractAddress];
     }
 
     function allowSignatureRoles(
         address contractAddress,
         bytes4 selector
     ) external view returns (uint256) {
-        return
-            _contractStorage().allowSignatureRoles[contractAddress][selector];
+        return _storage().allowSignatureRoles[contractAddress][selector];
     }
 
     function validate(
@@ -144,7 +134,7 @@ contract ManagedValidator is IManagedValidator {
     ) external view {
         if (data.length < 0x4) revert InvalidData();
         requirePermission(from, to, bytes4(data[:4]));
-        address validator = _contractStorage().customValidator[to];
+        address validator = _storage().customValidator[to];
         if (validator == address(0)) return;
         IValidator(validator).validate(from, to, data);
     }
