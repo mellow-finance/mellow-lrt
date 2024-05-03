@@ -33,15 +33,20 @@ interface IVault {
         uint256 lpAmount;
         uint256 deadline;
         uint256 timestamp;
-        address[] tokens;
+        bytes32 tokensHash;
         uint256[] minAmounts;
     }
 
     struct ProcessWithdrawalsStack {
         uint256 totalValue;
+        uint256 totalSupply;
         uint256 ratiosX96Value;
+        uint256 timestamp;
+        uint256 feeD9;
+        bytes32 tokensHash;
+        address[] tokens;
         uint128[] ratiosX96;
-        uint256[] amounts;
+        uint256[] erc20Balances;
     }
 
     function Q96() external view returns (uint256);
@@ -97,10 +102,76 @@ interface IVault {
         uint256 lpAmount,
         uint256[] memory minAmounts,
         uint256 deadline,
+        uint256 requestDeadline,
         bool closePrevious
     ) external;
 
     function processWithdrawals(
         address[] memory users
     ) external returns (bool[] memory statuses);
+
+    event WithdrawalRequestCanceled(address indexed user);
+
+    event WithdrawalRequested(
+        address indexed user,
+        uint256 lpAmount,
+        uint256 deadline
+    );
+
+    event WithdrawalProcessed(
+        address indexed user,
+        uint256 lpAmount,
+        uint256[] amounts
+    );
+
+    event TokenAdded(address indexed token);
+
+    event TokenRemoved(address indexed token);
+
+    event TvlModuleAdded(address indexed module);
+
+    event TvlModuleRemoved(address indexed module);
+
+    event ExternalCall(
+        address indexed to,
+        bytes data,
+        bool success,
+        bytes result
+    );
+
+    event DelegateCall(
+        address indexed to,
+        bytes data,
+        bool success,
+        bytes result
+    );
+
+    event Deposit(
+        address indexed to,
+        uint256[] actualAmounts,
+        uint256 lpAmount
+    );
+
+    event WithdrawalsProcessed(address[] users, bool[] statuses);
+
+    event WithdrawCallback(address callback);
+
+    event DepositCallback(
+        address callback,
+        uint256[] amounts,
+        uint256 lpAmount
+    );
+
+    event WithdrawalRequestCanceled(
+        address indexed user,
+        address indexed origin
+    );
+
+    event WithdrawalRequested(address indexed user, WithdrawalRequest request);
+
+    event EmergencyWithdrawal(
+        address indexed sender,
+        WithdrawalRequest request,
+        uint256[] actualAmounts
+    );
 }

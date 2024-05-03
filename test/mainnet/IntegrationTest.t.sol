@@ -118,6 +118,7 @@ contract Integration is Fixture {
             vault.balanceOf(Constants.DEPOSITOR) / 2,
             new uint256[](1),
             type(uint256).max,
+            type(uint256).max,
             false
         );
 
@@ -206,6 +207,7 @@ contract Integration is Fixture {
             Constants.DEPOSITOR,
             vault.balanceOf(Constants.DEPOSITOR) / 2,
             new uint256[](1),
+            type(uint256).max,
             type(uint256).max,
             false
         );
@@ -372,7 +374,7 @@ contract Integration is Fixture {
         vm.stopPrank();
     }
 
-    function testGovernance() external {
+    function testGovernance() external view {
         /*
         bytes32[] memory slots = configurator.viewSlots();
         for (uint256 i = 0; i < slots.length; i++) {
