@@ -43,16 +43,12 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     }
 
     modifier onlyAdmin() {
-        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
-            revert Forbidden();
+        IDefaultAccessControl(vault).requireAdmin(msg.sender);
         _;
     }
 
     modifier atLeastOperator() {
-        if (
-            !IDefaultAccessControl(vault).isAdmin(msg.sender) &&
-            !IDefaultAccessControl(vault).isOperator(msg.sender)
-        ) revert Forbidden();
+        IDefaultAccessControl(vault).requireAtLeastOperator(msg.sender);
         _;
     }
 

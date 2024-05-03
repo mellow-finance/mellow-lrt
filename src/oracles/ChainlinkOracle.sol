@@ -20,8 +20,7 @@ contract ChainlinkOracle is IPriceOracle {
     mapping(address => address) public baseTokens;
 
     function setBaseToken(address vault, address baseToken) external {
-        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
-            revert Forbidden();
+        IDefaultAccessControl(vault).requireAdmin(msg.sender);
         baseTokens[vault] = baseToken;
     }
 
@@ -30,8 +29,7 @@ contract ChainlinkOracle is IPriceOracle {
         address[] memory tokens,
         address[] memory oracles
     ) external {
-        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
-            revert Forbidden();
+        IDefaultAccessControl(vault).requireAdmin(msg.sender);
         if (tokens.length != oracles.length) revert InvalidLength();
         for (uint256 i = 0; i < tokens.length; i++) {
             aggregatorsV3[vault][tokens[i]] = oracles[i];

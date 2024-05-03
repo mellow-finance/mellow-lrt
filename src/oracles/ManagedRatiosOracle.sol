@@ -17,8 +17,7 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
         address vault,
         uint128[] memory ratiosX96
     ) external override {
-        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
-            revert Forbidden();
+        IDefaultAccessControl(vault).requireAdmin(msg.sender);
         address[] memory tokens = IVault(vault).underlyingTokens();
         if (tokens.length != ratiosX96.length) revert InvalidLength();
         Data memory data = Data({

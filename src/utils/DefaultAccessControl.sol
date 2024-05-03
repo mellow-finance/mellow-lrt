@@ -36,15 +36,29 @@ contract DefaultAccessControl is
         return hasRole(OPERATOR, sender);
     }
 
+    /// @inheritdoc IDefaultAccessControl
+    function requireAdmin(address sender) external view override {
+        _requireAdmin(sender);
+    }
+
+    /// @inheritdoc IDefaultAccessControl
+    function requireAtLeastOperator(address sender) external view override {
+        _requireAtLeastOperator(sender);
+    }
+
+    function _requireAdmin(address sender) internal view {
+        if (!isAdmin(sender)) revert Forbidden();
+    }
+
+    function _requireAtLeastOperator(address sender) internal view {
+        if (!isAdmin(sender) && !isOperator(sender)) revert Forbidden();
+    }
+
     function _requireAdmin() internal view {
-        if (!isAdmin(msg.sender)) {
-            revert Forbidden();
-        }
+        _requireAdmin(msg.sender);
     }
 
     function _requireAtLeastOperator() internal view {
-        if (!isAdmin(msg.sender) && !isOperator(msg.sender)) {
-            revert Forbidden();
-        }
+        _requireAtLeastOperator(msg.sender);
     }
 }

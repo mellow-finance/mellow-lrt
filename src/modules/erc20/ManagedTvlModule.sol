@@ -7,9 +7,7 @@ contract ManagedTvlModule is IManagedTvlModule {
     mapping(address => bytes) public vaultParams;
 
     function setParams(address vault, Data[] memory data) external {
-        // TODO: fix permissions
-        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
-            revert Forbidden();
+        IDefaultAccessControl(vault).requireAdmin(msg.sender);
         vaultParams[vault] = abi.encode(data);
     }
 

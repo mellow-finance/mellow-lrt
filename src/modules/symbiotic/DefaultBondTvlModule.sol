@@ -10,9 +10,7 @@ contract DefaultBondTvlModule is IDefaultBondTvlModule {
     mapping(address => bytes) public vaultParams;
 
     function setParams(address vault, address[] memory bonds) external {
-        // TODO: fix permissions
-        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
-            revert Forbidden();
+        IDefaultAccessControl(vault).requireAdmin(msg.sender);
         vaultParams[vault] = abi.encode(bonds);
     }
 
