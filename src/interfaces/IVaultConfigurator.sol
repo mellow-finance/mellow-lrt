@@ -15,7 +15,13 @@ interface IVaultConfigurator {
         uint256 stageTimestamp;
     }
 
-    function isProportionalWithdrawalsApproved() external view returns (bool);
+    function emergencyWithdrawalDelay() external view returns (uint256);
+
+    function ratiosOracle() external view returns (address);
+
+    function priceOracle() external view returns (address);
+
+    function validator() external view returns (address);
 
     function isDelegateModuleApproved(
         address target

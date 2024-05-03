@@ -48,12 +48,6 @@ interface IVault {
 
     function D9() external view returns (uint256);
 
-    function ratiosOracle() external view returns (IRatiosOracle);
-
-    function priceOracle() external view returns (IPriceOracle);
-
-    function validator() external view returns (IValidator);
-
     function configurator() external view returns (IVaultConfigurator);
 
     function withdrawalRequest(

@@ -7,6 +7,8 @@ import "./utils/DefaultAccessControl.sol";
 
 import "./libraries/external/FullMath.sol";
 
+import "./VaultConfigurator.sol";
+
 // TODO: events, tests, docs
 contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -15,9 +17,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     uint256 public constant Q96 = 2 ** 96;
     uint256 public constant D9 = 1e9;
 
-    IRatiosOracle public immutable ratiosOracle;
-    IPriceOracle public immutable priceOracle;
-    IValidator public immutable validator;
     IVaultConfigurator public immutable configurator;
 
     mapping(address => WithdrawalRequest) private _withdrawalRequest;
@@ -101,7 +100,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         tokens = new address[](data.length);
         uint256 length = 0;
         for (uint256 i = 0; i < data.length; i++) {
-            if (data[i].token == address(0)) revert InvalidState();
+            if (data[i].token == address(0)) continue;
             uint256 tokenIndex = length;
             for (uint256 j = 0; j < length; j++) {
                 if (tokens[j] == data[i].token) {
@@ -142,20 +141,9 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     constructor(
         string memory name_,
         string memory symbol_,
-        address admin,
-        address vaultConfigurator_,
-        address ratiosOracle_,
-        address priceOracle_,
-        address validator_
+        address admin
     ) ERC20(name_, symbol_) DefaultAccessControl(admin) {
-        if (ratiosOracle_ == address(0)) revert AddressZero();
-        if (priceOracle_ == address(0)) revert AddressZero();
-        if (validator_ == address(0)) revert AddressZero();
-        if (vaultConfigurator_ == address(0)) revert AddressZero();
-        ratiosOracle = IRatiosOracle(ratiosOracle_);
-        priceOracle = IPriceOracle(priceOracle_);
-        validator = IValidator(validator_);
-        configurator = IVaultConfigurator(vaultConfigurator_);
+        configurator = new VaultConfigurator();
     }
 
     function addToken(address token) external nonReentrant {
@@ -204,8 +192,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         for (uint256 i = 0; i < data.length; i++) {
             if (!_underlyingTokensSet.contains(data[i].underlyingToken))
                 revert InvalidToken();
-            // its possible, that data[i] == address(0)
-            // in this case proportionalWithdraw will revert with InvalidState
             if (data[i].token == address(this)) revert InvalidToken();
             if (i > 0 && data[i].underlyingToken <= data[i - 1].underlyingToken)
                 revert InvalidState();
@@ -225,6 +211,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     ) external nonReentrant returns (bool, bytes memory) {
         _requireAtLeastOperator();
         if (configurator.isDelegateModuleApproved(to)) revert Forbidden();
+        IValidator validator = IValidator(configurator.validator());
         validator.validate(
             msg.sender,
             address(this),
@@ -240,6 +227,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     ) external returns (bool, bytes memory) {
         _requireAtLeastOperator();
         if (!configurator.isDelegateModuleApproved(to)) revert Forbidden();
+        IValidator validator = IValidator(configurator.validator());
         validator.validate(
             msg.sender,
             address(this),
@@ -265,9 +253,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             address[] memory tokens,
             uint256[] memory totalAmounts
         ) = underlyingTvl();
-        uint128[] memory ratiosX96 = ratiosOracle.getTargetRatiosX96(
-            address(this)
-        );
+        uint128[] memory ratiosX96 = IRatiosOracle(configurator.ratiosOracle())
+            .getTargetRatiosX96(address(this));
 
         uint256 ratioX96 = type(uint256).max;
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -280,6 +267,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 depositValue = 0;
         uint256 totalValue = 0;
         actualAmounts = new uint256[](tokens.length);
+        IPriceOracle priceOracle = IPriceOracle(configurator.priceOracle());
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 priceX96 = priceOracle.priceX96(address(this), tokens[i]);
             if (totalAmounts[i] > 0) {
@@ -318,41 +306,48 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         }
     }
 
-    function proportionalWithdraw(
-        uint256 lpAmount,
-        uint256[] memory minAmounts,
-        uint256 deadline,
-        address to
+    function emergencyWithdraw(
+        uint256[] memory minAmounts
     ) external nonReentrant returns (uint256[] memory actualAmounts) {
-        if (block.timestamp > deadline) revert Deadline();
-        if (!configurator.isProportionalWithdrawalsApproved())
-            revert Forbidden();
-        if (lpAmount == 0) revert ValueZero();
-        if (to == address(0)) revert AddressZero();
-        uint256 totalSupply = totalSupply();
-        uint256 balance = balanceOf(to);
-        if (balance < lpAmount) {
-            lpAmount = balance;
+        address sender = msg.sender;
+        if (!_pendingWithdrawers.contains(sender)) revert InvalidState();
+        uint256 timestamp = block.timestamp;
+        WithdrawalRequest memory request = _withdrawalRequest[sender];
+        if (
+            timestamp > request.deadline ||
+            request.lpAmount == 0 ||
+            request.to == address(0)
+        ) {
+            _closeWithdrawalRequest(sender);
+            return new uint256[](0);
         }
+
+        if (
+            request.timestamp + configurator.emergencyWithdrawalDelay() >
+            timestamp
+        ) revert InvalidState();
+
+        uint256 totalSupply = totalSupply();
         (address[] memory tokens, uint256[] memory amounts) = baseTvl();
+        if (minAmounts.length != tokens.length) revert InvalidLength();
         for (uint256 i = 0; i < tokens.length; i++) {
             if (amounts[i] == 0) continue;
             uint256 amount = FullMath.mulDiv(
                 IERC20(tokens[i]).balanceOf(address(this)),
-                lpAmount,
+                request.lpAmount,
                 totalSupply
             );
             if (amount < minAmounts[i]) revert InsufficientAmount();
-            IERC20(tokens[i]).safeTransfer(to, amount);
+            IERC20(tokens[i]).safeTransfer(request.to, amount);
             actualAmounts[i] = amount;
         }
-
-        _burn(to, lpAmount);
+        _burn(address(this), request.lpAmount);
+        delete _withdrawalRequest[sender];
+        _pendingWithdrawers.remove(sender);
     }
 
     function cancleWithdrawalRequest() external nonReentrant {
-        address sender = msg.sender;
-        _closeWithdrawalRequest(sender);
+        _closeWithdrawalRequest(msg.sender);
     }
 
     function _closeWithdrawalRequest(address sender) private {
@@ -403,11 +398,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         address[] memory users
     ) external nonReentrant returns (bool[] memory statuses) {
         _requireAtLeastOperator();
-        if (configurator.isProportionalWithdrawalsApproved())
-            revert Forbidden();
         statuses = new bool[](users.length);
         ProcessWithdrawalsStack memory s = ProcessWithdrawalsStack({
-            ratiosX96: ratiosOracle.getTargetRatiosX96(address(this)),
+            ratiosX96: IRatiosOracle(configurator.ratiosOracle())
+                .getTargetRatiosX96(address(this)),
             amounts: new uint256[](0),
             totalValue: 0,
             ratiosX96Value: 0
@@ -416,13 +410,22 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         (tokens, s.amounts) = underlyingTvl();
 
         uint256[] memory erc20Balances = new uint256[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
-            uint256 priceX96 = priceOracle.priceX96(address(this), tokens[i]);
-            s.totalValue += FullMath.mulDiv(s.amounts[i], priceX96, Q96);
-            s.ratiosX96Value += FullMath.mulDiv(s.ratiosX96[i], priceX96, Q96);
-            erc20Balances[i] = IERC20(tokens[i]).balanceOf(address(this));
+        {
+            IPriceOracle priceOracle = IPriceOracle(configurator.priceOracle());
+            for (uint256 i = 0; i < tokens.length; i++) {
+                uint256 priceX96 = priceOracle.priceX96(
+                    address(this),
+                    tokens[i]
+                );
+                s.totalValue += FullMath.mulDiv(s.amounts[i], priceX96, Q96);
+                s.ratiosX96Value += FullMath.mulDiv(
+                    s.ratiosX96[i],
+                    priceX96,
+                    Q96
+                );
+                erc20Balances[i] = IERC20(tokens[i]).balanceOf(address(this));
+            }
         }
-
         uint256 totalSupply = totalSupply();
         uint256 burningSupply = 0;
         uint256 timestamp = block.timestamp;
@@ -434,7 +437,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
                 request.tokens.length != tokens.length ||
                 request.lpAmount == 0 ||
                 request.deadline < timestamp
-            ) continue;
+            ) {
+                _closeWithdrawalRequest(user);
+                continue;
+            }
 
             uint256 coefficientX96;
             {
@@ -471,10 +477,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
                         Q96
                     );
                 }
-                if (
-                    expectedAmounts[j] < request.minAmounts[j] ||
-                    erc20Balances[j] < expectedAmounts[j]
-                ) {
+                if (expectedAmounts[j] < request.minAmounts[j]) {
+                    _closeWithdrawalRequest(user);
+                    isWithdrawalPossible = false;
+                    break;
+                }
+                if (erc20Balances[j] < expectedAmounts[j]) {
                     isWithdrawalPossible = false;
                     break;
                 }

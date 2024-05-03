@@ -10,7 +10,7 @@ contract Integration is Fixture {
         address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
     function _initializeVault() private {
-        vm.startPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
+        vm.startPrank(Constants.VAULT_ADMIN);
 
         configurator.stageMaximalTotalSupply(type(uint256).max);
         configurator.commitMaximalTotalSupply();
@@ -20,6 +20,16 @@ contract Integration is Fixture {
         configurator.stageDelegateModuleApproval(address(erc20SwapModule));
         configurator.commitDelegateModuleApproval(address(erc20SwapModule));
 
+        configurator.stageRatiosOracle(address(ratiosOracle));
+        configurator.commitRatiosOracle();
+
+        configurator.stagePriceOracle(address(oracle));
+        configurator.commitPriceOracle();
+
+        configurator.stageValidator(address(validator));
+        configurator.commitValidator();
+
+        newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
         validator.grantRole(address(vault), Constants.DEFAULT_BOND_ROLE);
         validator.grantRole(address(vault), Constants.SWAP_ROUTER_ROLE);
         validator.grantContractRole(
@@ -161,6 +171,7 @@ contract Integration is Fixture {
             });
             strategy.setData(Constants.WSTETH, data);
         }
+        newPrank(Constants.VAULT_ADMIN);
         configurator.stageDepositCallback(address(strategy));
         configurator.commitDepositCallback();
 
@@ -262,6 +273,7 @@ contract Integration is Fixture {
             });
             strategy.setData(Constants.WSTETH, data);
         }
+        newPrank(Constants.VAULT_ADMIN);
         configurator.stageDepositCallback(address(strategy));
         configurator.commitDepositCallback();
 

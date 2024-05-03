@@ -5,11 +5,10 @@ import "./interfaces/IVaultConfigurator.sol";
 
 import "./utils/DefaultAccessControl.sol";
 
-contract VaultConfigurator is
-    IVaultConfigurator,
-    ReentrancyGuard,
-    DefaultAccessControl
-{
+contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
+    error AddressZero();
+    error Forbidden();
+
     uint256 public constant MAX_DELAY = 365 days;
     uint256 public constant MAX_WITHDRAWAL_FEE = 5e7; // 5%
 
@@ -21,24 +20,39 @@ contract VaultConfigurator is
     Data private _maximalTotalSupplyDelay;
     Data private _isDepositsLockedDelay;
     Data private _isDelegateModuleApprovedDelay;
+    Data private _ratiosOracleDelay;
+    Data private _priceOracleDelay;
+    Data private _validatorDelay;
+    Data private _emergencyWithdrawalDelay;
 
     Data private _depositCallback;
     Data private _withdrawalCallback;
     Data private _withdrawalFeeD9;
     Data private _maximalTotalSupply;
     Data private _isDepositsLocked;
+    Data private _ratiosOracle;
+    Data private _priceOracle;
+    Data private _validator;
 
     mapping(address => Data) private _isDelegateModuleApproved;
 
-    constructor(address admin) DefaultAccessControl(admin) {}
+    address public immutable vault;
+
+    constructor() {
+        vault = msg.sender;
+    }
 
     modifier onlyAdmin() {
-        if (!isAdmin(msg.sender)) revert Forbidden();
+        if (!IDefaultAccessControl(vault).isAdmin(msg.sender))
+            revert Forbidden();
         _;
     }
 
     modifier atLeastOperator() {
-        if (!isAdmin(msg.sender) && !isOperator(msg.sender)) revert Forbidden();
+        if (
+            !IDefaultAccessControl(vault).isAdmin(msg.sender) &&
+            !IDefaultAccessControl(vault).isOperator(msg.sender)
+        ) revert Forbidden();
         _;
     }
 
@@ -358,5 +372,128 @@ contract VaultConfigurator is
         _rollback(_maximalTotalSupplyDelay);
     }
 
-    function isProportionalWithdrawalsApproved() external view returns (bool) {}
+    function ratiosOracle() external view returns (address) {
+        return address(bytes20(_ratiosOracle.value));
+    }
+
+    function priceOracle() external view returns (address) {
+        return address(bytes20(_priceOracle.value));
+    }
+
+    function validator() external view returns (address) {
+        return address(bytes20(_validator.value));
+    }
+
+    function stageRatiosOracle(address oracle) external onlyAdmin nonReentrant {
+        if (oracle == address(0)) revert AddressZero();
+        _stage(_ratiosOracle, bytes32(bytes20(oracle)));
+    }
+
+    function commitRatiosOracle() external onlyAdmin nonReentrant {
+        _commit(_ratiosOracle, _ratiosOracleDelay);
+    }
+
+    function rollbackStagedRatiosOracle() external onlyAdmin nonReentrant {
+        _rollback(_ratiosOracle);
+    }
+
+    function stagePriceOracle(address oracle) external onlyAdmin nonReentrant {
+        if (oracle == address(0)) revert AddressZero();
+        _stage(_priceOracle, bytes32(bytes20(oracle)));
+    }
+
+    function commitPriceOracle() external onlyAdmin nonReentrant {
+        _commit(_priceOracle, _priceOracleDelay);
+    }
+
+    function rollbackStagedPriceOracle() external onlyAdmin nonReentrant {
+        _rollback(_priceOracle);
+    }
+
+    function stageValidator(
+        address validator_
+    ) external onlyAdmin nonReentrant {
+        if (validator_ == address(0)) revert AddressZero();
+        _stage(_validator, bytes32(bytes20(validator_)));
+    }
+
+    function commitValidator() external onlyAdmin nonReentrant {
+        _commit(_validator, _validatorDelay);
+    }
+
+    function rollbackStagedValidator() external onlyAdmin nonReentrant {
+        _rollback(_validator);
+    }
+
+    function validatorDelay() public view returns (uint256) {
+        return uint256(_validatorDelay.value);
+    }
+
+    function stageValidatorDelay(
+        uint256 delay_
+    ) external onlyAdmin nonReentrant {
+        if (delay_ > MAX_DELAY) revert InvalidDelay();
+        _stage(_validatorDelay, bytes32(delay_));
+    }
+
+    function commitValidatorDelay() external onlyAdmin nonReentrant {
+        _commit(_validatorDelay, _baseDelay);
+    }
+
+    function rollbackStagedValidatorDelay() external onlyAdmin nonReentrant {
+        _rollback(_validatorDelay);
+    }
+
+    function stagePriceOracleDelay(
+        uint256 delay_
+    ) external onlyAdmin nonReentrant {
+        if (delay_ > MAX_DELAY) revert InvalidDelay();
+        _stage(_priceOracleDelay, bytes32(delay_));
+    }
+
+    function commitPriceOracleDelay() external onlyAdmin nonReentrant {
+        _commit(_priceOracleDelay, _baseDelay);
+    }
+
+    function rollbackStagedPriceOracleDelay() external onlyAdmin nonReentrant {
+        _rollback(_priceOracleDelay);
+    }
+
+    function stageRatiosOracleDelay(
+        uint256 delay_
+    ) external onlyAdmin nonReentrant {
+        if (delay_ > MAX_DELAY) revert InvalidDelay();
+        _stage(_ratiosOracleDelay, bytes32(delay_));
+    }
+
+    function commitRatiosOracleDelay() external onlyAdmin nonReentrant {
+        _commit(_ratiosOracleDelay, _baseDelay);
+    }
+
+    function rollbackStagedRatiosOracleDelay() external onlyAdmin nonReentrant {
+        _rollback(_ratiosOracleDelay);
+    }
+
+    function emergencyWithdrawalDelay() public view returns (uint256) {
+        return uint256(_emergencyWithdrawalDelay.value);
+    }
+
+    function stageEmergencyWithdrawalDelay(
+        uint256 delay_
+    ) external onlyAdmin nonReentrant {
+        if (delay_ > MAX_DELAY) revert InvalidDelay();
+        _stage(_emergencyWithdrawalDelay, bytes32(delay_));
+    }
+
+    function commitEmergencyWithdrawalDelay() external onlyAdmin nonReentrant {
+        _commit(_emergencyWithdrawalDelay, _baseDelay);
+    }
+
+    function rollbackStagedEmergencyWithdrawalDelay()
+        external
+        onlyAdmin
+        nonReentrant
+    {
+        _rollback(_emergencyWithdrawalDelay);
+    }
 }

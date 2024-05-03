@@ -45,9 +45,6 @@ contract Fixture is Test {
     }
 
     function setUp() external {
-        configurator = new VaultConfigurator(
-            Constants.PROTOCOL_GOVERNANCE_ADMIN
-        );
         ratiosOracle = new ManagedRatiosOracle();
         oracle = new ChainlinkOracle();
         validator = new ManagedValidator(Constants.PROTOCOL_GOVERNANCE_ADMIN);
@@ -67,14 +64,8 @@ contract Fixture is Test {
 
         erc20TvlModule = new ERC20TvlModule();
 
-        vault = new Vault(
-            "name",
-            "symbol",
-            Constants.VAULT_ADMIN,
-            address(configurator),
-            address(ratiosOracle),
-            address(oracle),
-            address(validator)
-        );
+        vault = new Vault("name", "symbol", Constants.VAULT_ADMIN);
+
+        configurator = VaultConfigurator(address(vault.configurator()));
     }
 }
