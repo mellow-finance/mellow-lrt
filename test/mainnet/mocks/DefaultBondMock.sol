@@ -8,6 +8,8 @@ import "../../../src/interfaces/external/symbiotic/IDefaultBond.sol";
 contract DefaultBondMock is IDefaultBond, ERC20 {
     address public immutable asset;
 
+    function testMock() public {}
+
     constructor(address asset_) ERC20("mock", "mock") {
         asset = asset_;
     }

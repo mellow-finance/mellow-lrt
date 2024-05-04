@@ -145,4 +145,34 @@ contract Unit is Test {
         assertEq(bond.balanceOf(sender), 0);
         assertEq(IERC20(Constants.WSTETH).balanceOf(sender), amount);
     }
+
+    function testWithdrawZero() external {
+        address sender = address(this);
+        DefaultBondModule module = new DefaultBondModule();
+        DefaultBondMock bond = new DefaultBondMock(Constants.WSTETH);
+
+        uint256 amount = 0;
+
+        bytes memory delegateCallData = abi.encodeWithSelector(
+            IDefaultBondModule.withdraw.selector,
+            address(bond),
+            amount
+        );
+
+        deal(Constants.WSTETH, address(bond), amount);
+        deal(address(bond), sender, amount);
+
+        assertEq(bond.balanceOf(sender), amount);
+        assertEq(IERC20(Constants.WSTETH).balanceOf(sender), 0);
+
+        (bool success, bytes memory response) = address(module).delegatecall(
+            delegateCallData
+        );
+        assertTrue(success);
+        assertNotEq(response.length, 0);
+        uint256 actualAmount = abi.decode(response, (uint256));
+        assertEq(actualAmount, amount);
+        assertEq(bond.balanceOf(sender), 0);
+        assertEq(IERC20(Constants.WSTETH).balanceOf(sender), amount);
+    }
 }

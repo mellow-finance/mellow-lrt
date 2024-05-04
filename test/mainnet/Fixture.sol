@@ -28,6 +28,8 @@ contract Fixture is Test {
 
     DefaultBondMock public wstethDefaultBond;
 
+    function testMock() public {}
+
     function mintWsteth(address user, uint256 amount) public {
         deal(address(this), 2 * amount);
         ISteth(payable(Constants.STETH)).submit{value: 2 * amount}(address(0));

@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../../../src/utils/DefaultAccessControl.sol";
 
 contract VaultMock is DefaultAccessControl {
+    function testMock() public {}
+
     constructor(address admin) DefaultAccessControl(admin) {}
 
     address[] private _underlyingTokens;
