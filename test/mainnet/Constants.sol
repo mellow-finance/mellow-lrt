@@ -31,6 +31,9 @@ import "../../src/interfaces/external/lido/ISteth.sol";
 import "../../src/interfaces/external/lido/IWSteth.sol";
 import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 
+import "./mocks/VaultMock.sol";
+import "./mocks/DefaultBondMock.sol";
+
 library Constants {
     address public constant VAULT_ADMIN =
         address(bytes20(keccak256("VAULT_ADMIN")));
