@@ -34,10 +34,10 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
     function getTargetRatiosX96(
         address vault
     ) external view override returns (uint128[] memory) {
-        address[] memory tokens = IVault(vault).underlyingTokens();
         bytes memory data_ = vaultToData[vault];
         if (data_.length == 0) revert InvalidLength();
         Data memory data = abi.decode(data_, (Data));
+        address[] memory tokens = IVault(vault).underlyingTokens();
         if (data.tokensHash != keccak256(abi.encode(tokens)))
             revert InvalidToken();
         return data.ratiosX96;
