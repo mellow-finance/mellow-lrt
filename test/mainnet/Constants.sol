@@ -15,6 +15,7 @@ import "../../src/validators/ManagedValidator.sol";
 import "../../src/validators/DefaultBondValidator.sol";
 import "../../src/validators/ERC20SwapValidator.sol";
 import "../../src/utils/DefaultAccessControl.sol";
+import "../../src/utils/DepositWrapper.sol";
 import "../../src/strategies/DefaultBondStrategy.sol";
 import "../../src/strategies/DefaultBondStrategy.sol";
 import "../../src/oracles/ChainlinkOracle.sol";
