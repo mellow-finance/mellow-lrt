@@ -318,7 +318,7 @@ contract Integration is Fixture {
         );
 
         {
-            vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
+            vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
             vault.delegateCall(
                 address(erc20SwapModule),
                 abi.encodeWithSelector(

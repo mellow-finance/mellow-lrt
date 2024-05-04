@@ -18,6 +18,6 @@ contract Unit is Test {
         address to = address(2);
         bytes memory data = new bytes(0);
 
-        validator.valiate(from, to, data);
+        validator.validate(from, to, data);
     }
 }

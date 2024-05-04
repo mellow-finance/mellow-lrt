@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "../../src/Vault.sol";
 import "../../src/VaultConfigurator.sol";
+import "../../src/validators/AllowAllValidator.sol";
 import "../../src/validators/ManagedValidator.sol";
 import "../../src/validators/DefaultBondValidator.sol";
 import "../../src/validators/ERC20SwapValidator.sol";
