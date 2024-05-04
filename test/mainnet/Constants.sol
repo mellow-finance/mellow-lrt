@@ -34,6 +34,7 @@ import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 
 import "./mocks/VaultMock.sol";
 import "./mocks/DefaultBondMock.sol";
+import "./mocks/ChainlinkOracleMock.sol";
 
 library Constants {
     address public constant VAULT_ADMIN =
@@ -52,4 +53,10 @@ library Constants {
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+    address public constant RETH = 0xae78736Cd615f374D3085123A210448E74Fc6393;
+
+    address public constant RETH_CHAINLINK_ORACLE =
+        0x536218f9E9Eb48863970252233c8F271f554C2d0;
+    address public constant STETH_CHAINLINK_ORACLE =
+        0x86392dC19c0b719886221c78AB11eb8Cf5c52812;
 }
