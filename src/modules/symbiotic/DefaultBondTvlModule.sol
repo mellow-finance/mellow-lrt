@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/modules/symbiotic/IDefaultBondTvlModule.sol";
-import "../../interfaces/utils/IDefaultAccessControl.sol";
 import "../DefaultModule.sol";
 
 contract DefaultBondTvlModule is IDefaultBondTvlModule, DefaultModule {
