@@ -10,6 +10,7 @@ import "../external/lido/IWSteth.sol";
 import "../IVault.sol";
 
 interface IDepositWrapper {
+    error AddressZero();
     error InvalidToken();
     error InvalidAmount();
     error InvalidTokenList();

@@ -245,6 +245,103 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
+    function testDepositEthFailsWithInvalidAmount() external {
+        address admin = address(bytes20(keccak256("vault-admin")));
+        VaultMock vault = new VaultMock(admin);
+        address[] memory underlyingTokens = new address[](1);
+        underlyingTokens[0] = Constants.WSTETH;
+        vault.setUnderlyingTokens(underlyingTokens);
+        vault.setCoef(1e9);
+
+        DepositWrapper wrapper = new DepositWrapper(
+            IVault(address(vault)),
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH
+        );
+
+        address sender = address(bytes20(keccak256("sender")));
+        vm.startPrank(sender);
+
+        uint256 amount = 1 ether;
+        deal(sender, amount);
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidAmount()"));
+        wrapper.deposit{value: amount - 1}(
+            sender,
+            address(0),
+            amount,
+            amount,
+            0
+        );
+    }
+
+    function testVault() external {
+        address admin = address(bytes20(keccak256("vault-admin")));
+        VaultMock vault = new VaultMock(admin);
+        DepositWrapper wrapper = new DepositWrapper(
+            IVault(address(vault)),
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH
+        );
+
+        assertEq(address(wrapper.vault()), address(vault));
+    }
+
+    function testWeth() external {
+        address admin = address(bytes20(keccak256("vault-admin")));
+        VaultMock vault = new VaultMock(admin);
+        DepositWrapper wrapper = new DepositWrapper(
+            IVault(address(vault)),
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH
+        );
+
+        assertEq(wrapper.weth(), address(Constants.WETH));
+    }
+
+    function testSteth() external {
+        address admin = address(bytes20(keccak256("vault-admin")));
+        VaultMock vault = new VaultMock(admin);
+        DepositWrapper wrapper = new DepositWrapper(
+            IVault(address(vault)),
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH
+        );
+
+        assertEq(wrapper.steth(), address(Constants.STETH));
+    }
+
+    function testWsteth() external {
+        address admin = address(bytes20(keccak256("vault-admin")));
+        VaultMock vault = new VaultMock(admin);
+        DepositWrapper wrapper = new DepositWrapper(
+            IVault(address(vault)),
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH
+        );
+
+        assertEq(wrapper.wsteth(), address(Constants.WSTETH));
+    }
+
+    function testConstructorZeroAddresses() external {
+        DepositWrapper wrapper = new DepositWrapper(
+            IVault(address(0)),
+            address(0),
+            address(0),
+            address(0)
+        );
+        assertEq(address(wrapper.vault()), address(0));
+        assertEq(wrapper.weth(), address(0));
+        assertEq(wrapper.steth(), address(0));
+        assertEq(wrapper.wsteth(), address(0));
+        assertNotEq(address(wrapper), address(0));
+    }
+
     function testDepositWstethWithDust() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         VaultMock vault = new VaultMock(admin);
