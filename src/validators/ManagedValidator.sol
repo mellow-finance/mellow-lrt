@@ -72,6 +72,7 @@ contract ManagedValidator is IManagedValidator {
         address contractAddress,
         address validator
     ) external authorized {
+        if (validator == address(this)) revert Forbidden();
         _storage().customValidator[contractAddress] = validator;
     }
 
@@ -104,6 +105,12 @@ contract ManagedValidator is IManagedValidator {
     ) external authorized {
         _storage().allowSignatureRoles[contractAddress][signature] &= ~(1 <<
             role);
+    }
+
+    function customValidator(
+        address contractAddress
+    ) external view returns (address) {
+        return _storage().customValidator[contractAddress];
     }
 
     function userRoles(address user) external view returns (uint256) {
