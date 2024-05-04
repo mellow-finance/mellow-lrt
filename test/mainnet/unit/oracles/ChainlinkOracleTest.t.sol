@@ -13,7 +13,7 @@ contract Unit is Test {
         assertEq(oracle.Q96(), 2 ** 96);
     }
 
-    function setBaseToken() external {
+    function testSetBaseToken() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();
         VaultMock vault = new VaultMock(admin);
@@ -24,9 +24,18 @@ contract Unit is Test {
         oracle.setBaseToken(address(vault), baseToken);
 
         assertEq(oracle.baseTokens(address(vault)), baseToken);
+
+        vm.prank(admin);
+        oracle.setBaseToken(address(vault), baseToken);
+
+        assertEq(oracle.baseTokens(address(vault)), baseToken);
+        vm.prank(admin);
+        oracle.setBaseToken(address(vault), address(0));
+
+        assertEq(oracle.baseTokens(address(vault)), address(0));
     }
 
-    function setBaseTokenFailsWithForbidden() external {
+    function testSetBaseTokenFailsWithForbidden() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();
         VaultMock vault = new VaultMock(admin);
@@ -37,7 +46,7 @@ contract Unit is Test {
         oracle.setBaseToken(address(vault), baseToken);
     }
 
-    function setChainlinkOracles() external {
+    function testSetChainlinkOracles() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();
         VaultMock vault = new VaultMock(admin);
@@ -60,7 +69,7 @@ contract Unit is Test {
         assertEq(oracle.aggregatorsV3(address(vault), tokens[1]), oracles[1]);
     }
 
-    function setChainlinkOraclesEmpty() external {
+    function testSetChainlinkOraclesEmpty() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();
         VaultMock vault = new VaultMock(admin);
@@ -72,7 +81,7 @@ contract Unit is Test {
         oracle.setChainlinkOracles(address(vault), tokens, oracles);
     }
 
-    function setChainlinkOraclesFailsWithForbidden() external {
+    function testSetChainlinkOraclesFailsWithForbidden() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();
         VaultMock vault = new VaultMock(admin);
@@ -84,34 +93,42 @@ contract Unit is Test {
         );
     }
 
-    function setChainlinkOraclesFailsWithForbidden2() external {
+    function testSetChainlinkOraclesFailsWithInvalidLength() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();
         VaultMock vault = new VaultMock(admin);
-        vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
+
+        vm.startPrank(admin);
+        vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
+        oracle.setChainlinkOracles(
+            address(vault),
+            new address[](1),
+            new address[](0)
+        );
+        vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
+        oracle.setChainlinkOracles(
+            address(vault),
+            new address[](0),
+            new address[](1)
+        );
+        vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
+        oracle.setChainlinkOracles(
+            address(vault),
+            new address[](1),
+            new address[](2)
+        );
+        vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
+        oracle.setChainlinkOracles(
+            address(vault),
+            new address[](2),
+            new address[](1)
+        );
+
         oracle.setChainlinkOracles(
             address(vault),
             new address[](1),
             new address[](1)
         );
-    }
-
-    function setChainlinkOraclesFailsWithInvalidLength() external {
-        address admin = address(bytes20(keccak256("vault-admin")));
-        ChainlinkOracle oracle = new ChainlinkOracle();
-        VaultMock vault = new VaultMock(admin);
-
-        address[] memory tokens = new address[](2);
-        tokens[0] = Constants.STETH;
-        tokens[1] = Constants.RETH;
-
-        address[] memory oracles = new address[](1);
-
-        vm.startPrank(admin);
-
-        vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
-        oracle.setChainlinkOracles(address(vault), tokens, oracles);
-
         vm.stopPrank();
     }
 
@@ -202,7 +219,7 @@ contract Unit is Test {
         }
     }
 
-    function testPriceX96FailsWithStaleOracle1() external {
+    function testPriceX96FailsWithBaseStaleOracle() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();
         VaultMock vault = new VaultMock(admin);
@@ -226,7 +243,7 @@ contract Unit is Test {
         oracle.priceX96(address(vault), Constants.RETH);
     }
 
-    function testPriceX96FailsWithStaleOracle2() external {
+    function testPriceX96FailsWithRequestedStaleOracle() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();
         VaultMock vault = new VaultMock(admin);
@@ -270,23 +287,30 @@ contract Unit is Test {
         assertEq(2 ** 96, oracle.priceX96(address(vault), Constants.STETH));
     }
 
+    function testPriceX96ForZeroBaseTokenFailsWithAddressZero() external {
+        address admin = address(bytes20(keccak256("vault-admin")));
+        ChainlinkOracle oracle = new ChainlinkOracle();
+        VaultMock vault = new VaultMock(admin);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
+        oracle.priceX96(address(vault), Constants.STETH);
+    }
+
     function testPriceX96ForZeroTokenFailsWithAddressZero() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();
         VaultMock vault = new VaultMock(admin);
-
-        vm.prank(admin);
-        oracle.setBaseToken(address(vault), Constants.STETH);
-
         vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         oracle.priceX96(address(vault), address(0));
     }
 
-    function testSetBaseTokenFailsForZeroVault() external {
-        address admin = address(bytes20(keccak256("vault-admin")));
+    function testPriceX96ForZeroVaultFailsWithAddressZero() external {
         ChainlinkOracle oracle = new ChainlinkOracle();
-        VaultMock vault = new VaultMock(admin);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
+        oracle.priceX96(address(0), address(1));
+    }
 
+    function testSetBaseTokenFailsForZeroVault() external {
+        ChainlinkOracle oracle = new ChainlinkOracle();
         vm.expectRevert();
         oracle.setBaseToken(address(0), Constants.STETH);
     }

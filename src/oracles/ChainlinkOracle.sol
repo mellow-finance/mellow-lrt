@@ -56,12 +56,10 @@ contract ChainlinkOracle is IPriceOracle {
         address vault,
         address token
     ) external view returns (uint256 priceX96_) {
+        if (vault == address(0)) revert AddressZero();
+        if (token == address(0)) revert AddressZero();
         address baseToken = baseTokens[vault];
-        if (
-            baseToken == address(0) ||
-            token == address(0) ||
-            vault == address(0)
-        ) revert AddressZero();
+        if (baseToken == address(0)) revert AddressZero();
         if (token == baseToken) return Q96;
         (uint256 tokenPrice, uint8 decimals) = getPrice(vault, token);
         (uint256 baseTokenPrice, uint8 baseDecimals) = getPrice(
