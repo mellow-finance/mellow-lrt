@@ -134,7 +134,11 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _commit(_isDepositsLocked, _isDepositsLockedDelay);
     }
 
-    function rollbackDepositsLock() external atLeastOperator nonReentrant {
+    function rollbackStagedDepositsLock()
+        external
+        atLeastOperator
+        nonReentrant
+    {
         _rollback(_isDepositsLocked);
     }
 
@@ -163,7 +167,6 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     function stageDepositCallback(
         address callback
     ) external onlyAdmin nonReentrant {
-        if (callback == address(0)) revert AddressZero();
         _stage(_depositCallback, uint160(callback));
     }
 
@@ -178,7 +181,6 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     function stageWithdrawalCallback(
         address callback
     ) external onlyAdmin nonReentrant {
-        if (callback == address(0)) revert AddressZero();
         _stage(_withdrawalCallback, uint160(callback));
     }
 
@@ -209,7 +211,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _rollback(_withdrawalFeeD9);
     }
 
-    function baseDelay() public view returns (uint256) {
+    function baseDelay() external view returns (uint256) {
         return _baseDelay.value;
     }
 
@@ -226,22 +228,22 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _rollback(_baseDelay);
     }
 
-    function deployCallbackDelay() public view returns (uint256) {
+    function depositCallbackDelay() external view returns (uint256) {
         return _depositCallbackDelay.value;
     }
 
-    function stageDeployCallbackDelay(
+    function stageDepositCallbackDelay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
         _stage(_depositCallbackDelay, delay_);
     }
 
-    function commitDeployCallbackDelay() external onlyAdmin nonReentrant {
+    function commitDepositCallbackDelay() external onlyAdmin nonReentrant {
         _commit(_depositCallbackDelay, _baseDelay);
     }
 
-    function rollbackStagedDeployCallbackDelay()
+    function rollbackStagedDepositCallbackDelay()
         external
         onlyAdmin
         nonReentrant
@@ -249,7 +251,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _rollback(_depositCallbackDelay);
     }
 
-    function withdrawalCallbackDelay() public view returns (uint256) {
+    function withdrawalCallbackDelay() external view returns (uint256) {
         return _withdrawalCallbackDelay.value;
     }
 
@@ -272,22 +274,22 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _rollback(_withdrawalCallbackDelay);
     }
 
-    function withdrawFeeD9Delay() public view returns (uint256) {
+    function withdrawalFeeD9Delay() external view returns (uint256) {
         return _withdrawalFeeD9Delay.value;
     }
 
-    function stageWithdrawFeeD9Delay(
+    function stageWithdrawalFeeD9Delay(
         uint256 delay_
     ) external onlyAdmin nonReentrant {
         if (delay_ > MAX_DELAY) revert InvalidDelay();
         _stage(_withdrawalFeeD9Delay, delay_);
     }
 
-    function commitWithdrawFeeD9Delay() external onlyAdmin nonReentrant {
+    function commitWithdrawalFeeD9Delay() external onlyAdmin nonReentrant {
         _commit(_withdrawalFeeD9Delay, _baseDelay);
     }
 
-    function rollbackStagedWithdrawFeeD9Delay()
+    function rollbackStagedWithdrawalFeeD9Delay()
         external
         onlyAdmin
         nonReentrant
@@ -295,7 +297,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _rollback(_withdrawalFeeD9Delay);
     }
 
-    function isDepositsLockedDelay() public view returns (uint256) {
+    function isDepositsLockedDelay() external view returns (uint256) {
         return _isDepositsLockedDelay.value;
     }
 
@@ -318,7 +320,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _rollback(_isDepositsLockedDelay);
     }
 
-    function delegateModuleApprovalDelay() public view returns (uint256) {
+    function delegateModuleApprovalDelay() external view returns (uint256) {
         return _isDelegateModuleApprovedDelay.value;
     }
 
@@ -345,7 +347,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _rollback(_isDelegateModuleApprovedDelay);
     }
 
-    function maximalTotalSupplyDelay() public view returns (uint256) {
+    function maximalTotalSupplyDelay() external view returns (uint256) {
         return _maximalTotalSupplyDelay.value;
     }
 
@@ -421,7 +423,15 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _rollback(_validator);
     }
 
-    function validatorDelay() public view returns (uint256) {
+    function priceOracleDelay() external view returns (uint256) {
+        return _priceOracleDelay.value;
+    }
+
+    function ratiosOracleDelay() external view returns (uint256) {
+        return _ratiosOracleDelay.value;
+    }
+
+    function validatorDelay() external view returns (uint256) {
         return _validatorDelay.value;
     }
 
@@ -470,7 +480,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         _rollback(_ratiosOracleDelay);
     }
 
-    function emergencyWithdrawalDelay() public view returns (uint256) {
+    function emergencyWithdrawalDelay() external view returns (uint256) {
         return _emergencyWithdrawalDelay.value;
     }
 

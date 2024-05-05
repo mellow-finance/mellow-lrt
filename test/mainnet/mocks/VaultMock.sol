@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "../../../src/utils/DefaultAccessControl.sol";
 
+import "../../../src/VaultConfigurator.sol";
+
 contract VaultMock is DefaultAccessControl, ERC20 {
     function testMock() public {}
 
@@ -12,9 +14,13 @@ contract VaultMock is DefaultAccessControl, ERC20 {
     uint256[] private _dust;
     uint256 public coefD9;
 
+    VaultConfigurator public configurator;
+
     constructor(
         address admin
-    ) DefaultAccessControl(admin) ERC20("MockToken", "MOCK") {}
+    ) DefaultAccessControl(admin) ERC20("MockToken", "MOCK") {
+        configurator = new VaultConfigurator();
+    }
 
     function setDust(uint256[] memory dust_) external {
         _dust = dust_;
