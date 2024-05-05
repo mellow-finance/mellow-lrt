@@ -1,18 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
-import "../interfaces/utils/IDefaultAccessControl.sol";
-import "../interfaces/oracles/IPriceOracle.sol";
-import "../interfaces/external/chainlink/IAggregatorV3.sol";
+import "../interfaces/oracles/IChainlinkOracle.sol";
 
 import "../libraries/external/FullMath.sol";
 
-contract ChainlinkOracle is IPriceOracle {
-    error AddressZero();
-    error InvalidLength();
-    error Forbidden();
-    error StaleOracle();
-
+contract ChainlinkOracle is IChainlinkOracle {
     uint256 public constant MAX_ORACLE_AGE = 2 days;
     uint256 public constant Q96 = 2 ** 96;
 
