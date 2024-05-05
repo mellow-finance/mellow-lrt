@@ -6,7 +6,9 @@ import "../interfaces/validators/IManagedValidator.sol";
 import "../utils/DefaultAccessControl.sol";
 
 contract ManagedValidator is IManagedValidator {
+    /// @inheritdoc IManagedValidator
     uint256 public constant ADMIN_ROLE_MASK = 1 << 255;
+    /// @inheritdoc IManagedValidator
     bytes32 public constant STORAGE_POSITION =
         keccak256("mellow.lrt.permissions.storage");
 
@@ -28,6 +30,7 @@ contract ManagedValidator is IManagedValidator {
         }
     }
 
+    /// @inheritdoc IManagedValidator
     function hasPermission(
         address user,
         address contractAddress,
@@ -43,6 +46,7 @@ contract ManagedValidator is IManagedValidator {
         return false;
     }
 
+    /// @inheritdoc IManagedValidator
     function requirePermission(
         address user,
         address contractAddress,
@@ -52,22 +56,27 @@ contract ManagedValidator is IManagedValidator {
             revert Forbidden();
     }
 
+    /// @inheritdoc IManagedValidator
     function grantPublicRole(uint8 role) external authorized {
         _storage().publicRoles |= 1 << role;
     }
 
+    /// @inheritdoc IManagedValidator
     function revokePublicRole(uint8 role) external authorized {
         _storage().publicRoles &= ~(1 << role);
     }
 
+    /// @inheritdoc IManagedValidator
     function grantRole(address user, uint8 role) external authorized {
         _storage().userRoles[user] |= 1 << role;
     }
 
+    /// @inheritdoc IManagedValidator
     function revokeRole(address user, uint8 role) external authorized {
         _storage().userRoles[user] &= ~(1 << role);
     }
 
+    /// @inheritdoc IManagedValidator
     function setCustomValidator(
         address contractAddress,
         address validator
@@ -76,6 +85,7 @@ contract ManagedValidator is IManagedValidator {
         _storage().customValidator[contractAddress] = validator;
     }
 
+    /// @inheritdoc IManagedValidator
     function grantContractRole(
         address contractAddress,
         uint8 role
@@ -83,6 +93,7 @@ contract ManagedValidator is IManagedValidator {
         _storage().allowAllSignaturesRoles[contractAddress] |= 1 << role;
     }
 
+    /// @inheritdoc IManagedValidator
     function revokeContractRole(
         address contractAddress,
         uint8 role
@@ -90,6 +101,7 @@ contract ManagedValidator is IManagedValidator {
         _storage().allowAllSignaturesRoles[contractAddress] &= ~(1 << role);
     }
 
+    /// @inheritdoc IManagedValidator
     function grantContractSignatureRole(
         address contractAddress,
         bytes4 signature,
@@ -98,6 +110,7 @@ contract ManagedValidator is IManagedValidator {
         _storage().allowSignatureRoles[contractAddress][signature] |= 1 << role;
     }
 
+    /// @inheritdoc IManagedValidator
     function revokeContractSignatureRole(
         address contractAddress,
         bytes4 signature,
@@ -107,26 +120,31 @@ contract ManagedValidator is IManagedValidator {
             role);
     }
 
+    /// @inheritdoc IManagedValidator
     function customValidator(
         address contractAddress
     ) external view returns (address) {
         return _storage().customValidator[contractAddress];
     }
 
+    /// @inheritdoc IManagedValidator
     function userRoles(address user) external view returns (uint256) {
         return _storage().userRoles[user];
     }
 
+    /// @inheritdoc IManagedValidator
     function publicRoles() external view returns (uint256) {
         return _storage().publicRoles;
     }
 
+    /// @inheritdoc IManagedValidator
     function allowAllSignaturesRoles(
         address contractAddress
     ) external view returns (uint256) {
         return _storage().allowAllSignaturesRoles[contractAddress];
     }
 
+    /// @inheritdoc IManagedValidator
     function allowSignatureRoles(
         address contractAddress,
         bytes4 selector
@@ -134,6 +152,7 @@ contract ManagedValidator is IManagedValidator {
         return _storage().allowSignatureRoles[contractAddress][selector];
     }
 
+    /// @inheritdoc IValidator
     function validate(
         address from,
         address to,

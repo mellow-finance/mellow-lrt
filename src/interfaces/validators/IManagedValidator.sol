@@ -37,6 +37,10 @@ interface IManagedValidator is IValidator {
 
     function revokeRole(address user, uint8 role) external;
 
+    function customValidator(
+        address contractAddress
+    ) external view returns (address);
+
     function setCustomValidator(
         address contractAddress,
         address validator
@@ -70,10 +74,4 @@ interface IManagedValidator is IValidator {
         address contractAddress,
         bytes4 selector
     ) external view returns (uint256);
-
-    function validate(
-        address from,
-        address to,
-        bytes calldata data
-    ) external view;
 }

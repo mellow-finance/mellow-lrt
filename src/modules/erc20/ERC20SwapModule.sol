@@ -7,6 +7,7 @@ import "../DefaultModule.sol";
 contract ERC20SwapModule is IERC20SwapModule, DefaultModule {
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IERC20SwapModule
     function swap(
         SwapParams calldata params,
         address to,

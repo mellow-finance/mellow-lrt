@@ -5,6 +5,7 @@ import "../../interfaces/modules/erc20/IERC20TvlModule.sol";
 import "../DefaultModule.sol";
 
 contract ERC20TvlModule is IERC20TvlModule, DefaultModule {
+    /// @inheritdoc ITvlModule
     function tvl(
         address vault
     ) external view noDelegateCall returns (Data[] memory data) {

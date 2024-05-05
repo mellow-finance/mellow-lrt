@@ -5,8 +5,10 @@ import "../../interfaces/modules/erc20/IManagedTvlModule.sol";
 import "../DefaultModule.sol";
 
 contract ManagedTvlModule is IManagedTvlModule, DefaultModule {
+    /// @inheritdoc IManagedTvlModule
     mapping(address => bytes) public vaultParams;
 
+    /// @inheritdoc IManagedTvlModule
     function setParams(
         address vault,
         Data[] memory data
@@ -15,6 +17,7 @@ contract ManagedTvlModule is IManagedTvlModule, DefaultModule {
         vaultParams[vault] = abi.encode(data);
     }
 
+    /// @inheritdoc ITvlModule
     function tvl(
         address vault
     ) external view noDelegateCall returns (Data[] memory data) {

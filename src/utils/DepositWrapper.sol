@@ -6,9 +6,13 @@ import "../interfaces/utils/IDepositWrapper.sol";
 contract DepositWrapper is IDepositWrapper {
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IDepositWrapper
     address public immutable weth;
+    /// @inheritdoc IDepositWrapper
     address public immutable steth;
+    /// @inheritdoc IDepositWrapper
     address public immutable wsteth;
+    /// @inheritdoc IDepositWrapper
     IVault public immutable vault;
 
     constructor(IVault vault_, address weth_, address steth_, address wsteth_) {
@@ -34,6 +38,7 @@ contract DepositWrapper is IDepositWrapper {
         return IERC20(wsteth).balanceOf(address(this));
     }
 
+    /// @inheritdoc IDepositWrapper
     function deposit(
         address to,
         address token,
