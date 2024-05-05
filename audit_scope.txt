@@ -1,4 +1,4 @@
-  550 ./src/Vault.sol
+  536 ./src/Vault.sol
   505 ./src/VaultConfigurator.sol
    18 ./src/modules/DefaultModule.sol
    42 ./src/modules/erc20/ERC20SwapModule.sol
@@ -15,4 +15,4 @@
    36 ./src/validators/DefaultBondValidator.sol
    52 ./src/validators/ERC20SwapValidator.sol
   148 ./src/validators/ManagedValidator.sol
- 1843 total
+ 1829 total

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "../../../src/interfaces/external/chainlink/IAggregatorV3.sol";
 import "../../../src/libraries/external/FullMath.sol";
 
-contract AggregatorV3wstEth is IAggregatorV3 {
+contract AggregatorV3WstethMock is IAggregatorV3 {
     address public immutable wsteth;
     IAggregatorV3 public immutable steth_oracle;
     uint256 internal constant steth_decimals = 18;

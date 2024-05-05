@@ -31,7 +31,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     EnumerableSet.AddressSet private _tvlModules;
 
     modifier checkDeadline(uint256 deadline) {
-        if (block.timestamp > deadline) revert Deadline();
+        if (deadline < block.timestamp) revert Deadline();
         _;
     }
 
@@ -62,35 +62,22 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         bool isUnderlying
     ) private view returns (uint256[] memory amounts) {
         amounts = new uint256[](tokens.length);
-        ITvlModule.Data[] memory data = _tvls();
-        for (uint256 i = 0; i < data.length; i++) {
-            if (data[i].isDebt) continue;
+        uint256[] memory negativeAmounts = new uint256[](tokens.length);
+        ITvlModule.Data[] memory tvl_ = _tvls();
+        for (uint256 i = 0; i < tvl_.length; i++) {
+            ITvlModule.Data memory data = tvl_[i];
             for (uint256 j = 0; j < tokens.length; j++) {
-                if (isUnderlying && data[i].underlyingToken == tokens[j]) {
-                    amounts[j] += data[i].underlyingAmount;
-                    break;
-                }
-                if (!isUnderlying && data[i].token == tokens[j]) {
-                    amounts[j] += data[i].amount;
-                    break;
-                }
+                (uint256 amount, address token) = isUnderlying
+                    ? (data.underlyingAmount, data.underlyingToken)
+                    : (data.amount, data.token);
+                if (token != tokens[j]) continue;
+                (data.isDebt ? negativeAmounts : amounts)[j] += amount;
+                break;
             }
         }
-        for (uint256 i = 0; i < data.length; i++) {
-            if (!data[i].isDebt) continue;
-            for (uint256 j = 0; j < tokens.length; j++) {
-                if (isUnderlying && data[i].underlyingToken == tokens[j]) {
-                    if (amounts[j] < data[i].underlyingAmount)
-                        revert InvalidState();
-                    amounts[j] -= data[i].underlyingAmount;
-                    break;
-                }
-                if (!isUnderlying && data[i].token == tokens[j]) {
-                    if (amounts[j] < data[i].amount) revert InvalidState();
-                    amounts[j] -= data[i].amount;
-                    break;
-                }
-            }
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (amounts[i] < negativeAmounts[i]) revert InvalidState();
+            amounts[i] -= negativeAmounts[i];
         }
     }
 
@@ -117,21 +104,20 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             if (data[i].token == address(0)) continue;
             uint256 tokenIndex = length;
             for (uint256 j = 0; j < length; j++) {
-                if (tokens[j] == data[i].token) {
-                    tokenIndex = j;
-                    break;
-                }
+                if (tokens[j] != data[i].token) continue;
+                tokenIndex = j;
+                break;
             }
-            if (tokenIndex == length) {
-                tokens[tokenIndex] = data[i].token;
-                length++;
+            if (tokenIndex != length) continue;
+            tokens[tokenIndex] = data[i].token;
+            length++;
+        }
+        for (uint256 i = 0; i < length; i++) {
+            for (uint256 j = i + 1; j < length; j++) {
+                if (tokens[i] < tokens[j]) continue;
+                (tokens[i], tokens[j]) = (tokens[j], tokens[i]);
             }
         }
-        for (uint256 i = 0; i < length; i++)
-            for (uint256 j = i + 1; j < length; j++)
-                if (tokens[i] > tokens[j])
-                    (tokens[i], tokens[j]) = (tokens[j], tokens[i]);
-
         assembly {
             mstore(tokens, length)
         }
@@ -168,8 +154,9 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     /// @inheritdoc IVault
     function addToken(address token) external nonReentrant {
         _requireAdmin();
-        if (_underlyingTokensSet.contains(token) || token == address(this))
-            revert InvalidToken();
+        if (token == address(0)) revert InvalidToken();
+        if (_underlyingTokensSet.contains(token)) revert InvalidToken();
+        if (token == address(this)) revert InvalidToken();
         _underlyingTokensSet.add(token);
         address[] storage tokens = _underlyingTokens;
         tokens.push(token);
@@ -183,7 +170,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             }
             tokens[n - i] = token_;
         }
-        if (index < n - 1) tokens[index] = token;
+        tokens[index] = token;
         emit TokenAdded(token);
     }
 
@@ -216,7 +203,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         for (uint256 i = 0; i < data.length; i++) {
             if (!_underlyingTokensSet.contains(data[i].underlyingToken))
                 revert InvalidToken();
-            if (data[i].token == address(this)) revert InvalidToken();
         }
         _tvlModules.add(module);
         emit TvlModuleAdded(module);
@@ -283,6 +269,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             address[] memory tokens,
             uint256[] memory totalAmounts
         ) = underlyingTvl();
+        if (tokens.length != amounts.length) revert InvalidLength();
         uint128[] memory ratiosX96 = IRatiosOracle(configurator.ratiosOracle())
             .getTargetRatiosX96(address(this));
 
@@ -300,9 +287,9 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         IPriceOracle priceOracle = IPriceOracle(configurator.priceOracle());
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 priceX96 = priceOracle.priceX96(address(this), tokens[i]);
-            if (totalAmounts[i] > 0) {
-                totalValue += FullMath.mulDiv(totalAmounts[i], priceX96, Q96);
-            }
+            totalValue += totalAmounts[i] == 0
+                ? 0
+                : FullMath.mulDiv(totalAmounts[i], priceX96, Q96);
             if (ratiosX96[i] == 0) continue;
             uint256 amount = FullMath.mulDiv(ratioX96, ratiosX96[i], Q96);
             IERC20(tokens[i]).safeTransferFrom(
@@ -314,6 +301,25 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             depositValue += FullMath.mulDiv(amount, priceX96, Q96);
         }
 
+        lpAmount = _calculateLpAmount(
+            to,
+            depositValue,
+            totalValue,
+            minLpAmount
+        );
+        emit Deposit(to, actualAmounts, lpAmount);
+        address callback = configurator.depositCallback();
+        if (callback == address(0)) return (actualAmounts, lpAmount);
+        IDepositCallback(callback).depositCallback(actualAmounts, lpAmount);
+        emit DepositCallback(callback, actualAmounts, lpAmount);
+    }
+
+    function _calculateLpAmount(
+        address to,
+        uint256 depositValue,
+        uint256 totalValue,
+        uint256 minLpAmount
+    ) private returns (uint256 lpAmount) {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) {
             // scenario for initial deposit
@@ -330,13 +336,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         if (lpAmount + totalSupply > configurator.maximalTotalSupply())
             revert LimitOverflow();
         _mint(to, lpAmount);
-        emit Deposit(to, actualAmounts, lpAmount);
-
-        address callback = configurator.depositCallback();
-        if (callback != address(0)) {
-            IDepositCallback(callback).depositCallback(actualAmounts, lpAmount);
-            emit DepositCallback(callback, actualAmounts, lpAmount);
-        }
     }
 
     /// @inheritdoc IVault
@@ -354,7 +353,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         if (!_pendingWithdrawers.contains(sender)) revert InvalidState();
         WithdrawalRequest memory request = _withdrawalRequest[sender];
         if (timestamp > request.deadline) {
-            _cancleWithdrawalRequest(sender);
+            _cancelWithdrawalRequest(sender);
             return actualAmounts;
         }
 
@@ -366,6 +365,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 totalSupply = totalSupply();
         (address[] memory tokens, uint256[] memory amounts) = baseTvl();
         if (minAmounts.length != tokens.length) revert InvalidLength();
+        actualAmounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             if (amounts[i] == 0) continue;
             uint256 amount = FullMath.mulDiv(
@@ -384,11 +384,11 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     /// @inheritdoc IVault
-    function cancleWithdrawalRequest() external nonReentrant {
-        _cancleWithdrawalRequest(msg.sender);
+    function cancelWithdrawalRequest() external nonReentrant {
+        _cancelWithdrawalRequest(msg.sender);
     }
 
-    function _cancleWithdrawalRequest(address sender) private {
+    function _cancelWithdrawalRequest(address sender) private {
         if (!_pendingWithdrawers.contains(sender)) return;
         WithdrawalRequest memory request = _withdrawalRequest[sender];
         delete _withdrawalRequest[sender];
@@ -405,13 +405,17 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 deadline,
         uint256 requestDeadline,
         bool closePrevious
-    ) external nonReentrant checkDeadline(deadline) {
+    )
+        external
+        nonReentrant
+        checkDeadline(deadline)
+        checkDeadline(requestDeadline)
+    {
         uint256 timestamp = block.timestamp;
-        if (requestDeadline < timestamp) revert Deadline();
         address sender = msg.sender;
         if (_pendingWithdrawers.contains(sender)) {
             if (!closePrevious) revert InvalidState();
-            _cancleWithdrawalRequest(sender);
+            _cancelWithdrawalRequest(sender);
         }
         uint256 balance = balanceOf(sender);
         if (lpAmount > balance) lpAmount = balance;
@@ -454,20 +458,17 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 length = s.erc20Balances.length;
         expectedAmounts = new uint256[](length);
         for (uint256 i = 0; i < length; i++) {
-            if (s.ratiosX96[i] != 0) {
-                expectedAmounts[i] = FullMath.mulDiv(
-                    coefficientX96,
-                    s.ratiosX96[i],
-                    Q96
-                );
-            }
-            if (expectedAmounts[i] < request.minAmounts[i])
-                return (false, false, expectedAmounts);
+            uint256 ratiosX96 = s.ratiosX96[i];
+            expectedAmounts[i] = ratiosX96 == 0
+                ? 0
+                : FullMath.mulDiv(coefficientX96, ratiosX96, Q96);
+            if (expectedAmounts[i] >= request.minAmounts[i]) continue;
+            return (false, false, expectedAmounts);
         }
-        for (uint256 i = 0; i < length; i++)
-            if (s.erc20Balances[i] < expectedAmounts[i])
-                return (true, false, expectedAmounts);
-
+        for (uint256 i = 0; i < length; i++) {
+            if (s.erc20Balances[i] >= expectedAmounts[i]) continue;
+            return (true, false, expectedAmounts);
+        }
         return (true, true, expectedAmounts);
     }
 
@@ -518,7 +519,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             ) = analyzeRequest(s, request);
 
             if (!isProcessingPossible) {
-                _cancleWithdrawalRequest(user);
+                _cancelWithdrawalRequest(user);
                 continue;
             }
 
@@ -542,9 +543,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit WithdrawalsProcessed(users, statuses);
 
         address callback = configurator.withdrawalCallback();
-        if (callback != address(0)) {
-            IWithdrawalCallback(callback).withdrawalCallback();
-            emit WithdrawCallback(callback);
-        }
+        if (callback == address(0)) return statuses;
+        IWithdrawalCallback(callback).withdrawalCallback();
+        emit WithdrawCallback(callback);
     }
 }

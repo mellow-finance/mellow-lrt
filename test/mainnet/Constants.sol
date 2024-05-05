@@ -36,6 +36,10 @@ import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 import "./mocks/VaultMock.sol";
 import "./mocks/DefaultBondMock.sol";
 import "./mocks/ChainlinkOracleMock.sol";
+import "./mocks/AggregatorV3WstethMock.sol";
+import "./mocks/AggregatorV3WethMock.sol";
+import "./mocks/WithdrawalCallbackMock.sol";
+import "./mocks/DepositCallbackMock.sol";
 
 library Constants {
     address public constant VAULT_ADMIN =
@@ -59,5 +63,9 @@ library Constants {
     address public constant RETH_CHAINLINK_ORACLE =
         0x536218f9E9Eb48863970252233c8F271f554C2d0;
     address public constant STETH_CHAINLINK_ORACLE =
+        0x86392dC19c0b719886221c78AB11eb8Cf5c52812;
+    address public constant WSTETH_CHAINLINK_ORACLE =
+        0x536218f9E9Eb48863970252233c8F271f554C2d0;
+    address public constant WETH_CHAINLINK_ORACLE =
         0x86392dC19c0b719886221c78AB11eb8Cf5c52812;
 }

@@ -95,7 +95,7 @@ interface IVault {
         uint256 deadline
     ) external returns (uint256[] memory actualAmounts, uint256 lpAmount);
 
-    function cancleWithdrawalRequest() external;
+    function cancelWithdrawalRequest() external;
 
     function registerWithdrawal(
         address to,
