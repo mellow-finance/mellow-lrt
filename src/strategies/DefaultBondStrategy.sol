@@ -53,7 +53,6 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
             bytes memory data_ = tokenToData[token];
             if (data_.length == 0) continue;
             Data[] memory data = abi.decode(data_, (Data[]));
-            if (data.length == 0) continue;
             for (uint256 j = 0; j < data.length; j++) {
                 uint256 amount = FullMath.mulDiv(
                     tvl[i].amount,
