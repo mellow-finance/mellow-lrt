@@ -27,21 +27,25 @@ contract ERC20SwapValidator is IERC20SwapValidator, DefaultAccessControl {
 
     /// @inheritdoc IValidator
     function validate(address, address, bytes calldata data) external view {
-        if (data.length <= 0x124) revert InvalidLength();
+        if (data.length < 0x124) revert InvalidLength();
         bytes4 selector = bytes4(data[:4]);
-        if (IERC20SwapModule.swap.selector != selector) revert Forbidden();
+        if (IERC20SwapModule.swap.selector != selector)
+            revert InvalidSelector();
         (
             IERC20SwapModule.SwapParams memory params,
             address to,
             bytes memory swapData
         ) = abi.decode(data[4:], (IERC20SwapModule.SwapParams, address, bytes));
+        if (!isSupportedRouter[to]) revert UnsupportedRouter();
         if (
-            !isSupportedRouter[to] ||
             !isSupportedToken[params.tokenIn] ||
-            !isSupportedToken[params.tokenOut] ||
+            !isSupportedToken[params.tokenOut]
+        ) revert UnsupportedToken();
+        if (
             params.tokenIn == params.tokenOut ||
             params.amountIn == 0 ||
             params.minAmountOut == 0 ||
+            params.deadline < block.timestamp ||
             swapData.length <= 0x4
         ) revert Forbidden();
     }

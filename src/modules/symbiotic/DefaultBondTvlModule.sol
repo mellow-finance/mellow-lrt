@@ -2,29 +2,31 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/modules/symbiotic/IDefaultBondTvlModule.sol";
+import "../DefaultModule.sol";
 
-contract DefaultBondTvlModule is IDefaultBondTvlModule {
-    function tvl(
+contract DefaultBondTvlModule is IDefaultBondTvlModule, DefaultModule {
+    mapping(address => bytes) public vaultParams;
+
+    function setParams(
         address vault,
-        bytes memory params
-    )
-        external
-        view
-        returns (address[] memory tokens, uint256[] memory amounts)
-    {
-        address[] memory bonds = abi.decode(params, (Params)).bonds;
-        tokens = IVault(vault).underlyingTokens();
-        amounts = new uint256[](tokens.length);
+        address[] memory bonds
+    ) external noDelegateCall {
+        IDefaultAccessControl(vault).requireAdmin(msg.sender);
+        vaultParams[vault] = abi.encode(bonds);
+    }
+
+    function tvl(
+        address vault
+    ) external view noDelegateCall returns (Data[] memory data) {
+        bytes memory data_ = vaultParams[vault];
+        if (data_.length == 0) return data;
+        address[] memory bonds = abi.decode(data_, (address[]));
+        data = new Data[](bonds.length);
         for (uint256 i = 0; i < bonds.length; i++) {
-            address token = IBond(bonds[i]).asset();
-            uint256 index = tokens.length;
-            for (uint256 j = 0; j < tokens.length; j++) {
-                if (token != tokens[j]) continue;
-                index = j;
-                break;
-            }
-            if (index == tokens.length) revert InvalidToken();
-            amounts[index] += IBond(bonds[i]).balanceOf(vault);
+            data[i].token = bonds[i];
+            data[i].underlyingToken = IBond(bonds[i]).asset();
+            data[i].amount = IERC20(bonds[i]).balanceOf(vault);
+            data[i].underlyingAmount = data[i].amount;
         }
     }
 }

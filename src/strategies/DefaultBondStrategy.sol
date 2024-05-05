@@ -8,12 +8,17 @@ import "../libraries/external/FullMath.sol";
 import "../utils/DefaultAccessControl.sol";
 
 contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
+    /// @inheritdoc IDefaultBondStrategy
     uint256 public constant Q96 = 2 ** 96;
 
+    /// @inheritdoc IDefaultBondStrategy
     IVault public immutable vault;
+    /// @inheritdoc IDefaultBondStrategy
     IERC20TvlModule public immutable erc20TvlModule;
+    /// @inheritdoc IDefaultBondStrategy
     IDefaultBondModule public immutable bondModule;
 
+    /// @inheritdoc IDefaultBondStrategy
     mapping(address => bytes) public tokenToData;
 
     constructor(
@@ -27,6 +32,7 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
         bondModule = bondModule_;
     }
 
+    /// @inheritdoc IDefaultBondStrategy
     function setData(address token, Data[] memory data) external {
         _requireAdmin();
         if (token == address(0)) revert AddressZero();
@@ -40,16 +46,16 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
     }
 
     function _deposit() private {
-        (address[] memory tokens, uint256[] memory amounts) = erc20TvlModule
-            .tvl(address(vault), new bytes(0));
-        for (uint256 i = 0; i < tokens.length; i++) {
-            bytes memory data_ = tokenToData[tokens[i]];
+        ITvlModule.Data[] memory tvl = erc20TvlModule.tvl(address(vault));
+        for (uint256 i = 0; i < tvl.length; i++) {
+            if (tvl[i].token != tvl[i].underlyingToken) continue;
+            address token = tvl[i].token;
+            bytes memory data_ = tokenToData[token];
             if (data_.length == 0) continue;
             Data[] memory data = abi.decode(data_, (Data[]));
-            if (data.length == 0) continue;
             for (uint256 j = 0; j < data.length; j++) {
                 uint256 amount = FullMath.mulDiv(
-                    amounts[i],
+                    tvl[i].amount,
                     data[j].ratioX96,
                     Q96
                 );
@@ -66,18 +72,23 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
         }
     }
 
-    function depositCallback() external {
+    /// @inheritdoc IDepositCallback
+    function depositCallback(uint256[] memory, uint256) external override {
         if (msg.sender != address(vault)) _requireAtLeastOperator();
         _deposit();
     }
 
+    /// @inheritdoc IDefaultBondStrategy
     function processAll() external {
         _requireAtLeastOperator();
         _processWithdrawals(vault.pendingWithdrawers());
     }
 
+    /// @inheritdoc IDefaultBondStrategy
     function processWithdrawals(address[] memory users) external {
-        _requireAtLeastOperator();
+        if (users.length == 0) return;
+        if (users.length > 1 || users[0] != msg.sender)
+            _requireAtLeastOperator();
         _processWithdrawals(users);
     }
 

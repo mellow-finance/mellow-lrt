@@ -27,4 +27,14 @@ interface IDefaultAccessControl is IAccessControlEnumerable {
     /// @param who Address to check
     /// @return `true` if who is operator, `false` otherwise
     function isOperator(address who) external view returns (bool);
+
+    /// @notice Checks that the address is contract admin.
+    /// @param who Address to check
+    /// @dev throws Forbbiden() if the sender does not have the admin or admin_delegate role
+    function requireAdmin(address who) external view;
+
+    /// @notice Checks that the address is contract admin.
+    /// @param who Address to check
+    /// @dev throws Forbbiden() if the sender has no roles
+    function requireAtLeastOperator(address who) external view;
 }

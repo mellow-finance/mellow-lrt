@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../../external/symbiotic/IDefaultBond.sol";
 
 interface IDefaultBondModule {
-    function deposit(address bond, uint256 amount) external;
+    function deposit(address bond, uint256 amount) external returns (uint256);
 
-    function withdraw(address bond, uint256 amount) external;
+    function withdraw(address bond, uint256 amount) external returns (uint256);
 }

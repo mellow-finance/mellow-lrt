@@ -2,20 +2,28 @@
 pragma solidity ^0.8.0;
 
 import "../../interfaces/modules/symbiotic/IDefaultBondModule.sol";
+import "../DefaultModule.sol";
 
-contract DefaultBondModule is IDefaultBondModule {
+contract DefaultBondModule is IDefaultBondModule, DefaultModule {
     using SafeERC20 for IERC20;
 
-    function deposit(address bond, uint256 amount) external {
-        if (amount == 0) return;
+    function deposit(
+        address bond,
+        uint256 amount
+    ) external onlyDelegateCall returns (uint256) {
+        if (amount == 0) return 0;
         IERC20(IBond(bond).asset()).safeIncreaseAllowance(bond, amount);
-        IDefaultBond(bond).deposit(address(this), amount);
+        return IDefaultBond(bond).deposit(address(this), amount);
     }
 
-    function withdraw(address bond, uint256 amount) external {
+    function withdraw(
+        address bond,
+        uint256 amount
+    ) external onlyDelegateCall returns (uint256) {
         uint256 balance = IDefaultBond(bond).balanceOf(address(this));
         if (balance < amount) amount = balance;
-        if (amount == 0) return;
+        if (amount == 0) return 0;
         IDefaultBond(bond).withdraw(address(this), amount);
+        return amount;
     }
 }

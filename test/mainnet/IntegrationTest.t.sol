@@ -5,21 +5,23 @@ import "./Fixture.sol";
 
 contract Integration is Fixture {
     using SafeERC20 for IERC20;
-
     address public constant uniswapSwapRouter =
         address(0xE592427A0AEce92De3Edee1F18E0157C05861564);
-
     function _initializeVault() private {
-        vm.startPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
-
+        vm.startPrank(Constants.VAULT_ADMIN);
         configurator.stageMaximalTotalSupply(type(uint256).max);
         configurator.commitMaximalTotalSupply();
-
         configurator.stageDelegateModuleApproval(address(bondModule));
         configurator.commitDelegateModuleApproval(address(bondModule));
         configurator.stageDelegateModuleApproval(address(erc20SwapModule));
         configurator.commitDelegateModuleApproval(address(erc20SwapModule));
-
+        configurator.stageRatiosOracle(address(ratiosOracle));
+        configurator.commitRatiosOracle();
+        configurator.stagePriceOracle(address(oracle));
+        configurator.commitPriceOracle();
+        configurator.stageValidator(address(validator));
+        configurator.commitValidator();
+        newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
         validator.grantRole(address(vault), Constants.DEFAULT_BOND_ROLE);
         validator.grantRole(address(vault), Constants.SWAP_ROUTER_ROLE);
         validator.grantContractRole(
@@ -42,47 +44,37 @@ contract Integration is Fixture {
             address(erc20SwapModule),
             address(erc20SwapValidator)
         );
-
         customValidator.setSupportedBond(address(wstethDefaultBond), true);
         erc20SwapValidator.setSupportedRouter(uniswapSwapRouter, true);
         erc20SwapValidator.setSupportedToken(Constants.WSTETH, true);
         erc20SwapValidator.setSupportedToken(Constants.WETH, true);
-
         newPrank(Constants.VAULT_ADMIN);
-
-        IManagedRatiosOracle.Data memory data;
-        data.tokens = new address[](1);
-        data.ratiosX96 = new uint128[](1);
-        data.tokens[0] = Constants.WSTETH;
-        data.ratiosX96[0] = uint128(Q96);
+        uint128[] memory ratiosX96 = new uint128[](1);
+        ratiosX96[0] = uint128(Q96);
         vault.addToken(Constants.WSTETH);
-        ratiosOracle.updateRatios(address(vault), data);
-        vault.setTvlModule(address(erc20TvlModule), new bytes(0));
+        oracle.setBaseToken(address(vault), Constants.WSTETH);
+        ratiosOracle.updateRatios(address(vault), ratiosX96);
+        vault.addTvlModule(address(erc20TvlModule));
         address[] memory bonds = new address[](1);
         bonds[0] = address(wstethDefaultBond);
-        vault.setTvlModule(
-            address(bondTvlModule),
-            abi.encode(IDefaultBondTvlModule.Params({bonds: bonds}))
-        );
-
-        // initial deposit
+        bondTvlModule.setParams(address(vault), bonds);
+        vault.addTvlModule(address(bondTvlModule));
         newPrank(address(this));
         mintWsteth(address(this), 10 ether);
         mintWsteth(Constants.DEPOSITOR, 10 ether);
     }
-
     function _initialDeposit() private {
         uint256 amount = 10 gwei;
+        IERC20(Constants.WSTETH).safeTransfer(Constants.VAULT_ADMIN, amount);
+        newPrank(Constants.VAULT_ADMIN);
         IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
         vault.deposit(address(vault), amounts, amount, type(uint256).max);
     }
-
     function testPrimitiveOperations() external {
         _initializeVault();
         _initialDeposit();
-
         // normal deposit
         newPrank(Constants.DEPOSITOR);
         {
@@ -100,21 +92,19 @@ contract Integration is Fixture {
                 type(uint256).max
             );
         }
-
         console2.log(
             "Depositor balances before:",
             vault.balanceOf(Constants.DEPOSITOR),
             IERC20(Constants.WSTETH).balanceOf(Constants.DEPOSITOR)
         );
-
         vault.registerWithdrawal(
             Constants.DEPOSITOR,
             vault.balanceOf(Constants.DEPOSITOR) / 2,
             new uint256[](1),
             type(uint256).max,
+            type(uint256).max,
             false
         );
-
         newPrank(Constants.VAULT_ADMIN);
         {
             address[] memory users = new address[](1);
@@ -122,40 +112,31 @@ contract Integration is Fixture {
             bool[] memory statuses = vault.processWithdrawals(users);
             console2.log("Withdrawal status:", vm.toString(statuses[0]));
         }
-
         console2.log(
             "Depositor balances after:",
             vault.balanceOf(Constants.DEPOSITOR),
             IERC20(Constants.WSTETH).balanceOf(Constants.DEPOSITOR)
         );
-
         newPrank(Constants.VAULT_ADMIN);
         vm.expectRevert(abi.encodeWithSignature("NonZeroValue()"));
         vault.removeToken(Constants.WSTETH);
-
         vm.stopPrank();
         // assert(false);
     }
-
     function testDepositCallback() external {
         _initializeVault();
-
         DefaultBondStrategy strategy = new DefaultBondStrategy(
             Constants.PROTOCOL_GOVERNANCE_ADMIN,
             vault,
             erc20TvlModule,
             bondModule
         );
-
         newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
         validator.grantRole(address(strategy), Constants.BOND_STRATEGY_ROLE);
-
         newPrank(Constants.VAULT_ADMIN);
         vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
         vault.grantRole(vault.OPERATOR(), address(strategy));
-
         newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
-
         {
             IDefaultBondStrategy.Data[]
                 memory data = new IDefaultBondStrategy.Data[](1);
@@ -165,12 +146,11 @@ contract Integration is Fixture {
             });
             strategy.setData(Constants.WSTETH, data);
         }
+        newPrank(Constants.VAULT_ADMIN);
         configurator.stageDepositCallback(address(strategy));
         configurator.commitDepositCallback();
-
         newPrank(address(this));
         _initialDeposit();
-
         // normal deposit
         newPrank(Constants.DEPOSITOR);
         {
@@ -188,34 +168,29 @@ contract Integration is Fixture {
                 type(uint256).max
             );
         }
-
         console2.log(
             "Depositor balances before:",
             vault.balanceOf(Constants.DEPOSITOR),
             IERC20(Constants.WSTETH).balanceOf(Constants.DEPOSITOR)
         );
-
         vault.registerWithdrawal(
             Constants.DEPOSITOR,
             vault.balanceOf(Constants.DEPOSITOR) / 2,
             new uint256[](1),
             type(uint256).max,
+            type(uint256).max,
             false
         );
-
         newPrank(Constants.VAULT_ADMIN);
         {
             address[] memory users = new address[](1);
             users[0] = Constants.DEPOSITOR;
             bool[] memory statuses = vault.processWithdrawals(users);
-
             console2.log("Withdrawal status:", vm.toString(statuses[0]));
             // assertFalse(statuses[0]);
         }
-
         newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
         strategy.processAll();
-
         newPrank(Constants.VAULT_ADMIN);
         {
             address[] memory users = new address[](1);
@@ -223,40 +198,32 @@ contract Integration is Fixture {
             bool[] memory statuses = vault.processWithdrawals(users);
             console2.log("Withdrawal status:", vm.toString(statuses[0]));
         }
-
         console2.log(
             "Depositor balances after:",
             vault.balanceOf(Constants.DEPOSITOR),
             IERC20(Constants.WSTETH).balanceOf(Constants.DEPOSITOR)
         );
-
         vm.stopPrank();
         // assert(false);
     }
-
     function testERC20SwapModule() external {
         _initializeVault();
-
         DefaultBondStrategy strategy = new DefaultBondStrategy(
             Constants.PROTOCOL_GOVERNANCE_ADMIN,
             vault,
             erc20TvlModule,
             bondModule
         );
-
         newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
         validator.grantRole(address(strategy), Constants.BOND_STRATEGY_ROLE);
         validator.grantRole(
             Constants.VAULT_ADMIN,
             Constants.BOND_STRATEGY_ROLE
         );
-
         newPrank(Constants.VAULT_ADMIN);
         vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
         vault.grantRole(vault.OPERATOR(), address(strategy));
-
         newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
-
         {
             IDefaultBondStrategy.Data[]
                 memory data = new IDefaultBondStrategy.Data[](1);
@@ -266,12 +233,11 @@ contract Integration is Fixture {
             });
             strategy.setData(Constants.WSTETH, data);
         }
+        newPrank(Constants.VAULT_ADMIN);
         configurator.stageDepositCallback(address(strategy));
         configurator.commitDepositCallback();
-
         newPrank(address(this));
         _initialDeposit();
-
         // normal deposit
         newPrank(Constants.DEPOSITOR);
         {
@@ -289,12 +255,10 @@ contract Integration is Fixture {
                 type(uint256).max
             );
         }
-
         console2.log(
             vault.balanceOf(Constants.DEPOSITOR),
             IERC20(Constants.WSTETH).balanceOf(address(vault))
         );
-
         newPrank(Constants.VAULT_ADMIN);
         vault.delegateCall(
             address(bondModule),
@@ -304,9 +268,8 @@ contract Integration is Fixture {
                 wstethDefaultBond.balanceOf(address(vault))
             )
         );
-
         {
-            vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
+            vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
             vault.delegateCall(
                 address(erc20SwapModule),
                 abi.encodeWithSelector(
@@ -325,7 +288,6 @@ contract Integration is Fixture {
                 )
             );
         }
-
         {
             (bool success, ) = vault.delegateCall(
                 address(erc20SwapModule),
@@ -359,11 +321,9 @@ contract Integration is Fixture {
                 assert(success);
             }
         }
-
         vm.stopPrank();
     }
-
-    function testGovernance() external {
+    function testGovernance() external view {
         /*
         bytes32[] memory slots = configurator.viewSlots();
         for (uint256 i = 0; i < slots.length; i++) {
@@ -371,7 +331,6 @@ contract Integration is Fixture {
             console2.logBytes32(slots[i]);
         }
         */
-
         console2.log(configurator.baseDelay());
     }
 }

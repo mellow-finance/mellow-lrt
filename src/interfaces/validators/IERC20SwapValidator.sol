@@ -9,6 +9,9 @@ import "../modules/erc20/IERC20SwapModule.sol";
 
 interface IERC20SwapValidator is IValidator {
     error InvalidLength();
+    error InvalidSelector();
+    error UnsupportedToken();
+    error UnsupportedRouter();
 
     function isSupportedRouter(address) external view returns (bool);
 

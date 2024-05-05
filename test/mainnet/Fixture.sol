@@ -28,6 +28,8 @@ contract Fixture is Test {
 
     DefaultBondMock public wstethDefaultBond;
 
+    function testMock() public {}
+
     function mintWsteth(address user, uint256 amount) public {
         deal(address(this), 2 * amount);
         ISteth(payable(Constants.STETH)).submit{value: 2 * amount}(address(0));
@@ -45,14 +47,8 @@ contract Fixture is Test {
     }
 
     function setUp() external {
-        configurator = new VaultConfigurator(
-            Constants.PROTOCOL_GOVERNANCE_ADMIN
-        );
         ratiosOracle = new ManagedRatiosOracle();
-        oracle = new ChainlinkOracle(
-            Constants.PROTOCOL_GOVERNANCE_ADMIN,
-            Constants.WSTETH
-        );
+        oracle = new ChainlinkOracle();
         validator = new ManagedValidator(Constants.PROTOCOL_GOVERNANCE_ADMIN);
         customValidator = new DefaultBondValidator(
             Constants.PROTOCOL_GOVERNANCE_ADMIN
@@ -70,14 +66,8 @@ contract Fixture is Test {
 
         erc20TvlModule = new ERC20TvlModule();
 
-        vault = new Vault(
-            "name",
-            "symbol",
-            Constants.VAULT_ADMIN,
-            address(configurator),
-            address(ratiosOracle),
-            address(oracle),
-            address(validator)
-        );
+        vault = new Vault("name", "symbol", Constants.VAULT_ADMIN);
+
+        configurator = VaultConfigurator(address(vault.configurator()));
     }
 }

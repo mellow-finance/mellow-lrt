@@ -7,68 +7,138 @@ import "./utils/DefaultAccessControl.sol";
 
 import "./libraries/external/FullMath.sol";
 
-// TODO: add events
+import "./VaultConfigurator.sol";
+
 contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IVault
     uint256 public constant Q96 = 2 ** 96;
+
+    /// @inheritdoc IVault
     uint256 public constant D9 = 1e9;
 
-    IRatiosOracle public immutable ratiosOracle;
-    IPriceOracle public immutable priceOracle;
-    IValidator public immutable validator;
+    /// @inheritdoc IVault
     IVaultConfigurator public immutable configurator;
 
-    mapping(address => bytes) public tvlModuleParams;
-
     mapping(address => WithdrawalRequest) private _withdrawalRequest;
-    address[] private _underlyingTokens;
     EnumerableSet.AddressSet private _pendingWithdrawers;
-    EnumerableSet.AddressSet private _tvlModules;
+
+    address[] private _underlyingTokens;
     EnumerableSet.AddressSet private _underlyingTokensSet;
 
-    modifier onlyOperator() {
-        if (!isOperator(msg.sender)) revert Forbidden();
+    EnumerableSet.AddressSet private _tvlModules;
+
+    modifier checkDeadline(uint256 deadline) {
+        if (deadline < block.timestamp) revert Deadline();
         _;
     }
 
-    modifier onlyAdmin() {
-        if (!isAdmin(msg.sender)) revert Forbidden();
-        _;
+    /// @inheritdoc IVault
+    function withdrawalRequest(
+        address user
+    ) external view returns (WithdrawalRequest memory) {
+        return _withdrawalRequest[user];
     }
 
-    function tvlModules() external view returns (address[] memory) {
-        return _tvlModules.values();
-    }
-
-    function underlyingTokens() external view returns (address[] memory) {
-        return _underlyingTokens;
-    }
-
+    /// @inheritdoc IVault
     function pendingWithdrawers() external view returns (address[] memory) {
         return _pendingWithdrawers.values();
     }
 
-    function tvl()
+    /// @inheritdoc IVault
+    function underlyingTokens() external view returns (address[] memory) {
+        return _underlyingTokens;
+    }
+
+    /// @inheritdoc IVault
+    function tvlModules() external view returns (address[] memory) {
+        return _tvlModules.values();
+    }
+
+    function _calculateTvl(
+        address[] memory tokens,
+        bool isUnderlying
+    ) private view returns (uint256[] memory amounts) {
+        amounts = new uint256[](tokens.length);
+        uint256[] memory negativeAmounts = new uint256[](tokens.length);
+        ITvlModule.Data[] memory tvl_ = _tvls();
+        for (uint256 i = 0; i < tvl_.length; i++) {
+            ITvlModule.Data memory data = tvl_[i];
+            for (uint256 j = 0; j < tokens.length; j++) {
+                (uint256 amount, address token) = isUnderlying
+                    ? (data.underlyingAmount, data.underlyingToken)
+                    : (data.amount, data.token);
+                if (token != tokens[j]) continue;
+                (data.isDebt ? negativeAmounts : amounts)[j] += amount;
+                break;
+            }
+        }
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (amounts[i] < negativeAmounts[i]) revert InvalidState();
+            amounts[i] -= negativeAmounts[i];
+        }
+    }
+
+    /// @inheritdoc IVault
+    function underlyingTvl()
         public
         view
         returns (address[] memory tokens, uint256[] memory amounts)
     {
         tokens = _underlyingTokens;
-        amounts = new uint256[](tokens.length);
-        address[] memory modules = _tvlModules.values();
-        for (uint256 i = 0; i < modules.length; i++) {
-            (address[] memory tokens_, uint256[] memory amounts_) = ITvlModule(
-                modules[i]
-            ).tvl(address(this), tvlModuleParams[modules[i]]);
-            uint256 index = 0;
-            for (uint256 j = 0; j < tokens_.length; j++) {
-                while (index < tokens.length && tokens[index] != tokens_[j])
-                    index++;
-                if (index == tokens.length) revert InvalidToken();
-                amounts[index] += amounts_[j];
-                index++;
+        amounts = _calculateTvl(tokens, true);
+    }
+
+    /// @inheritdoc IVault
+    function baseTvl()
+        public
+        view
+        returns (address[] memory tokens, uint256[] memory amounts)
+    {
+        ITvlModule.Data[] memory data = _tvls();
+        tokens = new address[](data.length);
+        uint256 length = 0;
+        for (uint256 i = 0; i < data.length; i++) {
+            if (data[i].token == address(0)) continue;
+            uint256 tokenIndex = length;
+            for (uint256 j = 0; j < length; j++) {
+                if (tokens[j] != data[i].token) continue;
+                tokenIndex = j;
+                break;
+            }
+            if (tokenIndex != length) continue;
+            tokens[tokenIndex] = data[i].token;
+            length++;
+        }
+        for (uint256 i = 0; i < length; i++) {
+            for (uint256 j = i + 1; j < length; j++) {
+                if (tokens[i] < tokens[j]) continue;
+                (tokens[i], tokens[j]) = (tokens[j], tokens[i]);
+            }
+        }
+        assembly {
+            mstore(tokens, length)
+        }
+        amounts = _calculateTvl(tokens, false);
+    }
+
+    function _tvls() private view returns (ITvlModule.Data[] memory data) {
+        ITvlModule.Data[][] memory responses = new ITvlModule.Data[][](
+            _tvlModules.length()
+        );
+        uint256 length = 0;
+        for (uint256 i = 0; i < responses.length; i++) {
+            address module = _tvlModules.at(i);
+            responses[i] = ITvlModule(module).tvl(address(this));
+            length += responses[i].length;
+        }
+        data = new ITvlModule.Data[](length);
+        uint256 index = 0;
+        for (uint256 i = 0; i < responses.length; i++) {
+            for (uint256 j = 0; j < responses[i].length; j++) {
+                data[index++] = responses[i][j];
             }
         }
     }
@@ -76,25 +146,17 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     constructor(
         string memory name_,
         string memory symbol_,
-        address admin,
-        address vaultConfigurator_,
-        address ratiosOracle_,
-        address priceOracle_,
-        address validator_
+        address admin
     ) ERC20(name_, symbol_) DefaultAccessControl(admin) {
-        if (ratiosOracle_ == address(0)) revert AddressZero();
-        if (priceOracle_ == address(0)) revert AddressZero();
-        if (validator_ == address(0)) revert AddressZero();
-        if (vaultConfigurator_ == address(0)) revert AddressZero();
-        ratiosOracle = IRatiosOracle(ratiosOracle_);
-        priceOracle = IPriceOracle(priceOracle_);
-        validator = IValidator(validator_);
-        configurator = IVaultConfigurator(vaultConfigurator_);
+        configurator = new VaultConfigurator();
     }
 
-    function addToken(address token) external onlyAdmin nonReentrant {
-        if (_underlyingTokensSet.contains(token) || token == address(this))
-            revert InvalidToken();
+    /// @inheritdoc IVault
+    function addToken(address token) external nonReentrant {
+        _requireAdmin();
+        if (token == address(0)) revert InvalidToken();
+        if (_underlyingTokensSet.contains(token)) revert InvalidToken();
+        if (token == address(this)) revert InvalidToken();
         _underlyingTokensSet.add(token);
         address[] storage tokens = _underlyingTokens;
         tokens.push(token);
@@ -108,12 +170,15 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             }
             tokens[n - i] = token_;
         }
-        if (index < n - 1) tokens[index] = token;
+        tokens[index] = token;
+        emit TokenAdded(token);
     }
 
-    function removeToken(address token) external onlyAdmin nonReentrant {
+    /// @inheritdoc IVault
+    function removeToken(address token) external nonReentrant {
+        _requireAdmin();
         if (!_underlyingTokensSet.contains(token)) revert InvalidToken();
-        (address[] memory tokens, uint256[] memory amounts) = tvl();
+        (address[] memory tokens, uint256[] memory amounts) = underlyingTvl();
         uint256 index = tokens.length;
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i] == token) {
@@ -128,58 +193,66 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             index++;
         }
         _underlyingTokens.pop();
+        emit TokenRemoved(token);
     }
 
-    function setTvlModule(
-        address module,
-        bytes memory params
-    ) external onlyAdmin nonReentrant {
-        (address[] memory tokens, uint256[] memory amounts) = ITvlModule(module)
-            .tvl(address(this), params);
-        if (tokens.length != amounts.length) revert InvalidState();
-        for (uint256 i = 0; i < tokens.length; i++) {
-            if (!_underlyingTokensSet.contains(tokens[i]))
+    /// @inheritdoc IVault
+    function addTvlModule(address module) external nonReentrant {
+        _requireAdmin();
+        ITvlModule.Data[] memory data = ITvlModule(module).tvl(address(this));
+        for (uint256 i = 0; i < data.length; i++) {
+            if (!_underlyingTokensSet.contains(data[i].underlyingToken))
                 revert InvalidToken();
-            if (i > 0 && tokens[i] <= tokens[i - 1]) revert InvalidState();
         }
         _tvlModules.add(module);
-        tvlModuleParams[module] = params;
+        emit TvlModuleAdded(module);
     }
 
-    function removeTvlModule(address module) external onlyAdmin nonReentrant {
+    /// @inheritdoc IVault
+    function removeTvlModule(address module) external nonReentrant {
+        _requireAdmin();
         if (!_tvlModules.contains(module)) revert InvalidState();
         _tvlModules.remove(module);
-        delete tvlModuleParams[module];
+        emit TvlModuleRemoved(module);
     }
 
+    /// @inheritdoc IVault
     function externalCall(
         address to,
         bytes calldata data
-    ) external onlyOperator nonReentrant returns (bool, bytes memory) {
+    ) external nonReentrant returns (bool success, bytes memory response) {
+        _requireAtLeastOperator();
         if (configurator.isDelegateModuleApproved(to)) revert Forbidden();
+        IValidator validator = IValidator(configurator.validator());
         validator.validate(
             msg.sender,
             address(this),
             abi.encodeWithSelector(msg.sig, to, data)
         );
         validator.validate(address(this), to, data);
-        return to.call(data);
+        (success, response) = to.call(data);
+        emit ExternalCall(to, data, success, response);
     }
 
+    /// @inheritdoc IVault
     function delegateCall(
         address to,
         bytes calldata data
-    ) external onlyOperator returns (bool, bytes memory) {
+    ) external returns (bool success, bytes memory response) {
+        _requireAtLeastOperator();
         if (!configurator.isDelegateModuleApproved(to)) revert Forbidden();
+        IValidator validator = IValidator(configurator.validator());
         validator.validate(
             msg.sender,
             address(this),
             abi.encodeWithSelector(msg.sig, to, data)
         );
         validator.validate(address(this), to, data);
-        return to.delegatecall(data);
+        (success, response) = to.delegatecall(data);
+        emit DelegateCall(to, data, success, response);
     }
 
+    /// @inheritdoc IVault
     function deposit(
         address to,
         uint256[] memory amounts,
@@ -188,14 +261,17 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     )
         external
         nonReentrant
+        checkDeadline(deadline)
         returns (uint256[] memory actualAmounts, uint256 lpAmount)
     {
-        if (block.timestamp > deadline) revert Deadline();
         if (configurator.isDepositsLocked()) revert Forbidden();
-        (address[] memory tokens, uint256[] memory totalAmounts) = tvl();
-        uint128[] memory ratiosX96 = ratiosOracle.getTargetRatiosX96(
-            address(this)
-        );
+        (
+            address[] memory tokens,
+            uint256[] memory totalAmounts
+        ) = underlyingTvl();
+        if (tokens.length != amounts.length) revert InvalidLength();
+        uint128[] memory ratiosX96 = IRatiosOracle(configurator.ratiosOracle())
+            .getTargetRatiosX96(address(this));
 
         uint256 ratioX96 = type(uint256).max;
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -208,11 +284,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 depositValue = 0;
         uint256 totalValue = 0;
         actualAmounts = new uint256[](tokens.length);
+        IPriceOracle priceOracle = IPriceOracle(configurator.priceOracle());
         for (uint256 i = 0; i < tokens.length; i++) {
-            uint256 priceX96 = priceOracle.priceX96(tokens[i]);
-            if (totalAmounts[i] > 0) {
-                totalValue += FullMath.mulDiv(totalAmounts[i], priceX96, Q96);
-            }
+            uint256 priceX96 = priceOracle.priceX96(address(this), tokens[i]);
+            totalValue += totalAmounts[i] == 0
+                ? 0
+                : FullMath.mulDiv(totalAmounts[i], priceX96, Q96);
             if (ratiosX96[i] == 0) continue;
             uint256 amount = FullMath.mulDiv(ratioX96, ratiosX96[i], Q96);
             IERC20(tokens[i]).safeTransferFrom(
@@ -224,9 +301,29 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             depositValue += FullMath.mulDiv(amount, priceX96, Q96);
         }
 
+        lpAmount = _calculateLpAmount(
+            to,
+            depositValue,
+            totalValue,
+            minLpAmount
+        );
+        emit Deposit(to, actualAmounts, lpAmount);
+        address callback = configurator.depositCallback();
+        if (callback == address(0)) return (actualAmounts, lpAmount);
+        IDepositCallback(callback).depositCallback(actualAmounts, lpAmount);
+        emit DepositCallback(callback, actualAmounts, lpAmount);
+    }
+
+    function _calculateLpAmount(
+        address to,
+        uint256 depositValue,
+        uint256 totalValue,
+        uint256 minLpAmount
+    ) private returns (uint256 lpAmount) {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) {
             // scenario for initial deposit
+            _requireAtLeastOperator();
             lpAmount = minLpAmount;
             if (lpAmount == 0) revert ValueZero();
             if (to != address(this)) revert Forbidden();
@@ -239,163 +336,215 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         if (lpAmount + totalSupply > configurator.maximalTotalSupply())
             revert LimitOverflow();
         _mint(to, lpAmount);
-
-        address callback = configurator.depositCallback();
-        if (callback != address(0)) {
-            IDepositCallback(callback).depositCallback();
-        }
     }
 
-    function withdrawalRequest(
-        address user
-    ) external view returns (WithdrawalRequest memory) {
-        return _withdrawalRequest[user];
-    }
-
-    function cancleWithdrawalRequest() external nonReentrant {
+    /// @inheritdoc IVault
+    function emergencyWithdraw(
+        uint256[] memory minAmounts,
+        uint256 deadline
+    )
+        external
+        nonReentrant
+        checkDeadline(deadline)
+        returns (uint256[] memory actualAmounts)
+    {
+        uint256 timestamp = block.timestamp;
         address sender = msg.sender;
-        _closeWithdrawalRequest(sender);
+        if (!_pendingWithdrawers.contains(sender)) revert InvalidState();
+        WithdrawalRequest memory request = _withdrawalRequest[sender];
+        if (timestamp > request.deadline) {
+            _cancelWithdrawalRequest(sender);
+            return actualAmounts;
+        }
+
+        if (
+            request.timestamp + configurator.emergencyWithdrawalDelay() >
+            timestamp
+        ) revert InvalidState();
+
+        uint256 totalSupply = totalSupply();
+        (address[] memory tokens, uint256[] memory amounts) = baseTvl();
+        if (minAmounts.length != tokens.length) revert InvalidLength();
+        actualAmounts = new uint256[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (amounts[i] == 0) continue;
+            uint256 amount = FullMath.mulDiv(
+                IERC20(tokens[i]).balanceOf(address(this)),
+                request.lpAmount,
+                totalSupply
+            );
+            if (amount < minAmounts[i]) revert InsufficientAmount();
+            IERC20(tokens[i]).safeTransfer(request.to, amount);
+            actualAmounts[i] = amount;
+        }
+        delete _withdrawalRequest[sender];
+        _pendingWithdrawers.remove(sender);
+        _burn(address(this), request.lpAmount);
+        emit EmergencyWithdrawal(sender, request, actualAmounts);
     }
 
-    function _closeWithdrawalRequest(address sender) private {
+    /// @inheritdoc IVault
+    function cancelWithdrawalRequest() external nonReentrant {
+        _cancelWithdrawalRequest(msg.sender);
+    }
+
+    function _cancelWithdrawalRequest(address sender) private {
         if (!_pendingWithdrawers.contains(sender)) return;
         WithdrawalRequest memory request = _withdrawalRequest[sender];
         delete _withdrawalRequest[sender];
         _pendingWithdrawers.remove(sender);
         _transfer(address(this), sender, request.lpAmount);
+        emit WithdrawalRequestCanceled(sender, tx.origin);
     }
 
+    /// @inheritdoc IVault
     function registerWithdrawal(
         address to,
         uint256 lpAmount,
         uint256[] memory minAmounts,
         uint256 deadline,
+        uint256 requestDeadline,
         bool closePrevious
-    ) external nonReentrant {
+    )
+        external
+        nonReentrant
+        checkDeadline(deadline)
+        checkDeadline(requestDeadline)
+    {
         uint256 timestamp = block.timestamp;
-        if (deadline < timestamp) revert Deadline();
         address sender = msg.sender;
         if (_pendingWithdrawers.contains(sender)) {
-            if (closePrevious) {
-                _closeWithdrawalRequest(sender);
-            } else {
-                revert InvalidState();
-            }
+            if (!closePrevious) revert InvalidState();
+            _cancelWithdrawalRequest(sender);
         }
         uint256 balance = balanceOf(sender);
         if (lpAmount > balance) lpAmount = balance;
         if (lpAmount == 0) revert ValueZero();
+        if (to == address(0)) revert AddressZero();
 
         address[] memory tokens = _underlyingTokens;
         if (tokens.length != minAmounts.length) revert InvalidLength();
 
-        _transfer(sender, address(this), lpAmount);
-        _withdrawalRequest[sender] = WithdrawalRequest({
+        WithdrawalRequest memory request = WithdrawalRequest({
             to: to,
             lpAmount: lpAmount,
-            tokens: tokens,
+            tokensHash: keccak256(abi.encode(tokens)),
             minAmounts: minAmounts,
-            deadline: deadline,
+            deadline: requestDeadline,
             timestamp: timestamp
         });
+        _withdrawalRequest[sender] = request;
         _pendingWithdrawers.add(sender);
+        _transfer(sender, address(this), lpAmount);
+        emit WithdrawalRequested(sender, request);
     }
 
+    /// @inheritdoc IVault
+    function analyzeRequest(
+        ProcessWithdrawalsStack memory s,
+        WithdrawalRequest memory request
+    ) public pure returns (bool, bool, uint256[] memory expectedAmounts) {
+        uint256 lpAmount = request.lpAmount;
+        if (
+            request.tokensHash != s.tokensHash ||
+            lpAmount == 0 ||
+            request.deadline < s.timestamp
+        ) return (false, false, expectedAmounts);
+
+        uint256 value = FullMath.mulDiv(lpAmount, s.totalValue, s.totalSupply);
+        value = FullMath.mulDiv(value, D9 - s.feeD9, D9);
+        uint256 coefficientX96 = FullMath.mulDiv(value, Q96, s.ratiosX96Value);
+
+        uint256 length = s.erc20Balances.length;
+        expectedAmounts = new uint256[](length);
+        for (uint256 i = 0; i < length; i++) {
+            uint256 ratiosX96 = s.ratiosX96[i];
+            expectedAmounts[i] = ratiosX96 == 0
+                ? 0
+                : FullMath.mulDiv(coefficientX96, ratiosX96, Q96);
+            if (expectedAmounts[i] >= request.minAmounts[i]) continue;
+            return (false, false, expectedAmounts);
+        }
+        for (uint256 i = 0; i < length; i++) {
+            if (s.erc20Balances[i] >= expectedAmounts[i]) continue;
+            return (true, false, expectedAmounts);
+        }
+        return (true, true, expectedAmounts);
+    }
+
+    /// @inheritdoc IVault
+    function calculateStack()
+        public
+        view
+        returns (ProcessWithdrawalsStack memory s)
+    {
+        (address[] memory tokens, uint256[] memory amounts) = underlyingTvl();
+        s = ProcessWithdrawalsStack({
+            tokens: tokens,
+            ratiosX96: IRatiosOracle(configurator.ratiosOracle())
+                .getTargetRatiosX96(address(this)),
+            erc20Balances: new uint256[](tokens.length),
+            totalSupply: totalSupply(),
+            totalValue: 0,
+            ratiosX96Value: 0,
+            timestamp: block.timestamp,
+            feeD9: configurator.withdrawalFeeD9(),
+            tokensHash: keccak256(abi.encode(tokens))
+        });
+
+        IPriceOracle priceOracle = IPriceOracle(configurator.priceOracle());
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 priceX96 = priceOracle.priceX96(address(this), tokens[i]);
+            s.totalValue += FullMath.mulDiv(amounts[i], priceX96, Q96);
+            s.ratiosX96Value += FullMath.mulDiv(s.ratiosX96[i], priceX96, Q96);
+            s.erc20Balances[i] = IERC20(tokens[i]).balanceOf(address(this));
+        }
+    }
+
+    /// @inheritdoc IVault
     function processWithdrawals(
         address[] memory users
-    ) external nonReentrant onlyOperator returns (bool[] memory statuses) {
+    ) external nonReentrant returns (bool[] memory statuses) {
+        _requireAtLeastOperator();
         statuses = new bool[](users.length);
-        ProcessWithdrawalsStack memory s = ProcessWithdrawalsStack({
-            ratiosX96: ratiosOracle.getTargetRatiosX96(address(this)),
-            amounts: new uint256[](0),
-            totalValue: 0,
-            ratiosX96Value: 0
-        });
-        address[] memory tokens;
-        (tokens, s.amounts) = tvl();
-
-        uint256[] memory erc20Balances = new uint256[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
-            uint256 priceX96 = priceOracle.priceX96(tokens[i]);
-            s.totalValue += FullMath.mulDiv(s.amounts[i], priceX96, Q96);
-            s.ratiosX96Value += FullMath.mulDiv(s.ratiosX96[i], priceX96, Q96);
-            erc20Balances[i] = IERC20(tokens[i]).balanceOf(address(this));
-        }
-
-        uint256 totalSupply = totalSupply();
+        ProcessWithdrawalsStack memory s = calculateStack();
         uint256 burningSupply = 0;
-        uint256 timestamp = block.timestamp;
-        uint256 feeD9 = configurator.withdrawalFeeD9();
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
             WithdrawalRequest memory request = _withdrawalRequest[user];
-            if (
-                request.tokens.length != tokens.length ||
-                request.lpAmount == 0 ||
-                request.deadline < timestamp
-            ) continue;
+            (
+                bool isProcessingPossible,
+                bool isWithdrawalPossible,
+                uint256[] memory expectedAmounts
+            ) = analyzeRequest(s, request);
 
-            uint256 coefficientX96;
-            {
-                uint256 withdrawalValue = FullMath.mulDiv(
-                    request.lpAmount,
-                    s.totalValue,
-                    totalSupply
-                );
-
-                withdrawalValue = FullMath.mulDiv(
-                    withdrawalValue,
-                    D9 - feeD9,
-                    D9
-                );
-
-                coefficientX96 = FullMath.mulDiv(
-                    withdrawalValue,
-                    Q96,
-                    s.ratiosX96Value
-                );
+            if (!isProcessingPossible) {
+                _cancelWithdrawalRequest(user);
+                continue;
             }
 
-            bool isWithdrawalPossible = true;
-            uint256[] memory expectedAmounts = new uint256[](tokens.length);
-            for (uint256 j = 0; j < tokens.length; j++) {
-                if (request.tokens[j] != tokens[j]) {
-                    isWithdrawalPossible = false;
-                    break;
-                }
-                if (s.ratiosX96[j] != 0) {
-                    expectedAmounts[j] = FullMath.mulDiv(
-                        coefficientX96,
-                        s.ratiosX96[j],
-                        Q96
-                    );
-                }
-                if (
-                    expectedAmounts[j] < request.minAmounts[j] ||
-                    erc20Balances[j] < expectedAmounts[j]
-                ) {
-                    isWithdrawalPossible = false;
-                    break;
-                }
-            }
             if (!isWithdrawalPossible) continue;
 
-            for (uint256 j = 0; j < tokens.length; j++) {
-                IERC20(tokens[j]).safeTransfer(request.to, expectedAmounts[j]);
-                erc20Balances[j] -= expectedAmounts[j];
+            for (uint256 j = 0; j < s.tokens.length; j++) {
+                IERC20(s.tokens[j]).safeTransfer(
+                    request.to,
+                    expectedAmounts[j]
+                );
+                s.erc20Balances[j] -= expectedAmounts[j];
             }
 
             burningSupply += request.lpAmount;
             delete _withdrawalRequest[user];
-            statuses[i] = true;
             _pendingWithdrawers.remove(user);
+            statuses[i] = true;
         }
 
         if (burningSupply > 0) _burn(address(this), burningSupply);
+        emit WithdrawalsProcessed(users, statuses);
 
         address callback = configurator.withdrawalCallback();
-        if (callback != address(0)) {
-            IWithdrawalCallback(callback).withdrawalCallback();
-        }
+        if (callback == address(0)) return statuses;
+        IWithdrawalCallback(callback).withdrawalCallback();
+        emit WithdrawCallback(callback);
     }
 }
