@@ -7,7 +7,7 @@ interface IVaultConfigurator {
     error InvalidTimestamp();
     error InvalidWithdrawalFee();
     error InvalidDelay();
-    error InvalidSlot();
+    error AddressZero();
 
     struct Data {
         uint256 value;
@@ -17,6 +17,8 @@ interface IVaultConfigurator {
 
     function MAX_DELAY() external view returns (uint256);
     function MAX_WITHDRAWAL_FEE() external view returns (uint256);
+
+    function vault() external view returns (address);
 
     function isDelegateModuleApproved(
         address module

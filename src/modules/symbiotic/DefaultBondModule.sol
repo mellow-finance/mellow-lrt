@@ -7,6 +7,7 @@ import "../DefaultModule.sol";
 contract DefaultBondModule is IDefaultBondModule, DefaultModule {
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IDefaultBondModule
     function deposit(
         address bond,
         uint256 amount
@@ -16,6 +17,7 @@ contract DefaultBondModule is IDefaultBondModule, DefaultModule {
         return IDefaultBond(bond).deposit(address(this), amount);
     }
 
+    /// @inheritdoc IDefaultBondModule
     function withdraw(
         address bond,
         uint256 amount
