@@ -5,8 +5,10 @@ import "../../interfaces/modules/symbiotic/IDefaultBondTvlModule.sol";
 import "../DefaultModule.sol";
 
 contract DefaultBondTvlModule is IDefaultBondTvlModule, DefaultModule {
+    /// @inheritdoc IDefaultBondTvlModule
     mapping(address => bytes) public vaultParams;
 
+    /// @inheritdoc IDefaultBondTvlModule
     function setParams(
         address vault,
         address[] memory bonds
@@ -15,6 +17,7 @@ contract DefaultBondTvlModule is IDefaultBondTvlModule, DefaultModule {
         vaultParams[vault] = abi.encode(bonds);
     }
 
+    /// @inheritdoc ITvlModule
     function tvl(
         address vault
     ) external view noDelegateCall returns (Data[] memory data) {

@@ -9,7 +9,6 @@ contract ERC20SwapValidator is IERC20SwapValidator, DefaultAccessControl {
 
     /// @inheritdoc IERC20SwapValidator
     mapping(address => bool) public isSupportedRouter;
-
     /// @inheritdoc IERC20SwapValidator
     mapping(address => bool) public isSupportedToken;
 

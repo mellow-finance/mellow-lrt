@@ -6,14 +6,11 @@ import "./interfaces/IVaultConfigurator.sol";
 import "./utils/DefaultAccessControl.sol";
 
 contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
-    error AddressZero();
-    error Forbidden();
-
     /// @inheritdoc IVaultConfigurator
     uint256 public constant MAX_DELAY = 365 days;
     /// @inheritdoc IVaultConfigurator
     uint256 public constant MAX_WITHDRAWAL_FEE = 5e7; // 5%
-
+    /// @inheritdoc IVaultConfigurator
     address public immutable vault;
 
     Data private _baseDelay;

@@ -6,17 +6,23 @@ import "../interfaces/oracles/IChainlinkOracle.sol";
 import "../libraries/external/FullMath.sol";
 
 contract ChainlinkOracle is IChainlinkOracle {
+    /// @inheritdoc IChainlinkOracle
     uint256 public constant MAX_ORACLE_AGE = 2 days;
+    /// @inheritdoc IChainlinkOracle
     uint256 public constant Q96 = 2 ** 96;
 
+    /// @inheritdoc IChainlinkOracle
     mapping(address => mapping(address => address)) public aggregatorsV3;
+    /// @inheritdoc IChainlinkOracle
     mapping(address => address) public baseTokens;
 
+    /// @inheritdoc IChainlinkOracle
     function setBaseToken(address vault, address baseToken) external {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
         baseTokens[vault] = baseToken;
     }
 
+    /// @inheritdoc IChainlinkOracle
     function setChainlinkOracles(
         address vault,
         address[] memory tokens,
@@ -29,6 +35,7 @@ contract ChainlinkOracle is IChainlinkOracle {
         }
     }
 
+    /// @inheritdoc IChainlinkOracle
     function getPrice(
         address vault,
         address token
@@ -45,6 +52,7 @@ contract ChainlinkOracle is IChainlinkOracle {
         decimals = IAggregatorV3(aggregatorV3).decimals();
     }
 
+    /// @inheritdoc IPriceOracle
     function priceX96(
         address vault,
         address token

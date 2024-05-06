@@ -15,7 +15,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
     /// @inheritdoc IVault
     uint256 public constant Q96 = 2 ** 96;
-
     /// @inheritdoc IVault
     uint256 public constant D9 = 1e9;
 
@@ -301,12 +300,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             depositValue += FullMath.mulDiv(amount, priceX96, Q96);
         }
 
-        lpAmount = _calculateLpAmount(
-            to,
-            depositValue,
-            totalValue,
-            minLpAmount
-        );
+        lpAmount = _processLpAmount(to, depositValue, totalValue, minLpAmount);
         emit Deposit(to, actualAmounts, lpAmount);
         address callback = configurator.depositCallback();
         if (callback == address(0)) return (actualAmounts, lpAmount);
@@ -314,7 +308,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit DepositCallback(callback, actualAmounts, lpAmount);
     }
 
-    function _calculateLpAmount(
+    function _processLpAmount(
         address to,
         uint256 depositValue,
         uint256 totalValue,

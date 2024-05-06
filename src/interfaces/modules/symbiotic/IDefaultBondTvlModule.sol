@@ -9,5 +9,7 @@ import "../../utils/IDefaultAccessControl.sol";
 import "../ITvlModule.sol";
 
 interface IDefaultBondTvlModule is ITvlModule {
+    function vaultParams(address vault) external view returns (bytes memory);
+
     function setParams(address vault, address[] memory bonds) external;
 }
