@@ -541,4 +541,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         IWithdrawalCallback(callback).withdrawalCallback();
         emit WithdrawCallback(callback);
     }
+
+    receive() external payable {}
 }
