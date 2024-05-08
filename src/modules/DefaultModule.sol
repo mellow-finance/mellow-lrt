@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-abstract contract DefaultModule {
-    error Forbidden();
+import "../interfaces/modules/IDefaultModule.sol";
 
+abstract contract DefaultModule is IDefaultModule {
     address private immutable _this = address(this);
 
     modifier onlyDelegateCall() {

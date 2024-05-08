@@ -15,6 +15,7 @@ contract ManagedTvlModule is IManagedTvlModule, DefaultModule {
     ) external noDelegateCall {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
         vaultParams[vault] = abi.encode(data);
+        emit ManagedTvlModuleSetParams(vault, data, block.timestamp);
     }
 
     /// @inheritdoc ITvlModule

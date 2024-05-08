@@ -15,6 +15,7 @@ contract DefaultBondValidator is IDefaultBondValidator, DefaultAccessControl {
     function setSupportedBond(address bond, bool flag) external {
         _requireAdmin();
         isSupportedBond[bond] = flag;
+        emit DefaultBondValidatorSetSupportedBond(bond, flag, block.timestamp);
     }
 
     /// @inheritdoc IValidator

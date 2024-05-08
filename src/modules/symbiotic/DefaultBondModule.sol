@@ -14,6 +14,7 @@ contract DefaultBondModule is IDefaultBondModule, DefaultModule {
     ) external onlyDelegateCall returns (uint256) {
         if (amount == 0) return 0;
         IERC20(IBond(bond).asset()).safeIncreaseAllowance(bond, amount);
+        emit DefaultBondModuleDeposit(bond, amount, block.timestamp);
         return IDefaultBond(bond).deposit(address(this), amount);
     }
 
@@ -26,6 +27,7 @@ contract DefaultBondModule is IDefaultBondModule, DefaultModule {
         if (balance < amount) amount = balance;
         if (amount == 0) return 0;
         IDefaultBond(bond).withdraw(address(this), amount);
+        emit DefaultBondModuleWithdraw(bond, amount);
         return amount;
     }
 }

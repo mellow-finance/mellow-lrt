@@ -20,6 +20,7 @@ contract ChainlinkOracle is IChainlinkOracle {
     function setBaseToken(address vault, address baseToken) external {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
         baseTokens[vault] = baseToken;
+        emit ChainlinkOracleSetBaseToken(vault, baseToken, block.timestamp);
     }
 
     /// @inheritdoc IChainlinkOracle
@@ -33,6 +34,12 @@ contract ChainlinkOracle is IChainlinkOracle {
         for (uint256 i = 0; i < tokens.length; i++) {
             aggregatorsV3[vault][tokens[i]] = oracles[i];
         }
+        emit ChainlinkOracleSetChainlinkOracles(
+            vault,
+            tokens,
+            oracles,
+            block.timestamp
+        );
     }
 
     /// @inheritdoc IChainlinkOracle

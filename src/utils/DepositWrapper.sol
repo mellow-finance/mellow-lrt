@@ -71,6 +71,7 @@ contract DepositWrapper is IDepositWrapper {
         (, lpAmount) = vault.deposit(to, amounts, minLpAmount, deadline);
         uint256 balance = IERC20(wsteth).balanceOf(wrapper);
         if (balance > 0) IERC20(wsteth).safeTransfer(sender, balance);
+        emit DepositWrapperDeposit(sender, token, amount, lpAmount, deadline);
     }
 
     receive() external payable {

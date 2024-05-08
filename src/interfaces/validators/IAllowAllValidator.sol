@@ -3,4 +3,8 @@ pragma solidity ^0.8.0;
 
 import "./IValidator.sol";
 
+/**
+ * @title IAllowAllValidator
+ * @notice Interface for a validator that allows all transactions without additional checks.
+ */
 interface IAllowAllValidator is IValidator {}

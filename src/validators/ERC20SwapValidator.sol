@@ -16,12 +16,18 @@ contract ERC20SwapValidator is IERC20SwapValidator, DefaultAccessControl {
     function setSupportedRouter(address router, bool flag) external {
         _requireAdmin();
         isSupportedRouter[router] = flag;
+        emit ERC20SwapValidatorSetSupportedRouter(
+            router,
+            flag,
+            block.timestamp
+        );
     }
 
     /// @inheritdoc IERC20SwapValidator
     function setSupportedToken(address token, bool flag) external {
         _requireAdmin();
         isSupportedToken[token] = flag;
+        emit ERC20SwapValidatorSetSupportedToken(token, flag, block.timestamp);
     }
 
     /// @inheritdoc IValidator
