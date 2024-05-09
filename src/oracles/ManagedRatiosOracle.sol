@@ -29,7 +29,7 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
         for (uint256 i = 0; i < tokens.length; i++) total += ratiosX96[i];
         if (total != Q96) revert InvalidCumulativeRatio();
         vaultToData[vault][isDeposit] = abi.encode(data);
-        emit ManagedRatiosOracleUpdateRatios(vault, ratiosX96, block.timestamp);
+        emit ManagedRatiosOracleUpdateRatios(vault, isDeposit, ratiosX96);
     }
 
     /// @inheritdoc IRatiosOracle

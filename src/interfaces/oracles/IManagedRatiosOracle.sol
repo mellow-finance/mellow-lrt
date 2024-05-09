@@ -60,12 +60,12 @@ interface IManagedRatiosOracle is IRatiosOracle {
     /**
      * @notice Emitted when ratios are updated for a specific vault in the Managed Ratios Oracle.
      * @param vault The address of the vault for which ratios are updated.
+     * @param isDeposit A boolean indicating whether the ratios are for a deposit or a withdrawal.
      * @param ratiosX96 An array of updated ratios expressed in 96-bit precision.
-     * @param timestamp The timestamp when the ratios are updated.
      */
     event ManagedRatiosOracleUpdateRatios(
         address indexed vault,
-        uint128[] ratiosX96,
-        uint256 timestamp
+        bool isDeposit,
+        uint128[] ratiosX96
     );
 }
