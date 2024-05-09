@@ -15,6 +15,7 @@ contract DefaultBondTvlModule is IDefaultBondTvlModule, DefaultModule {
     ) external noDelegateCall {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
         vaultParams[vault] = abi.encode(bonds);
+        emit DefaultBondTvlModuleSetParams(vault, bonds);
     }
 
     /// @inheritdoc ITvlModule

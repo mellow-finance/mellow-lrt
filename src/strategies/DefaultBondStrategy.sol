@@ -43,6 +43,7 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
         }
         if (cumulativeRatio != Q96) revert InvalidCumulativeRatio();
         tokenToData[token] = abi.encode(data);
+        emit DefaultBondStrategySetData(token, data, block.timestamp);
     }
 
     function _deposit() private {
@@ -114,5 +115,6 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
 
         vault.processWithdrawals(users);
         _deposit();
+        emit DefaultBondStrategyProcessWithdrawals(users, block.timestamp);
     }
 }

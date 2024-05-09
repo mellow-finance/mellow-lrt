@@ -54,6 +54,11 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     function _stage(Data storage s, uint256 value) private {
         s.stageTimestamp = block.timestamp;
         s.stagedValue = value;
+        bytes32 slot;
+        assembly {
+            slot := s.slot
+        }
+        emit Stage(slot, s, value, block.timestamp);
     }
 
     function _commit(Data storage s, Data storage delay) private {
@@ -61,12 +66,22 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         if (timestamp == 0) revert InvalidTimestamp();
         if (block.timestamp - timestamp < delay.value)
             revert InvalidTimestamp();
+        bytes32 slot;
+        assembly {
+            slot := s.slot
+        }
+        emit Commit(slot, s, block.timestamp);
         s.value = s.stagedValue;
         delete s.stageTimestamp;
         delete s.stagedValue;
     }
 
     function _rollback(Data storage s) private {
+        bytes32 slot;
+        assembly {
+            slot := s.slot
+        }
+        emit Rollback(slot, s, block.timestamp);
         delete s.stageTimestamp;
         delete s.stagedValue;
     }

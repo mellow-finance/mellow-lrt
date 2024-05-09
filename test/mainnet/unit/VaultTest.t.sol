@@ -1094,7 +1094,8 @@ contract Unit is Test {
 
             uint128[] memory ratiosX96 = new uint128[](3);
             ratiosX96[0] = 2 ** 96;
-            ratiosOracle.updateRatios(address(vault), ratiosX96);
+            ratiosOracle.updateRatios(address(vault), true, ratiosX96);
+            ratiosOracle.updateRatios(address(vault), false, ratiosX96);
 
             configurator.stageRatiosOracle(address(ratiosOracle));
             configurator.commitRatiosOracle();

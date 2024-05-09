@@ -270,7 +270,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         ) = underlyingTvl();
         if (tokens.length != amounts.length) revert InvalidLength();
         uint128[] memory ratiosX96 = IRatiosOracle(configurator.ratiosOracle())
-            .getTargetRatiosX96(address(this));
+            .getTargetRatiosX96(address(this), true);
 
         uint256 ratioX96 = type(uint256).max;
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -476,7 +476,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         s = ProcessWithdrawalsStack({
             tokens: tokens,
             ratiosX96: IRatiosOracle(configurator.ratiosOracle())
-                .getTargetRatiosX96(address(this)),
+                .getTargetRatiosX96(address(this), false),
             erc20Balances: new uint256[](tokens.length),
             totalSupply: totalSupply(),
             totalValue: 0,
@@ -541,4 +541,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         IWithdrawalCallback(callback).withdrawalCallback();
         emit WithdrawCallback(callback);
     }
+
+    receive() external payable {}
 }

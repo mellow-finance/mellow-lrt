@@ -59,21 +59,25 @@ contract ManagedValidator is IManagedValidator {
     /// @inheritdoc IManagedValidator
     function grantPublicRole(uint8 role) external authorized {
         _storage().publicRoles |= 1 << role;
+        emit PublicRoleGranted(role);
     }
 
     /// @inheritdoc IManagedValidator
     function revokePublicRole(uint8 role) external authorized {
         _storage().publicRoles &= ~(1 << role);
+        emit PublicRoleRevoked(role);
     }
 
     /// @inheritdoc IManagedValidator
     function grantRole(address user, uint8 role) external authorized {
         _storage().userRoles[user] |= 1 << role;
+        emit RoleGranted(user, role);
     }
 
     /// @inheritdoc IManagedValidator
     function revokeRole(address user, uint8 role) external authorized {
         _storage().userRoles[user] &= ~(1 << role);
+        emit RoleRevoked(user, role);
     }
 
     /// @inheritdoc IManagedValidator
@@ -83,6 +87,7 @@ contract ManagedValidator is IManagedValidator {
     ) external authorized {
         if (validator == address(this)) revert Forbidden();
         _storage().customValidator[contractAddress] = validator;
+        emit CustomValidatorSet(contractAddress, validator);
     }
 
     /// @inheritdoc IManagedValidator
@@ -91,6 +96,7 @@ contract ManagedValidator is IManagedValidator {
         uint8 role
     ) external authorized {
         _storage().allowAllSignaturesRoles[contractAddress] |= 1 << role;
+        emit ContractRoleGranted(contractAddress, role);
     }
 
     /// @inheritdoc IManagedValidator
@@ -99,6 +105,7 @@ contract ManagedValidator is IManagedValidator {
         uint8 role
     ) external authorized {
         _storage().allowAllSignaturesRoles[contractAddress] &= ~(1 << role);
+        emit ContractRoleRevoked(contractAddress, role);
     }
 
     /// @inheritdoc IManagedValidator
@@ -108,6 +115,7 @@ contract ManagedValidator is IManagedValidator {
         uint8 role
     ) external authorized {
         _storage().allowSignatureRoles[contractAddress][signature] |= 1 << role;
+        emit ContractSignatureRoleGranted(contractAddress, signature, role);
     }
 
     /// @inheritdoc IManagedValidator
@@ -118,6 +126,7 @@ contract ManagedValidator is IManagedValidator {
     ) external authorized {
         _storage().allowSignatureRoles[contractAddress][signature] &= ~(1 <<
             role);
+        emit ContractSignatureRoleRevoked(contractAddress, signature, role);
     }
 
     /// @inheritdoc IManagedValidator

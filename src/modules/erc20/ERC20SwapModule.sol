@@ -38,6 +38,7 @@ contract ERC20SwapModule is IERC20SwapModule, DefaultModule {
             IERC20(params.tokenIn).forceApprove(to, 0);
         }
 
+        emit ERC20SwapModuleSwap(params, to, data, block.timestamp, response);
         return response;
     }
 }
