@@ -25,9 +25,16 @@ contract Unit is Test {
         ratios[0] = 2 ** 96 / 2;
         ratios[1] = 2 ** 96 / 2;
         vm.startPrank(admin);
-        oracle.updateRatios(address(vault), ratios);
+        oracle.updateRatios(address(vault), true, ratios);
+        oracle.updateRatios(address(vault), false, ratios);
         vm.stopPrank();
-        uint128[] memory result = oracle.getTargetRatiosX96(address(vault));
+        uint128[] memory result = oracle.getTargetRatiosX96(
+            address(vault),
+            true
+        );
+        assertEq(result[0], 2 ** 96 / 2);
+        assertEq(result[1], 2 ** 96 / 2);
+        result = oracle.getTargetRatiosX96(address(vault), false);
         assertEq(result[0], 2 ** 96 / 2);
         assertEq(result[1], 2 ** 96 / 2);
     }
@@ -44,7 +51,9 @@ contract Unit is Test {
         ratios[0] = 2 ** 96 / 2;
         ratios[1] = 2 ** 96 / 2;
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
-        oracle.updateRatios(address(vault), ratios);
+        oracle.updateRatios(address(vault), true, ratios);
+        vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
+        oracle.updateRatios(address(vault), false, ratios);
         vm.stopPrank();
     }
 
@@ -61,7 +70,7 @@ contract Unit is Test {
         ratios[1] = 2 ** 96 / 2;
         vm.startPrank(admin);
         vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
-        oracle.updateRatios(address(vault), new uint128[](0));
+        oracle.updateRatios(address(vault), true, new uint128[](0));
         vm.stopPrank();
     }
 
@@ -80,7 +89,7 @@ contract Unit is Test {
         vm.startPrank(admin);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidCumulativeRatio()"));
-        oracle.updateRatios(address(vault), ratios);
+        oracle.updateRatios(address(vault), true, ratios);
         vm.stopPrank();
     }
 
@@ -99,13 +108,16 @@ contract Unit is Test {
 
         {
             vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
-            oracle.getTargetRatiosX96(address(vault));
+            oracle.getTargetRatiosX96(address(vault), true);
         }
 
         vm.prank(admin);
-        oracle.updateRatios(address(vault), ratios);
+        oracle.updateRatios(address(vault), true, ratios);
         {
-            uint128[] memory result = oracle.getTargetRatiosX96(address(vault));
+            uint128[] memory result = oracle.getTargetRatiosX96(
+                address(vault),
+                true
+            );
             assertEq(
                 keccak256(abi.encode(ratios)),
                 keccak256(abi.encode(result))
@@ -115,7 +127,7 @@ contract Unit is Test {
         vault.setUnderlyingTokens(new address[](0));
         {
             vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
-            oracle.getTargetRatiosX96(address(vault));
+            oracle.getTargetRatiosX96(address(vault), true);
         }
     }
 }
