@@ -10,11 +10,12 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
     uint256 public constant Q96 = 2 ** 96;
 
     /// @inheritdoc IManagedRatiosOracle
-    mapping(address => bytes) public vaultToData;
+    mapping(address => mapping(bool => bytes)) public vaultToData;
 
     /// @inheritdoc IManagedRatiosOracle
     function updateRatios(
         address vault,
+        bool isDeposit,
         uint128[] memory ratiosX96
     ) external override {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
@@ -27,15 +28,16 @@ contract ManagedRatiosOracle is IManagedRatiosOracle {
         uint256 total = 0;
         for (uint256 i = 0; i < tokens.length; i++) total += ratiosX96[i];
         if (total != Q96) revert InvalidCumulativeRatio();
-        vaultToData[vault] = abi.encode(data);
+        vaultToData[vault][isDeposit] = abi.encode(data);
         emit ManagedRatiosOracleUpdateRatios(vault, ratiosX96, block.timestamp);
     }
 
     /// @inheritdoc IRatiosOracle
     function getTargetRatiosX96(
-        address vault
+        address vault,
+        bool isDeposit
     ) external view override returns (uint128[] memory) {
-        bytes memory data_ = vaultToData[vault];
+        bytes memory data_ = vaultToData[vault][isDeposit];
         if (data_.length == 0) revert InvalidLength();
         Data memory data = abi.decode(data_, (Data));
         address[] memory tokens = IVault(vault).underlyingTokens();

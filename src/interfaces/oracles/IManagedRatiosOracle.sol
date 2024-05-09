@@ -36,17 +36,26 @@ interface IManagedRatiosOracle is IRatiosOracle {
     /**
      * @notice Updates the target ratios for a specific vault.
      * @param vault The address of the vault to update the ratios for.
+     * @param isDeposit A boolean indicating whether the ratios are for a deposit or a withdrawal.
      * @param ratiosX96 An array of target ratios for the vault's underlying tokens.
      * @dev The cumulative ratio must be exactly `Q96`.
      */
-    function updateRatios(address vault, uint128[] memory ratiosX96) external;
+    function updateRatios(
+        address vault,
+        bool isDeposit,
+        uint128[] memory ratiosX96
+    ) external;
 
     /**
      * @notice Returns the encoded ratio data associated with a specific vault address.
      * @param vault The address of the vault to retrieve the data for.
+     * @param isDeposit A boolean indicating whether the ratios are for a deposit or a withdrawal.
      * @return bytes The encoded ratio data.
      */
-    function vaultToData(address vault) external view returns (bytes memory);
+    function vaultToData(
+        address vault,
+        bool isDeposit
+    ) external view returns (bytes memory);
 
     /**
      * @notice Emitted when ratios are updated for a specific vault in the Managed Ratios Oracle.
