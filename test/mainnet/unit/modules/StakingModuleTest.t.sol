@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
-
+import {stdStorage, StdStorage} from "forge-std/Test.sol";
 import "../../Constants.sol";
 
 contract Unit is Test {
-    using ECDSA for bytes32;
-    using MessageHashUtils for bytes32;
+    using stdStorage for StdStorage;
     using SafeERC20 for IERC20;
 
     function testConstructor() external {
@@ -90,9 +89,23 @@ contract Unit is Test {
         assertNotEq(IERC20(Constants.WSTETH).balanceOf(address(this)), 0);
     }
 
+    function simplifyDepositSecurityModule(Vm.Wallet memory guardian) public {
+        IDepositSecurityModule depositSecurityModule = IDepositSecurityModule(
+            Constants.DEPOSIT_SECURITY_MODULE
+        );
+
+        vm.startPrank(depositSecurityModule.getOwner());
+        depositSecurityModule.setMinDepositBlockDistance(1);
+        depositSecurityModule.addGuardian(guardian.addr, 1);
+        int256 guardianIndex = depositSecurityModule.getGuardianIndex(
+            guardian.addr
+        );
+        assertTrue(guardianIndex >= 0);
+        vm.stopPrank();
+    }
+
     function fetchSignatures(
         Vm.Wallet memory guardian,
-        bytes32 ATTEST_MESSAGE_PREFIX,
         uint256 blockNumber,
         bytes32 blockHash,
         bytes32 depositRoot,
@@ -101,7 +114,7 @@ contract Unit is Test {
     ) public returns (IDepositSecurityModule.Signature[] memory sigs) {
         bytes32 message = keccak256(
             abi.encodePacked(
-                ATTEST_MESSAGE_PREFIX,
+                Constants.ATTEST_MESSAGE_PREFIX,
                 blockNumber,
                 blockHash,
                 depositRoot,
@@ -109,119 +122,238 @@ contract Unit is Test {
                 nonce
             )
         );
-        assertEq(
-            message,
-            0x96453aa2f20f60fddcdd2d60d20bd4ea4ee48e6a9406c2afb2152f155ca6902f
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(guardian, message);
+        sigs = new IDepositSecurityModule.Signature[](1);
+        uint8 parity = v - 27;
+        sigs[0] = IDepositSecurityModule.Signature({
+            r: r,
+            vs: bytes32(uint256(s) | (uint256(parity) << 255))
+        });
+        address signerAddr = ecrecover(message, v, r, s);
+        assertEq(signerAddr, guardian.addr);
+    }
+
+    function getAllDepositParams(
+        uint256 blockNumber,
+        Vm.Wallet memory guardian
+    )
+        public
+        returns (
+            bytes32 blockHash,
+            bytes32 depositRoot,
+            uint256 nonce,
+            bytes memory depositCalldata,
+            IDepositSecurityModule.Signature[] memory sigs
+        )
+    {
+        blockHash = blockhash(blockNumber);
+        assertNotEq(bytes32(0), blockHash);
+        uint256 stakingModuleId = Constants.SIMPLE_DVT_MODULE_ID;
+        depositRoot = IDepositContract(Constants.DEPOSIT_CONTRACT)
+            .get_deposit_root();
+        nonce = IStakingRouter(Constants.STAKING_ROUTER).getStakingModuleNonce(
+            stakingModuleId
         );
-        {
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(guardian, message);
-            sigs = new IDepositSecurityModule.Signature[](1);
-            uint8 parity = v - 27;
-            sigs[0] = IDepositSecurityModule.Signature({
-                r: r,
-                vs: bytes32(uint256(s) | (uint256(parity) << 255))
-            });
-            address signerAddr = ecrecover(message, v, r, s);
-            assertEq(signerAddr, guardian.addr);
-        }
+        depositCalldata = new bytes(0);
+        sigs = fetchSignatures(
+            guardian,
+            blockNumber,
+            blockHash,
+            depositRoot,
+            stakingModuleId,
+            nonce
+        );
     }
 
     function testDirectDeposit() external {
-        deal(Constants.WETH, address(this), 544 ether);
-
         uint256 blockNumber = block.number - 1;
-        bytes32 ATTEST_MESSAGE_PREFIX = 0xd85557c963041ae93cfa5927261eeb189c486b6d293ccee7da72ca9387cc241d;
-        uint256 nonce;
-        bytes32 depositRoot;
-
         Vm.Wallet memory guardian = vm.createWallet("guardian");
-        uint256 stakingModuleId = Constants.SIMPLE_DVT_MODULE_ID;
 
-        bytes32 blockHash;
-        {
-            (
-                ,
-                bytes memory response
-            ) = 0x5BA1e12693Dc8F9c48aAD8770482f4739bEeD696.call(
-                    abi.encodeWithSignature(
-                        "getBlockHash(uint256)",
-                        blockNumber
-                    )
-                );
-            blockHash = abi.decode(response, (bytes32));
-        }
-        assertNotEq(bytes32(0), blockHash);
-
-        {
-            (, bytes memory response) = address(
-                0x00000000219ab540356cBB839Cbe05303d7705Fa
-            ).call(abi.encodeWithSignature("get_deposit_root()"));
-            depositRoot = abi.decode(response, (bytes32));
-        }
-        {
-            (, bytes memory response) = address(
-                0xFdDf38947aFB03C621C71b06C9C70bce73f12999
-            ).call(
-                    abi.encodeWithSignature(
-                        "getStakingModuleNonce(uint256)",
-                        stakingModuleId
-                    )
-                );
-            nonce = abi.decode(response, (uint256));
-        }
-
-        {
-            vm.startPrank(0x3e40D73EB977Dc6a537aF587D48316feE66E9C8c);
-            Constants.DEPOSIT_SECURITY_MODULE.call(
-                abi.encodeWithSignature(
-                    "setMinDepositBlockDistance(uint256)",
-                    1
-                )
-            );
-            (bool success, ) = Constants.DEPOSIT_SECURITY_MODULE.call(
-                abi.encodeWithSignature(
-                    "addGuardian(address,uint256)",
-                    guardian.addr,
-                    1
-                )
-            );
-            assertTrue(success);
-
-            (, bytes memory response) = Constants.DEPOSIT_SECURITY_MODULE.call(
-                abi.encodeWithSignature(
-                    "getGuardianIndex(address)",
-                    guardian.addr
-                )
-            );
-            int256 guardianIndex = abi.decode(response, (int256));
-            console2.log("Guardian index:", guardianIndex);
-            assertTrue(guardianIndex >= 0);
-            vm.stopPrank();
-        }
-
-        bytes memory depositCalldata = new bytes(0);
-        IDepositSecurityModule.Signature[]
-            memory sortedGuardianSignatures = fetchSignatures(
-                guardian,
-                ATTEST_MESSAGE_PREFIX,
-                blockNumber,
-                blockHash,
-                depositRoot,
-                stakingModuleId,
-                nonce
-            );
+        simplifyDepositSecurityModule(guardian);
+        (
+            bytes32 blockHash,
+            bytes32 depositRoot,
+            uint256 nonce,
+            bytes memory depositCalldata,
+            IDepositSecurityModule.Signature[] memory sortedGuardianSignatures
+        ) = getAllDepositParams(blockNumber, guardian);
 
         IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE)
             .depositBufferedEther(
                 blockNumber,
                 blockHash,
                 depositRoot,
-                stakingModuleId,
+                Constants.SIMPLE_DVT_MODULE_ID,
                 nonce,
                 depositCalldata,
                 sortedGuardianSignatures
             );
 
+        vm.stopPrank();
+    }
+
+    function testConvertAndDeposit() external {
+        StakingModule module = new StakingModule(
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH,
+            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
+            Constants.SIMPLE_DVT_MODULE_ID
+        );
+
+        uint256 blockNumber = block.number - 1;
+        Vm.Wallet memory guardian = vm.createWallet("guardian");
+
+        simplifyDepositSecurityModule(guardian);
+        (
+            bytes32 blockHash,
+            bytes32 depositRoot,
+            uint256 nonce,
+            bytes memory depositCalldata,
+            IDepositSecurityModule.Signature[] memory sortedGuardianSignatures
+        ) = getAllDepositParams(blockNumber, guardian);
+
+        deal(Constants.WETH, address(this), 1 ether);
+
+        (bool success, bytes memory response) = address(module).delegatecall(
+            abi.encodeWithSelector(
+                module.convertAndDeposit.selector,
+                1 ether,
+                blockNumber,
+                blockHash,
+                depositRoot,
+                nonce,
+                depositCalldata,
+                sortedGuardianSignatures
+            )
+        );
+
+        if (block.number == 19762500 || block.number == 19762100) {
+            assertFalse(success);
+
+            assertEq(IERC20(Constants.WETH).balanceOf(address(this)), 1 ether);
+            assertEq(IERC20(Constants.STETH).balanceOf(address(this)), 0);
+            assertEq(IERC20(Constants.WSTETH).balanceOf(address(this)), 0);
+
+            assertEq(
+                abi.encodeWithSignature("InvalidWithdrawalQueueState()"),
+                response
+            );
+        } else {
+            assertTrue(success);
+
+            assertEq(IERC20(Constants.WETH).balanceOf(address(this)), 0);
+            assertEq(IERC20(Constants.STETH).balanceOf(address(this)), 0);
+            assertNotEq(IERC20(Constants.WSTETH).balanceOf(address(this)), 0);
+        }
+
+        vm.stopPrank();
+    }
+
+    function testConvertAndDepositFailsWithNotEnoughWeth() external {
+        StakingModule module = new StakingModule(
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH,
+            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
+            Constants.SIMPLE_DVT_MODULE_ID
+        );
+
+        uint256 blockNumber = block.number - 1;
+        Vm.Wallet memory guardian = vm.createWallet("guardian");
+
+        simplifyDepositSecurityModule(guardian);
+        (
+            bytes32 blockHash,
+            bytes32 depositRoot,
+            uint256 nonce,
+            bytes memory depositCalldata,
+            IDepositSecurityModule.Signature[] memory sortedGuardianSignatures
+        ) = getAllDepositParams(blockNumber, guardian);
+
+        deal(Constants.WETH, address(this), 1 ether);
+
+        (bool success, bytes memory response) = address(module).delegatecall(
+            abi.encodeWithSelector(
+                module.convertAndDeposit.selector,
+                2 ether,
+                blockNumber,
+                blockHash,
+                depositRoot,
+                nonce,
+                depositCalldata,
+                sortedGuardianSignatures
+            )
+        );
+
+        assertFalse(success);
+
+        assertEq(IERC20(Constants.WETH).balanceOf(address(this)), 1 ether);
+        assertEq(IERC20(Constants.STETH).balanceOf(address(this)), 0);
+        assertEq(IERC20(Constants.WSTETH).balanceOf(address(this)), 0);
+
+        assertEq(abi.encodeWithSignature("NotEnoughWeth()"), response);
+        vm.stopPrank();
+    }
+
+    function testConvertAndDepositFailsWithInvalidWithdrawalQueueState()
+        external
+    {
+        StakingModule module = new StakingModule(
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH,
+            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
+            Constants.SIMPLE_DVT_MODULE_ID
+        );
+
+        uint256 blockNumber = block.number - 1;
+        Vm.Wallet memory guardian = vm.createWallet("guardian");
+
+        simplifyDepositSecurityModule(guardian);
+        (
+            bytes32 blockHash,
+            bytes32 depositRoot,
+            uint256 nonce,
+            bytes memory depositCalldata,
+            IDepositSecurityModule.Signature[] memory sortedGuardianSignatures
+        ) = getAllDepositParams(blockNumber, guardian);
+
+        deal(Constants.WETH, address(this), 1 ether);
+
+        vm.store(
+            Constants.STETH,
+            0xed310af23f61f96daefbcd140b306c0bdbf8c178398299741687b90e794772b0,
+            0
+        );
+
+        (bool success, bytes memory response) = address(module).delegatecall(
+            abi.encodeWithSelector(
+                module.convertAndDeposit.selector,
+                1 ether,
+                blockNumber,
+                blockHash,
+                depositRoot,
+                nonce,
+                depositCalldata,
+                sortedGuardianSignatures
+            )
+        );
+
+        assertFalse(success);
+
+        assertEq(IERC20(Constants.WETH).balanceOf(address(this)), 1 ether);
+        assertEq(IERC20(Constants.STETH).balanceOf(address(this)), 0);
+        assertEq(IERC20(Constants.WSTETH).balanceOf(address(this)), 0);
+
+        assertEq(
+            abi.encodeWithSignature("InvalidWithdrawalQueueState()"),
+            response
+        );
         vm.stopPrank();
     }
 

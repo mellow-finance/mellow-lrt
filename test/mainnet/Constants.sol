@@ -4,9 +4,6 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
 
-import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -35,6 +32,8 @@ import "../../src/libraries/external/FullMath.sol";
 
 import "../../src/interfaces/external/lido/ISteth.sol";
 import "../../src/interfaces/external/lido/IWSteth.sol";
+import "../../src/interfaces/external/lido/IStakingRouter.sol";
+import "../../src/interfaces/external/lido/IDepositContract.sol";
 import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 
 import "./mocks/VaultMock.sol";
@@ -79,5 +78,10 @@ library Constants {
         0xC77F8768774E1c9244BEed705C4354f2113CFc09;
     uint256 public constant SIMPLE_DVT_MODULE_ID = 1;
 
-    // tests for this tx: https://etherscan.io/tx/0xf4d72c894d05239c5a6218344bcb1046ebfab63205218b37aad8c5e07e73935d
+    bytes32 public constant ATTEST_MESSAGE_PREFIX =
+        0xd85557c963041ae93cfa5927261eeb189c486b6d293ccee7da72ca9387cc241d;
+    address public constant DEPOSIT_CONTRACT =
+        0x00000000219ab540356cBB839Cbe05303d7705Fa;
+    address public constant STAKING_ROUTER =
+        0xFdDf38947aFB03C621C71b06C9C70bce73f12999;
 }

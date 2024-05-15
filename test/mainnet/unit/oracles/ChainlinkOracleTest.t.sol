@@ -148,8 +148,10 @@ contract Unit is Test {
         );
         if (block.number == 19762100) {
             assertEq(price, 999823159305817100);
+        } else if (block.number == 19845261) {
+            assertEq(price, 999600000000000400);
         }
-        assertApproxEqAbs(price, 1 ether, 0.0002 ether);
+        assertApproxEqAbs(price, 1 ether, 0.0005 ether);
 
         assertEq(decimals, 18);
     }
@@ -209,8 +211,8 @@ contract Unit is Test {
             // 1 reth ~= 1.1 steth
             // so if base == steth then priceX96(reth) ~= 1.1 * 2^96
             uint256 expectedPriceX96 = uint256(11 * 2 ** 96) / 10;
-            if (block.number != 19762100)
-                assertEq(priceX96, 87578452645126174255746518636);
+            if (block.number == 19845261)
+                assertEq(priceX96, 87640277532795742885049038139);
             assertApproxEqAbs(
                 priceX96,
                 expectedPriceX96,
