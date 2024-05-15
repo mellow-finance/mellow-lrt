@@ -23,6 +23,7 @@ import "../../src/oracles/ManagedRatiosOracle.sol";
 import "../../src/modules/erc20/ERC20TvlModule.sol";
 import "../../src/modules/erc20/ERC20SwapModule.sol";
 import "../../src/modules/erc20/ManagedTvlModule.sol";
+import "../../src/modules/obol/StakingModule.sol";
 
 import "../../src/modules/symbiotic/DefaultBondModule.sol";
 import "../../src/modules/symbiotic/DefaultBondTvlModule.sol";
@@ -68,4 +69,8 @@ library Constants {
         0x536218f9E9Eb48863970252233c8F271f554C2d0;
     address public constant WETH_CHAINLINK_ORACLE =
         0x86392dC19c0b719886221c78AB11eb8Cf5c52812;
+
+    address public constant WITHDRAWAL_QUEUE = address(0);
+    address public constant DEPOSIT_SECURITY_MODULE = address(0);
+    uint256 public constant SIMPLE_DVT_MODULE_ID = 0;
 }

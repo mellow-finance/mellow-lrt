@@ -10,7 +10,7 @@ contract DefaultObolStakingStrategy is
     DefaultAccessControl
 {
     /// @inheritdoc IDefaultObolStakingStrategy
-    address public immutable vault;
+    IVault public immutable vault;
     /// @inheritdoc IDefaultObolStakingStrategy
     IStakingModule public immutable stakingModule;
     /// @inheritdoc IDefaultObolStakingStrategy
@@ -18,7 +18,7 @@ contract DefaultObolStakingStrategy is
 
     constructor(
         address admin,
-        address vault_,
+        IVault vault_,
         IStakingModule stakingModule_
     ) DefaultAccessControl(admin) {
         vault = vault_;
@@ -30,6 +30,32 @@ contract DefaultObolStakingStrategy is
         _requireAdmin();
         maxAllowedRemainder = newMaxAllowedRemainder;
         emit MaxAllowedRemainderChanged(newMaxAllowedRemainder, msg.sender);
+    }
+
+    /// @inheritdoc IDefaultObolStakingStrategy
+    function convertAndDeposit(
+        uint256 amount,
+        uint256 blockNumber,
+        bytes32 blockHash,
+        bytes32 depositRoot,
+        uint256 nonce,
+        bytes calldata depositCalldata,
+        IDepositSecurityModule.Signature[] calldata sortedGuardianSignatures
+    ) external returns (bool success) {
+        _requireAtLeastOperator();
+        (success, ) = vault.delegateCall(
+            address(stakingModule),
+            abi.encodeWithSelector(
+                IStakingModule.convertAndDeposit.selector,
+                amount,
+                blockNumber,
+                blockHash,
+                depositRoot,
+                nonce,
+                depositCalldata,
+                sortedGuardianSignatures
+            )
+        );
     }
 
     /// @inheritdoc IDefaultObolStakingStrategy
@@ -45,7 +71,7 @@ contract DefaultObolStakingStrategy is
             return;
         }
 
-        (bool success, ) = vault.delegateCall(
+        vault.delegateCall(
             address(stakingModule),
             abi.encodeWithSelector(
                 IStakingModule.convert.selector,

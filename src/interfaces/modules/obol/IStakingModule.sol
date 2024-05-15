@@ -21,6 +21,7 @@ interface IStakingModule {
         external
         view
         returns (IDepositSecurityModule);
+
     function withdrawalQueue() external view returns (IWithdrawalQueue);
 
     function simpleDVTModuleId() external view returns (uint256);
