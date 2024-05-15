@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
 
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -70,7 +73,11 @@ library Constants {
     address public constant WETH_CHAINLINK_ORACLE =
         0x86392dC19c0b719886221c78AB11eb8Cf5c52812;
 
-    address public constant WITHDRAWAL_QUEUE = address(0);
-    address public constant DEPOSIT_SECURITY_MODULE = address(0);
-    uint256 public constant SIMPLE_DVT_MODULE_ID = 0;
+    address public constant WITHDRAWAL_QUEUE =
+        0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1;
+    address public constant DEPOSIT_SECURITY_MODULE =
+        0xC77F8768774E1c9244BEed705C4354f2113CFc09;
+    uint256 public constant SIMPLE_DVT_MODULE_ID = 1;
+
+    // tests for this tx: https://etherscan.io/tx/0xf4d72c894d05239c5a6218344bcb1046ebfab63205218b37aad8c5e07e73935d
 }
