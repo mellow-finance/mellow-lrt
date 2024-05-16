@@ -24,7 +24,7 @@ interface IStakingModule {
 
     function withdrawalQueue() external view returns (IWithdrawalQueue);
 
-    function simpleDVTModuleId() external view returns (uint256);
+    function stakingModuleId() external view returns (uint256);
 
     function convert(uint256 amount) external;
 

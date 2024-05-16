@@ -21,5 +21,8 @@
     "audit_scope": "scc src --exclude-dir libraries --exclude-dir interfaces --by-file --wide",
     "coverage": "forge coverage --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261",
     "coverage:report": "forge coverage --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --report lcov && genhtml lcov.info -o report --branch-coverage && rm lcov.info"
+  },
+  "dependencies": {
+    "solidity-code-metrics": "^0.0.26"
   }
 }

@@ -21,7 +21,7 @@ contract StakingModule is IStakingModule, DefaultModule {
     IWithdrawalQueue public immutable withdrawalQueue;
 
     /// @inheritdoc IStakingModule
-    uint256 public immutable simpleDVTModuleId;
+    uint256 public immutable stakingModuleId;
 
     constructor(
         address weth_,
@@ -29,20 +29,19 @@ contract StakingModule is IStakingModule, DefaultModule {
         address wsteth_,
         IDepositSecurityModule depositSecurityModule_,
         IWithdrawalQueue withdrawalQueue_,
-        uint256 simpleDVTModuleId_
+        uint256 stakingModuleId_
     ) {
         weth = weth_;
         steth = steth_;
         wsteth = wsteth_;
         depositSecurityModule = depositSecurityModule_;
         withdrawalQueue = withdrawalQueue_;
-        simpleDVTModuleId = simpleDVTModuleId_;
+        stakingModuleId = stakingModuleId_;
     }
 
     /// @inheritdoc IStakingModule
     function convert(uint256 amount) external onlyDelegateCall {
-        _wethToSteth(amount);
-        _stethToWsteth(amount);
+        _wethToWSteth(amount);
     }
 
     /// @inheritdoc IStakingModule
@@ -63,25 +62,21 @@ contract StakingModule is IStakingModule, DefaultModule {
         if (bufferedEther < unfinalizedStETH)
             revert InvalidWithdrawalQueueState();
 
-        _wethToSteth(amount);
+        _wethToWSteth(amount);
         depositSecurityModule.depositBufferedEther(
             blockNumber,
             blockHash,
             depositRoot,
-            simpleDVTModuleId,
+            stakingModuleId,
             nonce,
             depositCalldata,
             sortedGuardianSignatures
         );
-        _stethToWsteth(amount);
     }
 
-    function _wethToSteth(uint256 amount) private {
+    function _wethToWSteth(uint256 amount) private {
         IWeth(weth).withdraw(amount);
         ISteth(steth).submit{value: amount}(address(0));
-    }
-
-    function _stethToWsteth(uint256 amount) private {
         IERC20(steth).safeIncreaseAllowance(address(wsteth), amount);
         IWSteth(wsteth).wrap(amount);
     }

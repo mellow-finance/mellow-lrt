@@ -24,7 +24,7 @@ contract Unit is Test {
             Constants.DEPOSIT_SECURITY_MODULE
         );
         assertEq(address(module.withdrawalQueue()), Constants.WITHDRAWAL_QUEUE);
-        assertEq(module.simpleDVTModuleId(), Constants.SIMPLE_DVT_MODULE_ID);
+        assertEq(module.stakingModuleId(), Constants.SIMPLE_DVT_MODULE_ID);
 
         module = new StakingModule(
             address(0),
@@ -39,7 +39,7 @@ contract Unit is Test {
         assertEq(module.wsteth(), address(0));
         assertEq(address(module.depositSecurityModule()), address(0));
         assertEq(address(module.withdrawalQueue()), address(0));
-        assertEq(module.simpleDVTModuleId(), 0);
+        assertEq(module.stakingModuleId(), 0);
     }
 
     function testExternalCall() external {
