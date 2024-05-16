@@ -14,7 +14,9 @@ interface IStakingModule {
     error InvalidWithdrawalQueueState();
 
     function weth() external view returns (address);
+
     function steth() external view returns (address);
+
     function wsteth() external view returns (address);
 
     function depositSecurityModule()
