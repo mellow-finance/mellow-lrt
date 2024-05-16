@@ -28,10 +28,18 @@ interface IDefaultObolStakingStrategy {
     function processWithdrawals(
         address[] memory users,
         uint256 amountForStake
-    ) external;
+    ) external returns (bool[] memory statuses);
 
     event MaxAllowedRemainderChanged(
         uint256 newMaxAllowedRemainder,
         address indexed changer
+    );
+
+    event ConvertAndDeposit(bool success, address indexed caller);
+
+    event ProcessWithdrawals(
+        address[] users,
+        uint256 amountForStake,
+        address indexed caller
     );
 }

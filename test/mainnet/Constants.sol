@@ -16,7 +16,7 @@ import "../../src/validators/DefaultBondValidator.sol";
 import "../../src/validators/ERC20SwapValidator.sol";
 import "../../src/utils/DefaultAccessControl.sol";
 import "../../src/utils/DepositWrapper.sol";
-import "../../src/strategies/DefaultBondStrategy.sol";
+import "../../src/strategies/DefaultObolStakingStrategy.sol";
 import "../../src/strategies/DefaultBondStrategy.sol";
 import "../../src/oracles/ChainlinkOracle.sol";
 import "../../src/oracles/ManagedRatiosOracle.sol";
@@ -55,6 +55,8 @@ library Constants {
     uint8 public constant DEFAULT_BOND_ROLE = 1;
     uint8 public constant SWAP_ROUTER_ROLE = 2;
     uint8 public constant BOND_STRATEGY_ROLE = 3;
+    uint8 public constant OBOL_MODULE_ROLE = 4;
+    uint8 public constant OBOL_STRATEGY_ROLE = 5;
 
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;

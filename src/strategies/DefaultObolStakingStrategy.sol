@@ -56,20 +56,19 @@ contract DefaultObolStakingStrategy is
                 sortedGuardianSignatures
             )
         );
+        emit ConvertAndDeposit(success, msg.sender);
     }
 
     /// @inheritdoc IDefaultObolStakingStrategy
     function processWithdrawals(
         address[] memory users,
         uint256 amountForStake
-    ) external {
+    ) external returns (bool[] memory statuses) {
         _requireAtLeastOperator();
-        if (users.length == 0) return;
+        if (users.length == 0) return statuses;
+        emit ProcessWithdrawals(users, amountForStake, msg.sender);
 
-        if (amountForStake == 0) {
-            vault.processWithdrawals(users);
-            return;
-        }
+        if (amountForStake == 0) return vault.processWithdrawals(users);
 
         vault.delegateCall(
             address(stakingModule),
@@ -79,8 +78,7 @@ contract DefaultObolStakingStrategy is
             )
         );
 
-        vault.processWithdrawals(users);
-
+        statuses = vault.processWithdrawals(users);
         address wsteth = stakingModule.wsteth();
         uint256 balance = IERC20(wsteth).balanceOf(address(vault));
         if (balance > maxAllowedRemainder) revert LimitOverflow();
