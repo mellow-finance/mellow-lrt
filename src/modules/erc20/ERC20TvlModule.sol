@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.21;
 
 import "../../interfaces/modules/erc20/IERC20TvlModule.sol";
 import "../DefaultModule.sol";

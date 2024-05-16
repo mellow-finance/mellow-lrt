@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.21;
 
 import "../utils/IDefaultAccessControl.sol";
 import "../external/chainlink/IAggregatorV3.sol";
