@@ -209,8 +209,8 @@ contract Unit is Test {
         vm.startPrank(admin);
 
         ERC20TvlModule tvlModule = new ERC20TvlModule();
-        vault.addTvlModule(address(tvlModule));
         vault.addToken(Constants.WETH);
+        vault.addTvlModule(address(tvlModule));
         deal(Constants.WETH, address(vault), 1 ether);
 
         vm.expectRevert(abi.encodeWithSignature("NonZeroValue()"));
@@ -1107,21 +1107,26 @@ contract Unit is Test {
             tokens[1] = Constants.RETH;
             tokens[2] = Constants.WETH;
 
-            address[] memory oracles = new address[](3);
-            oracles[0] = address(
-                new AggregatorV3WstethMock(
-                    Constants.WSTETH,
-                    IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
-                )
-            );
-            oracles[1] = Constants.RETH_CHAINLINK_ORACLE;
-            oracles[2] = address(new AggregatorV3WethMock());
-
-            chainlinkOracle.setChainlinkOracles(
-                address(vault),
-                tokens,
-                oracles
-            );
+            IChainlinkOracle.AggregatorData[]
+                memory data = new IChainlinkOracle.AggregatorData[](3);
+            data[0] = IChainlinkOracle.AggregatorData({
+                aggregatorV3: address(
+                    new AggregatorV3WstethMock(
+                        Constants.WSTETH,
+                        IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
+                    )
+                ),
+                maxAge: 30 days
+            });
+            data[1] = IChainlinkOracle.AggregatorData({
+                aggregatorV3: Constants.RETH_CHAINLINK_ORACLE,
+                maxAge: 30 days
+            });
+            data[2] = IChainlinkOracle.AggregatorData({
+                aggregatorV3: address(new AggregatorV3WethMock()),
+                maxAge: 30 days
+            });
+            chainlinkOracle.setChainlinkOracles(address(vault), tokens, data);
 
             configurator.stagePriceOracle(address(chainlinkOracle));
             configurator.commitPriceOracle();

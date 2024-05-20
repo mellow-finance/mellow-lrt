@@ -16,7 +16,7 @@ import "../../src/validators/DefaultBondValidator.sol";
 import "../../src/validators/ERC20SwapValidator.sol";
 import "../../src/utils/DefaultAccessControl.sol";
 import "../../src/utils/DepositWrapper.sol";
-import "../../src/strategies/DefaultObolStakingStrategy.sol";
+import "../../src/strategies/SimpleDVTStakingStrategy.sol";
 import "../../src/strategies/DefaultBondStrategy.sol";
 import "../../src/oracles/ChainlinkOracle.sol";
 import "../../src/oracles/ManagedRatiosOracle.sol";
@@ -43,6 +43,7 @@ import "./mocks/AggregatorV3WstethMock.sol";
 import "./mocks/AggregatorV3WethMock.sol";
 import "./mocks/WithdrawalCallbackMock.sol";
 import "./mocks/DepositCallbackMock.sol";
+import "./mocks/FullMathMock.sol";
 
 library Constants {
     address public constant VAULT_ADMIN =

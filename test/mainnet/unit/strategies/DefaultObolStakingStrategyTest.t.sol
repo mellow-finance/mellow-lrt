@@ -13,6 +13,18 @@ contract Unit is Test {
     address public immutable operator =
         address(bytes20(keccak256("vault-operator")));
 
+    function _convert(
+        address[] memory aggregators
+    ) private pure returns (IChainlinkOracle.AggregatorData[] memory data) {
+        data = new IChainlinkOracle.AggregatorData[](aggregators.length);
+        for (uint256 i = 0; i < aggregators.length; i++) {
+            data[i] = IChainlinkOracle.AggregatorData({
+                aggregatorV3: aggregators[i],
+                maxAge: 30 days
+            });
+        }
+    }
+
     function testConstructor() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         StakingModule stakingModule = new StakingModule(
@@ -23,7 +35,7 @@ contract Unit is Test {
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             vault,
             stakingModule
@@ -37,7 +49,7 @@ contract Unit is Test {
     }
 
     function testConstructorZeroParams() external {
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             IVault(address(0)),
             IStakingModule(address(0))
@@ -60,7 +72,7 @@ contract Unit is Test {
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             vault,
             stakingModule
@@ -82,7 +94,7 @@ contract Unit is Test {
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             vault,
             stakingModule
@@ -181,7 +193,7 @@ contract Unit is Test {
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             vault,
             stakingModule
@@ -250,7 +262,7 @@ contract Unit is Test {
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             vault,
             stakingModule
@@ -308,7 +320,7 @@ contract Unit is Test {
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             vault,
             stakingModule
@@ -362,7 +374,11 @@ contract Unit is Test {
                     IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
                 )
             );
-            oracle.setChainlinkOracles(address(vault), tokens, oracles);
+            oracle.setChainlinkOracles(
+                address(vault),
+                tokens,
+                _convert(oracles)
+            );
 
             configurator.stagePriceOracle(address(oracle));
             configurator.commitPriceOracle();
@@ -466,7 +482,7 @@ contract Unit is Test {
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             vault,
             stakingModule
@@ -520,7 +536,11 @@ contract Unit is Test {
                     IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
                 )
             );
-            oracle.setChainlinkOracles(address(vault), tokens, oracles);
+            oracle.setChainlinkOracles(
+                address(vault),
+                tokens,
+                _convert(oracles)
+            );
 
             configurator.stagePriceOracle(address(oracle));
             configurator.commitPriceOracle();
@@ -610,7 +630,7 @@ contract Unit is Test {
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             vault,
             stakingModule
@@ -664,7 +684,11 @@ contract Unit is Test {
                     IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
                 )
             );
-            oracle.setChainlinkOracles(address(vault), tokens, oracles);
+            oracle.setChainlinkOracles(
+                address(vault),
+                tokens,
+                _convert(oracles)
+            );
 
             configurator.stagePriceOracle(address(oracle));
             configurator.commitPriceOracle();
@@ -747,7 +771,7 @@ contract Unit is Test {
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
-        DefaultObolStakingStrategy strategy = new DefaultObolStakingStrategy(
+        SimpleDVTStakingStrategy strategy = new SimpleDVTStakingStrategy(
             strategyAdmin,
             vault,
             stakingModule
@@ -801,7 +825,11 @@ contract Unit is Test {
                     IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
                 )
             );
-            oracle.setChainlinkOracles(address(vault), tokens, oracles);
+            oracle.setChainlinkOracles(
+                address(vault),
+                tokens,
+                _convert(oracles)
+            );
 
             configurator.stagePriceOracle(address(oracle));
             configurator.commitPriceOracle();

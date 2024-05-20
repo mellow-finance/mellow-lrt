@@ -144,6 +144,18 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
+    function _convert(
+        address[] memory aggregators
+    ) private pure returns (IChainlinkOracle.AggregatorData[] memory data) {
+        data = new IChainlinkOracle.AggregatorData[](aggregators.length);
+        for (uint256 i = 0; i < aggregators.length; i++) {
+            data[i] = IChainlinkOracle.AggregatorData({
+                aggregatorV3: aggregators[i],
+                maxAge: 30 days
+            });
+        }
+    }
+
     function _setUp(Vault vault) private {
         ERC20TvlModule erc20TvlModule = new ERC20TvlModule();
         vault.addTvlModule(address(erc20TvlModule));
@@ -192,7 +204,7 @@ contract Unit is Test {
             chainlinkOracle.setChainlinkOracles(
                 address(vault),
                 tokens,
-                oracles
+                _convert(oracles)
             );
 
             configurator.stagePriceOracle(address(chainlinkOracle));

@@ -57,7 +57,7 @@ import "./IVaultConfigurator.sol";
  *      Upon calling removeToken, it is checked that the underlyingTvl function for the specified token returns a zero value. Otherwise, the function reverts with a NonZeroValue error.
  *      It is important to note that there is no such check when calling removeTvlModule, so when updating parameters, sequential execution of a transaction to remove the old and add the new tvlModule is implied.
  */
-interface IVault {
+interface IVault is IERC20 {
     /// @dev Errors
     error Deadline();
     error InvalidState();
@@ -115,6 +115,15 @@ interface IVault {
         external
         view
         returns (address[] memory users);
+
+    /// @notice Returns an array of addresses with pending withdrawal requests.
+    /// @param limit The maximum number of users to return.
+    /// @param offset The number of users to skip before returning.
+    /// @return users An array of addresses with pending withdrawal requests.
+    function pendingWithdrawers(
+        uint256 limit,
+        uint256 offset
+    ) external view returns (address[] memory users);
 
     /// @notice Returns an array of underlying tokens of the vault.
     /// @return underlyinigTokens_ An array of underlying token addresses.

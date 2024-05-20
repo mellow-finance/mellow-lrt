@@ -4,7 +4,7 @@ pragma solidity ^0.8.21;
 import "../modules/obol/IStakingModule.sol";
 import "../IVault.sol";
 
-interface IDefaultObolStakingStrategy {
+interface ISimpleDVTStakingStrategy {
     error LimitOverflow();
 
     function vault() external view returns (IVault);

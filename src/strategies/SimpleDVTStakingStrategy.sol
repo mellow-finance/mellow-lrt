@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.21;
 
-import "../interfaces/strategies/IDefaultObolStakingStrategy.sol";
+import "../interfaces/strategies/ISimpleDVTStakingStrategy.sol";
 
 import "../utils/DefaultAccessControl.sol";
 
-contract DefaultObolStakingStrategy is
-    IDefaultObolStakingStrategy,
+contract SimpleDVTStakingStrategy is
+    ISimpleDVTStakingStrategy,
     DefaultAccessControl
 {
-    /// @inheritdoc IDefaultObolStakingStrategy
+    /// @inheritdoc ISimpleDVTStakingStrategy
     IVault public immutable vault;
-    /// @inheritdoc IDefaultObolStakingStrategy
+    /// @inheritdoc ISimpleDVTStakingStrategy
     IStakingModule public immutable stakingModule;
-    /// @inheritdoc IDefaultObolStakingStrategy
+    /// @inheritdoc ISimpleDVTStakingStrategy
     uint256 public maxAllowedRemainder;
 
     constructor(
@@ -25,14 +25,14 @@ contract DefaultObolStakingStrategy is
         stakingModule = stakingModule_;
     }
 
-    /// @inheritdoc IDefaultObolStakingStrategy
+    /// @inheritdoc ISimpleDVTStakingStrategy
     function setMaxAllowedRemainder(uint256 newMaxAllowedRemainder) external {
         _requireAdmin();
         maxAllowedRemainder = newMaxAllowedRemainder;
         emit MaxAllowedRemainderChanged(newMaxAllowedRemainder, msg.sender);
     }
 
-    /// @inheritdoc IDefaultObolStakingStrategy
+    /// @inheritdoc ISimpleDVTStakingStrategy
     function convertAndDeposit(
         uint256 amount,
         uint256 blockNumber,
@@ -59,7 +59,7 @@ contract DefaultObolStakingStrategy is
         emit ConvertAndDeposit(success, msg.sender);
     }
 
-    /// @inheritdoc IDefaultObolStakingStrategy
+    /// @inheritdoc ISimpleDVTStakingStrategy
     function processWithdrawals(
         address[] memory users,
         uint256 amountForStake

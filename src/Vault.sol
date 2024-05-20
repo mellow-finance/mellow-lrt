@@ -25,7 +25,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     EnumerableSet.AddressSet private _pendingWithdrawers;
 
     address[] private _underlyingTokens;
-    EnumerableSet.AddressSet private _underlyingTokensSet;
+    mapping(address => bool) private _isUnderlyingToken;
 
     EnumerableSet.AddressSet private _tvlModules;
 
@@ -39,6 +39,24 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         address user
     ) external view returns (WithdrawalRequest memory) {
         return _withdrawalRequest[user];
+    }
+
+    /// @inheritdoc IVault
+    function pendingWithdrawers(
+        uint256 limit,
+        uint256 offset
+    ) external view returns (address[] memory) {
+        EnumerableSet.AddressSet
+            storage pendingWithdrawers_ = _pendingWithdrawers;
+        uint256 count = pendingWithdrawers_.length();
+        if (offset >= count) return new address[](0);
+        count -= offset;
+        if (count > limit) count = limit;
+        address[] memory result = new address[](count);
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = pendingWithdrawers_.at(offset + i);
+        }
+        return result;
     }
 
     /// @inheritdoc IVault
@@ -63,12 +81,13 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         amounts = new uint256[](tokens.length);
         uint256[] memory negativeAmounts = new uint256[](tokens.length);
         ITvlModule.Data[] memory tvl_ = _tvls();
+        ITvlModule.Data memory data;
         for (uint256 i = 0; i < tvl_.length; i++) {
-            ITvlModule.Data memory data = tvl_[i];
+            data = tvl_[i];
+            (uint256 amount, address token) = isUnderlying
+                ? (data.underlyingAmount, data.underlyingToken)
+                : (data.amount, data.token);
             for (uint256 j = 0; j < tokens.length; j++) {
-                (uint256 amount, address token) = isUnderlying
-                    ? (data.underlyingAmount, data.underlyingToken)
-                    : (data.amount, data.token);
                 if (token != tokens[j]) continue;
                 (data.isDebt ? negativeAmounts : amounts)[j] += amount;
                 break;
@@ -154,9 +173,9 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function addToken(address token) external nonReentrant {
         _requireAdmin();
         if (token == address(0)) revert InvalidToken();
-        if (_underlyingTokensSet.contains(token)) revert InvalidToken();
+        if (_isUnderlyingToken[token]) revert InvalidToken();
         if (token == address(this)) revert InvalidToken();
-        _underlyingTokensSet.add(token);
+        _isUnderlyingToken[token] = true;
         address[] storage tokens = _underlyingTokens;
         tokens.push(token);
         uint256 n = tokens.length;
@@ -176,7 +195,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     /// @inheritdoc IVault
     function removeToken(address token) external nonReentrant {
         _requireAdmin();
-        if (!_underlyingTokensSet.contains(token)) revert InvalidToken();
+        if (!_isUnderlyingToken[token]) revert InvalidToken();
         (address[] memory tokens, uint256[] memory amounts) = underlyingTvl();
         uint256 index = tokens.length;
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -186,7 +205,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
                 break;
             }
         }
-        _underlyingTokensSet.remove(token);
+        _isUnderlyingToken[token] = false;
         while (index + 1 < tokens.length) {
             _underlyingTokens[index] = tokens[index + 1];
             index++;
@@ -200,11 +219,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         _requireAdmin();
         ITvlModule.Data[] memory data = ITvlModule(module).tvl(address(this));
         for (uint256 i = 0; i < data.length; i++) {
-            if (!_underlyingTokensSet.contains(data[i].underlyingToken))
+            if (!_isUnderlyingToken[data[i].underlyingToken])
                 revert InvalidToken();
         }
-        _tvlModules.add(module);
-        emit TvlModuleAdded(module);
+        if (!_tvlModules.add(module)) {
+            emit TvlModuleAdded(module);
+        }
     }
 
     /// @inheritdoc IVault
@@ -288,7 +308,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             uint256 priceX96 = priceOracle.priceX96(address(this), tokens[i]);
             totalValue += totalAmounts[i] == 0
                 ? 0
-                : FullMath.mulDiv(totalAmounts[i], priceX96, Q96);
+                : FullMath.mulDivRoundingUp(totalAmounts[i], priceX96, Q96);
             if (ratiosX96[i] == 0) continue;
             uint256 amount = FullMath.mulDiv(ratioX96, ratiosX96[i], Q96);
             IERC20(tokens[i]).safeTransferFrom(
@@ -361,7 +381,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         if (minAmounts.length != tokens.length) revert InvalidLength();
         actualAmounts = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
-            if (amounts[i] == 0) continue;
+            if (amounts[i] == 0) {
+                if (minAmounts[i] != 0) revert InsufficientAmount();
+                continue;
+            }
             uint256 amount = FullMath.mulDiv(
                 IERC20(tokens[i]).balanceOf(address(this)),
                 request.lpAmount,
@@ -379,11 +402,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
     /// @inheritdoc IVault
     function cancelWithdrawalRequest() external nonReentrant {
-        _cancelWithdrawalRequest(msg.sender);
+        address sender = msg.sender;
+        if (!_pendingWithdrawers.contains(sender)) return;
+        _cancelWithdrawalRequest(sender);
     }
 
     function _cancelWithdrawalRequest(address sender) private {
-        if (!_pendingWithdrawers.contains(sender)) return;
         WithdrawalRequest memory request = _withdrawalRequest[sender];
         delete _withdrawalRequest[sender];
         _pendingWithdrawers.remove(sender);
@@ -505,6 +529,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 burningSupply = 0;
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
+            if (!_pendingWithdrawers.contains(user)) continue;
             WithdrawalRequest memory request = _withdrawalRequest[user];
             (
                 bool isProcessingPossible,
@@ -520,11 +545,11 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             if (!isWithdrawalPossible) continue;
 
             for (uint256 j = 0; j < s.tokens.length; j++) {
+                s.erc20Balances[j] -= expectedAmounts[j];
                 IERC20(s.tokens[j]).safeTransfer(
                     request.to,
                     expectedAmounts[j]
                 );
-                s.erc20Balances[j] -= expectedAmounts[j];
             }
 
             burningSupply += request.lpAmount;
@@ -533,13 +558,15 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             statuses[i] = true;
         }
 
-        if (burningSupply > 0) _burn(address(this), burningSupply);
-        emit WithdrawalsProcessed(users, statuses);
+        if (burningSupply > 0) {
+            _burn(address(this), burningSupply);
+            emit WithdrawalsProcessed(users, statuses);
 
-        address callback = configurator.withdrawalCallback();
-        if (callback == address(0)) return statuses;
-        IWithdrawalCallback(callback).withdrawalCallback();
-        emit WithdrawCallback(callback);
+            address callback = configurator.withdrawalCallback();
+            if (callback == address(0)) return statuses;
+            IWithdrawalCallback(callback).withdrawalCallback();
+            emit WithdrawCallback(callback);
+        }
     }
 
     receive() external payable {}

@@ -178,6 +178,8 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     function stageMaximalTotalSupply(
         uint256 maximalTotalSupply_
     ) external onlyAdmin nonReentrant {
+        if (maximalTotalSupply_ < IVault(vault).totalSupply())
+            revert InvalidTotalSupply();
         _stage(_maximalTotalSupply, maximalTotalSupply_);
     }
 

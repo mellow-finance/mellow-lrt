@@ -2,6 +2,7 @@
 pragma solidity ^0.8.21;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./IVault.sol";
 
 /**
  * @title IVaultConfigurator
@@ -35,6 +36,7 @@ interface IVaultConfigurator {
     error InvalidDelay();
     error InvalidTimestamp();
     error InvalidWithdrawalFee();
+    error InvalidTotalSupply();
 
     /// @notice Struct to represent a staged data change with a delay period.
     struct Data {

@@ -12,9 +12,18 @@ contract ChainlinkOracle is IChainlinkOracle {
     uint256 public constant Q96 = 2 ** 96;
 
     /// @inheritdoc IChainlinkOracle
-    mapping(address => mapping(address => address)) public aggregatorsV3;
-    /// @inheritdoc IChainlinkOracle
     mapping(address => address) public baseTokens;
+
+    mapping(address => mapping(address => AggregatorData))
+        private _aggregatorsData;
+
+    /// @inheritdoc IChainlinkOracle
+    function aggregatorsData(
+        address vault,
+        address token
+    ) external view returns (AggregatorData memory) {
+        return _aggregatorsData[vault][token];
+    }
 
     /// @inheritdoc IChainlinkOracle
     function setBaseToken(address vault, address baseToken) external {
@@ -27,17 +36,17 @@ contract ChainlinkOracle is IChainlinkOracle {
     function setChainlinkOracles(
         address vault,
         address[] memory tokens,
-        address[] memory oracles
+        AggregatorData[] memory aggregatorsData_
     ) external {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
-        if (tokens.length != oracles.length) revert InvalidLength();
+        if (tokens.length != aggregatorsData_.length) revert InvalidLength();
         for (uint256 i = 0; i < tokens.length; i++) {
-            aggregatorsV3[vault][tokens[i]] = oracles[i];
+            _aggregatorsData[vault][tokens[i]] = aggregatorsData_[i];
         }
         emit ChainlinkOracleSetChainlinkOracles(
             vault,
             tokens,
-            oracles,
+            aggregatorsData_,
             block.timestamp
         );
     }
@@ -47,14 +56,15 @@ contract ChainlinkOracle is IChainlinkOracle {
         address vault,
         address token
     ) public view returns (uint256 answer, uint8 decimals) {
-        address aggregatorV3 = aggregatorsV3[vault][token];
+        AggregatorData memory aggregatorData_ = _aggregatorsData[vault][token];
+        address aggregatorV3 = aggregatorData_.aggregatorV3;
         if (aggregatorV3 == address(0)) revert AddressZero();
-        uint256 lastTimestamp;
-        int256 signedAnswer;
-        (, signedAnswer, , lastTimestamp, ) = IAggregatorV3(aggregatorV3)
-            .latestRoundData();
+        (, int256 signedAnswer, , uint256 lastTimestamp, ) = IAggregatorV3(
+            aggregatorV3
+        ).latestRoundData();
+        if (signedAnswer < 0) revert InvalidOracleData();
         answer = uint256(signedAnswer);
-        if (block.timestamp - MAX_ORACLE_AGE > lastTimestamp)
+        if (block.timestamp - aggregatorData_.maxAge > lastTimestamp)
             revert StaleOracle();
         decimals = IAggregatorV3(aggregatorV3).decimals();
     }

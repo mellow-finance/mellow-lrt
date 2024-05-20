@@ -55,18 +55,61 @@ contract Unit is Test {
         tokens[0] = Constants.STETH;
         tokens[1] = Constants.RETH;
 
-        address[] memory oracles = new address[](2);
-        oracles[0] = Constants.STETH_CHAINLINK_ORACLE;
-        oracles[1] = Constants.RETH_CHAINLINK_ORACLE;
+        IChainlinkOracle.AggregatorData[]
+            memory data = new IChainlinkOracle.AggregatorData[](2);
 
-        assertEq(oracle.aggregatorsV3(address(vault), tokens[0]), address(0));
-        assertEq(oracle.aggregatorsV3(address(vault), tokens[1]), address(0));
+        data[0] = IChainlinkOracle.AggregatorData({
+            aggregatorV3: Constants.STETH_CHAINLINK_ORACLE,
+            maxAge: 30 days
+        });
+
+        data[1] = IChainlinkOracle.AggregatorData({
+            aggregatorV3: Constants.RETH_CHAINLINK_ORACLE,
+            maxAge: 30 days
+        });
+
+        assertEq(
+            oracle.aggregatorsData(address(vault), tokens[0]).aggregatorV3,
+            address(0)
+        );
+        assertEq(
+            oracle.aggregatorsData(address(vault), tokens[1]).aggregatorV3,
+            address(0)
+        );
+        assertEq(oracle.aggregatorsData(address(vault), tokens[0]).maxAge, 0);
+        assertEq(oracle.aggregatorsData(address(vault), tokens[1]).maxAge, 0);
 
         vm.prank(admin);
-        oracle.setChainlinkOracles(address(vault), tokens, oracles);
+        oracle.setChainlinkOracles(address(vault), tokens, data);
 
-        assertEq(oracle.aggregatorsV3(address(vault), tokens[0]), oracles[0]);
-        assertEq(oracle.aggregatorsV3(address(vault), tokens[1]), oracles[1]);
+        assertEq(
+            oracle.aggregatorsData(address(vault), tokens[0]).aggregatorV3,
+            data[0].aggregatorV3
+        );
+        assertEq(
+            oracle.aggregatorsData(address(vault), tokens[1]).aggregatorV3,
+            data[1].aggregatorV3
+        );
+        assertEq(
+            oracle.aggregatorsData(address(vault), tokens[0]).maxAge,
+            30 days
+        );
+        assertEq(
+            oracle.aggregatorsData(address(vault), tokens[1]).maxAge,
+            30 days
+        );
+    }
+
+    function _convert(
+        address[] memory aggregators
+    ) private pure returns (IChainlinkOracle.AggregatorData[] memory data) {
+        data = new IChainlinkOracle.AggregatorData[](aggregators.length);
+        for (uint256 i = 0; i < aggregators.length; i++) {
+            data[i] = IChainlinkOracle.AggregatorData({
+                aggregatorV3: aggregators[i],
+                maxAge: 30 days
+            });
+        }
     }
 
     function testSetChainlinkOraclesEmpty() external {
@@ -78,7 +121,7 @@ contract Unit is Test {
 
         address[] memory oracles = new address[](0);
         vm.prank(admin);
-        oracle.setChainlinkOracles(address(vault), tokens, oracles);
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
     }
 
     function testSetChainlinkOraclesFailsWithForbidden() external {
@@ -89,7 +132,7 @@ contract Unit is Test {
         oracle.setChainlinkOracles(
             address(vault),
             new address[](0),
-            new address[](0)
+            _convert(new address[](0))
         );
     }
 
@@ -103,31 +146,31 @@ contract Unit is Test {
         oracle.setChainlinkOracles(
             address(vault),
             new address[](1),
-            new address[](0)
+            _convert(new address[](0))
         );
         vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
         oracle.setChainlinkOracles(
             address(vault),
             new address[](0),
-            new address[](1)
+            _convert(new address[](1))
         );
         vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
         oracle.setChainlinkOracles(
             address(vault),
             new address[](1),
-            new address[](2)
+            _convert(new address[](2))
         );
         vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
         oracle.setChainlinkOracles(
             address(vault),
             new address[](2),
-            new address[](1)
+            _convert(new address[](1))
         );
 
         oracle.setChainlinkOracles(
             address(vault),
             new address[](1),
-            new address[](1)
+            _convert(new address[](1))
         );
         vm.stopPrank();
     }
@@ -141,7 +184,11 @@ contract Unit is Test {
         address[] memory aggregators = new address[](1);
         aggregators[0] = Constants.STETH_CHAINLINK_ORACLE;
         vm.prank(admin);
-        oracle.setChainlinkOracles(address(vault), tokens, aggregators);
+        oracle.setChainlinkOracles(
+            address(vault),
+            tokens,
+            _convert(aggregators)
+        );
         (uint256 price, uint8 decimals) = oracle.getPrice(
             address(vault),
             tokens[0]
@@ -165,7 +212,11 @@ contract Unit is Test {
         address[] memory aggregators = new address[](1);
         aggregators[0] = Constants.STETH_CHAINLINK_ORACLE;
         vm.prank(admin);
-        oracle.setChainlinkOracles(address(vault), tokens, aggregators);
+        oracle.setChainlinkOracles(
+            address(vault),
+            tokens,
+            _convert(aggregators)
+        );
 
         vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         oracle.getPrice(address(vault), Constants.WETH);
@@ -180,7 +231,11 @@ contract Unit is Test {
         address[] memory aggregators = new address[](1);
         aggregators[0] = address(new ChainlinkOracleMock());
         vm.prank(admin);
-        oracle.setChainlinkOracles(address(vault), tokens, aggregators);
+        oracle.setChainlinkOracles(
+            address(vault),
+            tokens,
+            _convert(aggregators)
+        );
 
         vm.expectRevert(abi.encodeWithSignature("StaleOracle()"));
         oracle.getPrice(address(vault), tokens[0]);
@@ -199,7 +254,7 @@ contract Unit is Test {
         oracles[1] = Constants.RETH_CHAINLINK_ORACLE;
 
         vm.prank(admin);
-        oracle.setChainlinkOracles(address(vault), tokens, oracles);
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
 
         vm.prank(admin);
         oracle.setBaseToken(address(vault), Constants.STETH);
@@ -234,7 +289,7 @@ contract Unit is Test {
         oracles[1] = Constants.RETH_CHAINLINK_ORACLE;
 
         vm.prank(admin);
-        oracle.setChainlinkOracles(address(vault), tokens, oracles);
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
 
         vm.prank(admin);
         oracle.setBaseToken(address(vault), Constants.STETH);
@@ -258,7 +313,7 @@ contract Unit is Test {
         oracles[1] = address(new ChainlinkOracleMock());
 
         vm.prank(admin);
-        oracle.setChainlinkOracles(address(vault), tokens, oracles);
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
 
         vm.prank(admin);
         oracle.setBaseToken(address(vault), Constants.STETH);
