@@ -109,6 +109,9 @@ interface IVault is IERC20 {
         address user
     ) external view returns (WithdrawalRequest memory request);
 
+    /// @return count The number of users with pending withdrawal requests.
+    function pendingWithdrawersCount() external view returns (uint256 count);
+
     /// @notice Returns an array of addresses with pending withdrawal requests.
     /// @return users An array of addresses with pending withdrawal requests.
     function pendingWithdrawers()

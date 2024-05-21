@@ -42,6 +42,11 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     /// @inheritdoc IVault
+    function pendingWithdrawersCount() external view returns (uint256) {
+        return _pendingWithdrawers.length();
+    }
+
+    /// @inheritdoc IVault
     function pendingWithdrawers(
         uint256 limit,
         uint256 offset
@@ -222,7 +227,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             if (!_isUnderlyingToken[data[i].underlyingToken])
                 revert InvalidToken();
         }
-        if (!_tvlModules.add(module)) {
+        if (_tvlModules.add(module)) {
             emit TvlModuleAdded(module);
         }
     }

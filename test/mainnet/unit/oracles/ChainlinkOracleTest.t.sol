@@ -231,13 +231,13 @@ contract Unit is Test {
         address[] memory aggregators = new address[](1);
         aggregators[0] = address(new ChainlinkOracleMock());
         vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSignature("StaleOracle()"));
         oracle.setChainlinkOracles(
             address(vault),
             tokens,
             _convert(aggregators)
         );
-
-        vm.expectRevert(abi.encodeWithSignature("StaleOracle()"));
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         oracle.getPrice(address(vault), tokens[0]);
     }
 
@@ -288,16 +288,14 @@ contract Unit is Test {
         oracles[0] = address(new ChainlinkOracleMock());
         oracles[1] = Constants.RETH_CHAINLINK_ORACLE;
 
-        vm.prank(admin);
-        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
-
-        vm.prank(admin);
-        oracle.setBaseToken(address(vault), Constants.STETH);
-
-        assertEq(oracle.priceX96(address(vault), Constants.STETH), 2 ** 96);
-
+        vm.startPrank(admin);
         vm.expectRevert(abi.encodeWithSignature("StaleOracle()"));
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
+        oracle.setBaseToken(address(vault), Constants.STETH);
+        assertEq(oracle.priceX96(address(vault), Constants.STETH), 2 ** 96);
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         oracle.priceX96(address(vault), Constants.RETH);
+        vm.stopPrank();
     }
 
     function testPriceX96FailsWithRequestedStaleOracle() external {
@@ -312,16 +310,17 @@ contract Unit is Test {
         oracles[0] = Constants.STETH_CHAINLINK_ORACLE;
         oracles[1] = address(new ChainlinkOracleMock());
 
-        vm.prank(admin);
+        vm.startPrank(admin);
+        vm.expectRevert(abi.encodeWithSignature("StaleOracle()"));
         oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
 
-        vm.prank(admin);
         oracle.setBaseToken(address(vault), Constants.STETH);
 
         assertEq(oracle.priceX96(address(vault), Constants.STETH), 2 ** 96);
 
-        vm.expectRevert(abi.encodeWithSignature("StaleOracle()"));
+        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         oracle.priceX96(address(vault), Constants.RETH);
+        vm.stopPrank();
     }
 
     function testPriceX96FailsWithAddressZero() external {

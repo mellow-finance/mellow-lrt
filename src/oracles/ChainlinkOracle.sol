@@ -41,6 +41,9 @@ contract ChainlinkOracle is IChainlinkOracle {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
         if (tokens.length != aggregatorsData_.length) revert InvalidLength();
         for (uint256 i = 0; i < tokens.length; i++) {
+            if (aggregatorsData_[i].aggregatorV3 != address(0)) {
+                _validateAndGetPrice(aggregatorsData_[i]);
+            }
             _aggregatorsData[vault][tokens[i]] = aggregatorsData_[i];
         }
         emit ChainlinkOracleSetChainlinkOracles(
@@ -51,22 +54,26 @@ contract ChainlinkOracle is IChainlinkOracle {
         );
     }
 
+    function _validateAndGetPrice(
+        AggregatorData memory data
+    ) private view returns (uint256 answer, uint8 decimals) {
+        if (data.aggregatorV3 == address(0)) revert AddressZero();
+        (, int256 signedAnswer, , uint256 lastTimestamp, ) = IAggregatorV3(
+            data.aggregatorV3
+        ).latestRoundData();
+        // roundId and latestRound are not used in validation due to possibility of custom aggregator implementations
+        if (signedAnswer < 0) revert InvalidOracleData();
+        answer = uint256(signedAnswer);
+        if (block.timestamp - data.maxAge > lastTimestamp) revert StaleOracle();
+        decimals = IAggregatorV3(data.aggregatorV3).decimals();
+    }
+
     /// @inheritdoc IChainlinkOracle
     function getPrice(
         address vault,
         address token
     ) public view returns (uint256 answer, uint8 decimals) {
-        AggregatorData memory aggregatorData_ = _aggregatorsData[vault][token];
-        address aggregatorV3 = aggregatorData_.aggregatorV3;
-        if (aggregatorV3 == address(0)) revert AddressZero();
-        (, int256 signedAnswer, , uint256 lastTimestamp, ) = IAggregatorV3(
-            aggregatorV3
-        ).latestRoundData();
-        if (signedAnswer < 0) revert InvalidOracleData();
-        answer = uint256(signedAnswer);
-        if (block.timestamp - aggregatorData_.maxAge > lastTimestamp)
-            revert StaleOracle();
-        decimals = IAggregatorV3(aggregatorV3).decimals();
+        return _validateAndGetPrice(_aggregatorsData[vault][token]);
     }
 
     /// @inheritdoc IPriceOracle
