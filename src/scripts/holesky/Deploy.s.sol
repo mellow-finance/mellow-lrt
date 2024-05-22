@@ -62,34 +62,28 @@ contract Deploy is Script {
     }
 
     function initialDeposit(Vault vault) public {
-        vm.startPrank(Constants.WETH);
-        // shiza
-        payable(Constants.VAULT_OPERATOR).transfer(10 gwei);
-        vm.stopPrank();
-
-        vm.startPrank(Constants.VAULT_OPERATOR);
         IWeth(Constants.WETH).deposit{value: 10 gwei}();
         IERC20(Constants.WETH).safeIncreaseAllowance(address(vault), 10 gwei);
         uint256[] memory amounts = new uint256[](2);
         amounts[1] = 10 gwei;
         vault.deposit(address(vault), amounts, 10 gwei, type(uint256).max);
-        vm.stopPrank();
     }
 
     function deployVault() public {
+        vm.startBroadcast(
+            uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
+        );
         Vault vault = new Vault(
             "TestTokenName",
             "TestTokenSymbol",
             Constants.VAULT_ADMIN
         );
-
-        vm.startPrank(Constants.VAULT_ADMIN);
         vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
         vault.grantRole(vault.OPERATOR(), Constants.VAULT_OPERATOR);
         setUpVault(vault);
-        vm.stopPrank();
-
         initialDeposit(vault);
+
+        vm.stopBroadcast();
     }
 
     function run() external {

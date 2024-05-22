@@ -42,7 +42,7 @@ import "./mocks/ConstantAggregatorV3.sol";
 
 library Constants {
     address public constant VAULT_ADMIN =
-        address(bytes20(keccak256("VAULT_ADMIN")));
+        0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
     address public constant VAULT_OPERATOR =
         address(bytes20(keccak256("VAULT_OPERATOR")));
     address public constant DEPOSITOR =
