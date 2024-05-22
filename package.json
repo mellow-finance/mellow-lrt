@@ -16,7 +16,7 @@
     "prettier:changed": "prettier --write $(git status | grep '\\.sol' | grep -v 'deleted:' | cut -d ' ' -f 4)",
     "test": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./test/mainnet/unit/\\*",
     "size": "forge build --sizes --force",
-    "deploy:optimism:core": "forge script --use 0.8.21 src/scripts/deploy/optimism/Deploy.sol:Deploy --rpc-url $(grep OPTIMISM_RPC .env | cut -d '=' -f2) --broadcast --slow --verify -vvvv",
+    "deploy:holesky": "forge script --use 0.8.21 src/scripts/holesky/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast",
     "compile": "forge build",
     "audit_scope": "tree -f -i -I '*interfaces*' -I '*libraries*' | grep '^./src.*sol' | xargs ls -d 2>/dev/null | xargs wc -l > audit_scope.txt && cat audit_scope.txt",
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir libraries --exclude-dir interfaces --by-file --format wide > scc-report.txt",

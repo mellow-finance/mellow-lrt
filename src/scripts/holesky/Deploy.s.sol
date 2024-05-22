@@ -1,18 +1,98 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "forge-std/Test.sol";
-import "forge-std/Script.sol";
-import "forge-std/Vm.sol";
-
-import "../../Vault.sol";
+import "./Constants.sol";
 
 contract Deploy is Script {
-    function deployOracles() public {}
-    function deployValidators() public {}
-    function deployModules() public {}
-    function deployStrategies() public {}
-    function deployVault() public {}
+    using SafeERC20 for IERC20;
 
-    function run() external {}
+    function setUpVault(Vault vault) private {
+        ERC20TvlModule erc20TvlModule = new ERC20TvlModule();
+        vault.addTvlModule(address(erc20TvlModule));
+
+        vault.addToken(Constants.WSTETH);
+        vault.addToken(Constants.WETH);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+
+        // oracles setup
+        {
+            ManagedRatiosOracle ratiosOracle = new ManagedRatiosOracle();
+            uint128[] memory ratiosX96 = new uint128[](2);
+            ratiosX96[0] = 0;
+            ratiosX96[1] = 2 ** 96; // WETH deposit
+            ratiosOracle.updateRatios(address(vault), true, ratiosX96);
+
+            ratiosX96[1] = 0;
+            ratiosX96[0] = 2 ** 96; // WSTETH withdrawal
+            ratiosOracle.updateRatios(address(vault), false, ratiosX96);
+
+            configurator.stageRatiosOracle(address(ratiosOracle));
+            configurator.commitRatiosOracle();
+
+            ChainlinkOracle chainlinkOracle = new ChainlinkOracle();
+            chainlinkOracle.setBaseToken(address(vault), Constants.WSTETH);
+            address[] memory tokens = new address[](2);
+            tokens[0] = Constants.WSTETH;
+            tokens[1] = Constants.WETH;
+
+            IChainlinkOracle.AggregatorData[]
+                memory data = new IChainlinkOracle.AggregatorData[](2);
+            data[0] = IChainlinkOracle.AggregatorData({
+                aggregatorV3: address(
+                    new WStethRatiosAggregatorV3(Constants.WSTETH)
+                ),
+                maxAge: 30 days
+            });
+            data[1] = IChainlinkOracle.AggregatorData({
+                aggregatorV3: address(new ConstantAggregatorV3(10 ** 18)),
+                maxAge: 30 days
+            });
+
+            chainlinkOracle.setChainlinkOracles(address(vault), tokens, data);
+            configurator.stagePriceOracle(address(chainlinkOracle));
+            configurator.commitPriceOracle();
+        }
+
+        // setting initial total supply
+        configurator.stageMaximalTotalSupply(10_000 ether);
+        configurator.commitMaximalTotalSupply();
+    }
+
+    function initialDeposit(Vault vault) public {
+        vm.startPrank(Constants.WETH);
+        // shiza
+        payable(Constants.VAULT_OPERATOR).transfer(10 gwei);
+        vm.stopPrank();
+
+        vm.startPrank(Constants.VAULT_OPERATOR);
+        IWeth(Constants.WETH).deposit{value: 10 gwei}();
+        IERC20(Constants.WETH).safeIncreaseAllowance(address(vault), 10 gwei);
+        uint256[] memory amounts = new uint256[](2);
+        amounts[1] = 10 gwei;
+        vault.deposit(address(vault), amounts, 10 gwei, type(uint256).max);
+        vm.stopPrank();
+    }
+
+    function deployVault() public {
+        Vault vault = new Vault(
+            "TestTokenName",
+            "TestTokenSymbol",
+            Constants.VAULT_ADMIN
+        );
+
+        vm.startPrank(Constants.VAULT_ADMIN);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
+        vault.grantRole(vault.OPERATOR(), Constants.VAULT_OPERATOR);
+        setUpVault(vault);
+        vm.stopPrank();
+
+        initialDeposit(vault);
+    }
+
+    function run() external {
+        deployVault();
+    }
 }
