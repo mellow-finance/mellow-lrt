@@ -4,6 +4,8 @@ pragma solidity ^0.8.21;
 import "../../../src/libraries/external/FullMath.sol";
 
 contract FullMathMock {
+    function test() external pure {}
+
     function mulDiv(
         uint256 a,
         uint256 b,

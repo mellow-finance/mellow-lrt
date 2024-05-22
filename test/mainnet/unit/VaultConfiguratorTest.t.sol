@@ -274,12 +274,12 @@ contract Unit is Test {
         VaultMock vault = new VaultMock(admin);
         VaultConfigurator configurator = vault.configurator();
 
+        vault.setCoef(1e9);
+        vault.deposit(address(vault), new uint256[](0), 1 ether, 0);
         validValue = 1000 ether;
-
-        invalidValue = type(uint256).max;
-        expectedError = new bytes(0);
-
-        initialValue = 0;
+        invalidValue = 0 ether;
+        expectedError = abi.encodeWithSignature("InvalidTotalSupply()");
+        initialValue = 0 ether;
         _runTest(
             configurator.maximalTotalSupplyDelay,
             configurator.maximalTotalSupply,
@@ -478,6 +478,9 @@ contract Unit is Test {
 
         assertEq(value(), validValue);
 
+        if (initialValue == invalidValue) {
+            initialValue = validValue;
+        }
         stageFunction(initialValue);
 
         delay_ = delay();

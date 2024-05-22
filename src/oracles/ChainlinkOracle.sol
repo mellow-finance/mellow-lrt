@@ -35,21 +35,22 @@ contract ChainlinkOracle is IChainlinkOracle {
     /// @inheritdoc IChainlinkOracle
     function setChainlinkOracles(
         address vault,
-        address[] memory tokens,
-        AggregatorData[] memory aggregatorsData_
+        address[] calldata tokens,
+        AggregatorData[] calldata data_
     ) external {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
-        if (tokens.length != aggregatorsData_.length) revert InvalidLength();
+        if (tokens.length != data_.length) revert InvalidLength();
         for (uint256 i = 0; i < tokens.length; i++) {
-            if (aggregatorsData_[i].aggregatorV3 != address(0)) {
-                _validateAndGetPrice(aggregatorsData_[i]);
-            }
-            _aggregatorsData[vault][tokens[i]] = aggregatorsData_[i];
+            if (data_[i].aggregatorV3 == address(0)) continue;
+            _validateAndGetPrice(data_[i]);
+        }
+        for (uint256 i = 0; i < tokens.length; i++) {
+            _aggregatorsData[vault][tokens[i]] = data_[i];
         }
         emit ChainlinkOracleSetChainlinkOracles(
             vault,
             tokens,
-            aggregatorsData_,
+            data_,
             block.timestamp
         );
     }
@@ -61,7 +62,8 @@ contract ChainlinkOracle is IChainlinkOracle {
         (, int256 signedAnswer, , uint256 lastTimestamp, ) = IAggregatorV3(
             data.aggregatorV3
         ).latestRoundData();
-        // roundId and latestRound are not used in validation due to possibility of custom aggregator implementations
+        // The roundId and latestRound are not used in the validation process to ensure compatibility
+        // with various custom aggregator implementations that may handle these parameters differently
         if (signedAnswer < 0) revert InvalidOracleData();
         answer = uint256(signedAnswer);
         if (block.timestamp - data.maxAge > lastTimestamp) revert StaleOracle();

@@ -50,16 +50,15 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function pendingWithdrawers(
         uint256 limit,
         uint256 offset
-    ) external view returns (address[] memory) {
-        EnumerableSet.AddressSet
-            storage pendingWithdrawers_ = _pendingWithdrawers;
-        uint256 count = pendingWithdrawers_.length();
-        if (offset >= count) return new address[](0);
+    ) external view returns (address[] memory result) {
+        EnumerableSet.AddressSet storage withdrawers_ = _pendingWithdrawers;
+        uint256 count = withdrawers_.length();
+        if (offset >= count || limit == 0) return result;
         count -= offset;
         if (count > limit) count = limit;
-        address[] memory result = new address[](count);
+        result = new address[](count);
         for (uint256 i = 0; i < count; i++) {
-            result[i] = pendingWithdrawers_.at(offset + i);
+            result[i] = withdrawers_.at(offset + i);
         }
         return result;
     }
@@ -563,15 +562,14 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             statuses[i] = true;
         }
 
-        if (burningSupply > 0) {
-            _burn(address(this), burningSupply);
-            emit WithdrawalsProcessed(users, statuses);
+        if (burningSupply == 0) return statuses;
+        _burn(address(this), burningSupply);
+        emit WithdrawalsProcessed(users, statuses);
 
-            address callback = configurator.withdrawalCallback();
-            if (callback == address(0)) return statuses;
-            IWithdrawalCallback(callback).withdrawalCallback();
-            emit WithdrawCallback(callback);
-        }
+        address callback = configurator.withdrawalCallback();
+        if (callback == address(0)) return statuses;
+        IWithdrawalCallback(callback).withdrawalCallback();
+        emit WithdrawCallback(callback);
     }
 
     receive() external payable {}

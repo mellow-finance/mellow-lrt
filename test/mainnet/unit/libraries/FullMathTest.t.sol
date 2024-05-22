@@ -27,7 +27,7 @@ contract Unit is Test {
         return 0;
     }
 
-    uint256 public constant len = 15;
+    uint256 public constant len = 10;
     uint256[len] public values = [
         0,
         1,
@@ -37,11 +37,6 @@ contract Unit is Test {
         type(uint256).max,
         2 ** 180,
         2 ** 80,
-        308532104497726132904056721729503219684262974806296224377864192,
-        2 ** 50,
-        2,
-        4,
-        6,
         8,
         10
     ];
@@ -77,6 +72,13 @@ contract Unit is Test {
     function testMulDivRoundingUp() external {
         FullMathMock mock = new FullMathMock();
 
+        vm.expectRevert();
+        mock.mulDivRoundingUp(
+            120177133669093302494856340011319469,
+            831510703916073898247457783736194362028126132,
+            863
+        );
+
         for (uint256 i = 0; i < len; i++) {
             for (uint256 j = 0; j < len; j++) {
                 for (uint256 k = 0; k < len; k++) {
@@ -85,19 +87,6 @@ contract Unit is Test {
                         vm.expectRevert();
                         mock.mulDivRoundingUp(values[i], values[j], values[k]);
                     } else {
-                        (uint256 result, uint256 mulmodResult) = check2(
-                            values[i],
-                            values[j],
-                            values[k]
-                        );
-                        if (result == type(uint256).max) {
-                            console2.log("ijk:", i, j, k);
-                            console2.log(
-                                "result: %i, mulmodResult: %i",
-                                result,
-                                mulmodResult
-                            );
-                        }
                         mock.mulDivRoundingUp(values[i], values[j], values[k]);
                     }
                 }

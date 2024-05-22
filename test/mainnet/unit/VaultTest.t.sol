@@ -2084,6 +2084,35 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
+    function testEmptyProcessWithdrawalsSkipsWithdrawalCallback() external {
+        Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        WithdrawalCallbackMock callback = new WithdrawalCallbackMock();
+        vm.startPrank(admin);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageWithdrawalCallback(address(callback));
+        configurator.commitWithdrawalCallback();
+
+        vm.stopPrank();
+
+        vm.startPrank(operator);
+        address[] memory users = new address[](0);
+        assertFalse(callback.flag());
+        bool[] memory success = vault.processWithdrawals(users);
+        assertFalse(callback.flag());
+        assertEq(success.length, 0);
+        vm.stopPrank();
+    }
+
     function testProcessWithdrawalsClosesDueToIsProcessingPossible() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
@@ -2431,6 +2460,103 @@ contract Unit is Test {
         vm.expectRevert(abi.encodeWithSignature("InsufficientAmount()"));
         vault.emergencyWithdraw(minAmounts, type(uint256).max);
 
+        minAmounts[0] = 0 ether;
+        minAmounts[1] = 100 ether;
+        vm.expectRevert(abi.encodeWithSignature("InsufficientAmount()"));
+        vault.emergencyWithdraw(minAmounts, type(uint256).max);
+
+        minAmounts[1] = 0 ether;
+        minAmounts[2] = 100 ether;
+        vm.expectRevert(abi.encodeWithSignature("InsufficientAmount()"));
+        vault.emergencyWithdraw(minAmounts, type(uint256).max);
+
+        vm.stopPrank();
+    }
+
+    function testPendingWithdawersLimitOffset() external {
+        Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        address depositor = address(bytes20(keccak256("depositor")));
+        address depositor2 = address(bytes20(keccak256("depositor2")));
+        vm.startPrank(depositor);
+        deal(Constants.WSTETH, depositor, 10 ether);
+        IERC20(Constants.WSTETH).safeIncreaseAllowance(
+            address(vault),
+            10 ether
+        );
+        uint256[] memory amounts = new uint256[](3);
+        amounts[0] = 10 ether;
+        uint256[] memory minAmounts = new uint256[](3);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+
+        assertEq(vault.pendingWithdrawers().length, 0);
+        assertEq(vault.pendingWithdrawers(0, 0).length, 0);
+        assertEq(vault.pendingWithdrawers(0, 1).length, 0);
+        assertEq(vault.pendingWithdrawers(1, 0).length, 0);
+        assertEq(vault.pendingWithdrawers(1, 1).length, 0);
+        assertEq(vault.pendingWithdrawersCount(), 0);
+
+        vault.registerWithdrawal(
+            depositor,
+            10 ether,
+            minAmounts,
+            type(uint256).max,
+            type(uint256).max,
+            false
+        );
+
+        assertEq(vault.pendingWithdrawers().length, 1);
+        assertEq(vault.pendingWithdrawers(0, 0).length, 0);
+        assertEq(vault.pendingWithdrawers(0, 1).length, 0);
+        assertEq(vault.pendingWithdrawers(1, 0).length, 1);
+        assertEq(vault.pendingWithdrawers(0, type(uint256).max).length, 0);
+        assertEq(vault.pendingWithdrawers(1, 1).length, 0);
+        assertEq(vault.pendingWithdrawersCount(), 1);
+        assertEq(vault.pendingWithdrawers(1, 0)[0], depositor);
+        vm.stopPrank();
+
+        vm.startPrank(depositor2);
+        deal(Constants.WSTETH, depositor2, 10 ether);
+        IERC20(Constants.WSTETH).safeIncreaseAllowance(
+            address(vault),
+            10 ether
+        );
+        vault.deposit(depositor2, amounts, 10 ether, type(uint256).max);
+
+        assertEq(vault.pendingWithdrawers().length, 1);
+        assertEq(vault.pendingWithdrawers(0, 0).length, 0);
+        assertEq(vault.pendingWithdrawers(0, 1).length, 0);
+        assertEq(vault.pendingWithdrawers(1, 0).length, 1);
+        assertEq(vault.pendingWithdrawers(0, type(uint256).max).length, 0);
+        assertEq(vault.pendingWithdrawers(1, 1).length, 0);
+        assertEq(vault.pendingWithdrawersCount(), 1);
+        assertEq(vault.pendingWithdrawers(1, 0)[0], depositor);
+
+        vault.registerWithdrawal(
+            depositor2,
+            10 ether,
+            minAmounts,
+            type(uint256).max,
+            type(uint256).max,
+            false
+        );
+
+        assertEq(vault.pendingWithdrawers().length, 2);
+        assertEq(vault.pendingWithdrawers(0, 0).length, 0);
+        assertEq(vault.pendingWithdrawers(0, 1).length, 0);
+        assertEq(vault.pendingWithdrawers(1, 0).length, 1);
+        assertEq(vault.pendingWithdrawers(2, 0).length, 2);
+        assertEq(vault.pendingWithdrawers(0, type(uint256).max).length, 0);
+        assertEq(vault.pendingWithdrawers(1, 1).length, 1);
+        assertEq(vault.pendingWithdrawersCount(), 2);
+        assertEq(vault.pendingWithdrawers(2, 0)[0], depositor);
+        assertEq(vault.pendingWithdrawers(2, 0)[1], depositor2);
         vm.stopPrank();
     }
 }

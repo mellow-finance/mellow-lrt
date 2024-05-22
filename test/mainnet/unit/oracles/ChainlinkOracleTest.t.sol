@@ -370,4 +370,52 @@ contract Unit is Test {
         vm.expectRevert();
         oracle.setBaseToken(address(0), Constants.STETH);
     }
+
+    function testNegativeSignedAnswer() external {
+        address admin = address(bytes20(keccak256("vault-admin")));
+        ChainlinkOracle oracle = new ChainlinkOracle();
+        VaultMock vault = new VaultMock(admin);
+        address[] memory tokens = new address[](1);
+        tokens[0] = Constants.RETH;
+
+        address[] memory oracles = new address[](1);
+        AggregatorV3Mock aggregator = new AggregatorV3Mock();
+
+        aggregator.setData(1, 1000000000000000000, 1, block.timestamp, 1);
+
+        oracles[0] = address(aggregator);
+
+        vm.startPrank(admin);
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
+        vm.stopPrank();
+
+        aggregator.setData(1, -1000000000000000000, 1, block.timestamp, 1);
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidOracleData()"));
+        oracle.getPrice(address(vault), tokens[0]);
+    }
+
+    function testResetOracle() external {
+        address admin = address(bytes20(keccak256("vault-admin")));
+        ChainlinkOracle oracle = new ChainlinkOracle();
+        VaultMock vault = new VaultMock(admin);
+        address[] memory tokens = new address[](1);
+        tokens[0] = Constants.RETH;
+
+        address[] memory oracles = new address[](1);
+        AggregatorV3Mock aggregator = new AggregatorV3Mock();
+
+        aggregator.setData(1, 1000000000000000000, 1, block.timestamp, 1);
+
+        vm.startPrank(admin);
+        oracles[0] = address(aggregator);
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
+        oracles[0] = address(1);
+        vm.expectRevert();
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
+        oracles[0] = address(0);
+        aggregator.setData(1, -1000000000000000000, 1, block.timestamp, 1);
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
+        vm.stopPrank();
+    }
 }

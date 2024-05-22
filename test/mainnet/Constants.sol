@@ -44,6 +44,7 @@ import "./mocks/AggregatorV3WethMock.sol";
 import "./mocks/WithdrawalCallbackMock.sol";
 import "./mocks/DepositCallbackMock.sol";
 import "./mocks/FullMathMock.sol";
+import "./mocks/AggregatorV3Mock.sol";
 
 library Constants {
     address public constant VAULT_ADMIN =
