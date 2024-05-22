@@ -215,7 +215,32 @@ contract Unit is Test {
         configurator.commitMaximalTotalSupply();
     }
 
+    function _setupDepositPermissions(IVault vault) private {
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        uint8 depositRole = 14;
+        IManagedValidator validator = IManagedValidator(
+            configurator.validator()
+        );
+        if (address(validator) == address(0)) {
+            validator = new ManagedValidator(admin);
+            configurator.stageValidator(address(validator));
+            configurator.commitValidator();
+        }
+        validator.grantPublicRole(depositRole);
+        validator.grantContractSignatureRole(
+            address(vault),
+            IVault.deposit.selector,
+            depositRole
+        );
+    }
+
     function _initialDeposit(Vault vault) private {
+        vm.startPrank(admin);
+        _setupDepositPermissions(vault);
+        vm.stopPrank();
+
         vm.startPrank(operator);
 
         deal(Constants.WSTETH, operator, 10 gwei);

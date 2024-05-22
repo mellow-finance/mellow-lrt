@@ -1,21 +1,16 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "../../../interfaces/external/chainlink/IAggregatorV3.sol";
-import "../../../interfaces/external/lido/IWSteth.sol";
+import "../../../src/interfaces/external/chainlink/IAggregatorV3.sol";
 
-contract WStethRatiosAggregatorV3 is IAggregatorV3 {
+contract ConstantAggregatorV3 is IAggregatorV3 {
     uint8 public constant decimals = 18;
-    string public constant description = "WStethRatiosAggregatorV3";
+    string public constant description = "ConstantAggregatorV3";
     uint256 public constant version = 1;
-    address public immutable wsteth;
+    int256 public immutable answer;
 
-    constructor(address wsteth_) {
-        wsteth = wsteth_;
-    }
-
-    function getAnswer() public view returns (int256) {
-        return int256(IWSteth(wsteth).getStETHByWstETH(10 ** decimals));
+    constructor(int256 _answer) {
+        answer = _answer;
     }
 
     function getRoundData(
@@ -32,7 +27,7 @@ contract WStethRatiosAggregatorV3 is IAggregatorV3 {
             uint80 answeredInRound
         )
     {
-        return (0, getAnswer(), block.timestamp, block.timestamp, 0);
+        return (0, answer, block.timestamp, block.timestamp, 0);
     }
 
     function latestRoundData()
@@ -47,6 +42,6 @@ contract WStethRatiosAggregatorV3 is IAggregatorV3 {
             uint80 answeredInRound
         )
     {
-        return (0, getAnswer(), block.timestamp, block.timestamp, 0);
+        return (0, answer, block.timestamp, block.timestamp, 0);
     }
 }

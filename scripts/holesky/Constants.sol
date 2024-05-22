@@ -9,33 +9,33 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import "../../Vault.sol";
-import "../../VaultConfigurator.sol";
-import "../../validators/AllowAllValidator.sol";
-import "../../validators/ManagedValidator.sol";
-import "../../validators/DefaultBondValidator.sol";
-import "../../validators/ERC20SwapValidator.sol";
-import "../../utils/DefaultAccessControl.sol";
-import "../../utils/DepositWrapper.sol";
-import "../../strategies/SimpleDVTStakingStrategy.sol";
-import "../../strategies/DefaultBondStrategy.sol";
-import "../../oracles/ChainlinkOracle.sol";
-import "../../oracles/ManagedRatiosOracle.sol";
-import "../../modules/erc20/ERC20TvlModule.sol";
-import "../../modules/erc20/ERC20SwapModule.sol";
-import "../../modules/erc20/ManagedTvlModule.sol";
-import "../../modules/obol/StakingModule.sol";
+import "../../src/Vault.sol";
+import "../../src/VaultConfigurator.sol";
+import "../../src/validators/AllowAllValidator.sol";
+import "../../src/validators/ManagedValidator.sol";
+import "../../src/validators/DefaultBondValidator.sol";
+import "../../src/validators/ERC20SwapValidator.sol";
+import "../../src/utils/DefaultAccessControl.sol";
+import "../../src/utils/DepositWrapper.sol";
+import "../../src/strategies/SimpleDVTStakingStrategy.sol";
+import "../../src/strategies/DefaultBondStrategy.sol";
+import "../../src/oracles/ChainlinkOracle.sol";
+import "../../src/oracles/ManagedRatiosOracle.sol";
+import "../../src/modules/erc20/ERC20TvlModule.sol";
+import "../../src/modules/erc20/ERC20SwapModule.sol";
+import "../../src/modules/erc20/ManagedTvlModule.sol";
+import "../../src/modules/obol/StakingModule.sol";
 
-import "../../modules/symbiotic/DefaultBondModule.sol";
-import "../../modules/symbiotic/DefaultBondTvlModule.sol";
+import "../../src/modules/symbiotic/DefaultBondModule.sol";
+import "../../src/modules/symbiotic/DefaultBondTvlModule.sol";
 
-import "../../libraries/external/FullMath.sol";
+import "../../src/libraries/external/FullMath.sol";
 
-import "../../interfaces/external/lido/ISteth.sol";
-import "../../interfaces/external/lido/IWSteth.sol";
-import "../../interfaces/external/lido/IStakingRouter.sol";
-import "../../interfaces/external/lido/IDepositContract.sol";
-import "../../interfaces/external/uniswap/ISwapRouter.sol";
+import "../../src/interfaces/external/lido/ISteth.sol";
+import "../../src/interfaces/external/lido/IWSteth.sol";
+import "../../src/interfaces/external/lido/IStakingRouter.sol";
+import "../../src/interfaces/external/lido/IDepositContract.sol";
+import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 
 import "./mocks/WStethRatiosAggregatorV3.sol";
 import "./mocks/ConstantAggregatorV3.sol";

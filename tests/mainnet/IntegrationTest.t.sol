@@ -64,7 +64,33 @@ contract Integration is Fixture {
         mintWsteth(address(this), 10 ether);
         mintWsteth(Constants.DEPOSITOR, 10 ether);
     }
+
+    function _setupDepositPermissions(IVault vault) private {
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        uint8 depositRole = 14;
+        IManagedValidator validator = IManagedValidator(
+            configurator.validator()
+        );
+        newPrank(Constants.PROTOCOL_GOVERNANCE_ADMIN);
+        if (address(validator) == address(0)) {
+            validator = new ManagedValidator(Constants.VAULT_ADMIN);
+            configurator.stageValidator(address(validator));
+            configurator.commitValidator();
+        }
+        validator.grantPublicRole(depositRole);
+        validator.grantContractSignatureRole(
+            address(vault),
+            IVault.deposit.selector,
+            depositRole
+        );
+        newPrank(Constants.VAULT_ADMIN);
+    }
+
     function _initialDeposit() private {
+        newPrank(Constants.VAULT_ADMIN);
+        _setupDepositPermissions(vault);
         uint256 amount = 10 gwei;
         IERC20(Constants.WSTETH).safeTransfer(Constants.VAULT_ADMIN, amount);
         newPrank(Constants.VAULT_ADMIN);
@@ -73,10 +99,10 @@ contract Integration is Fixture {
         amounts[0] = amount;
         vault.deposit(address(vault), amounts, amount, type(uint256).max);
     }
+
     function testPrimitiveOperations() external {
         _initializeVault();
         _initialDeposit();
-        // normal deposit
         newPrank(Constants.DEPOSITOR);
         {
             uint256 amount = 10 ether;
@@ -122,8 +148,8 @@ contract Integration is Fixture {
         vm.expectRevert(abi.encodeWithSignature("NonZeroValue()"));
         vault.removeToken(Constants.WSTETH);
         vm.stopPrank();
-        // assert(false);
     }
+
     function testDepositCallback() external {
         _initializeVault();
         DefaultBondStrategy strategy = new DefaultBondStrategy(

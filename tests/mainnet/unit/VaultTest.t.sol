@@ -1137,8 +1137,11 @@ contract Unit is Test {
     }
 
     function _initialDeposit(Vault vault) private {
-        vm.startPrank(operator);
+        vm.startPrank(admin);
+        _setupDepositPermissions(vault);
+        vm.stopPrank();
 
+        vm.startPrank(operator);
         deal(Constants.WSTETH, operator, 10 gwei);
         deal(Constants.RETH, operator, 0 ether);
         deal(Constants.WETH, operator, 0 ether);
@@ -1175,6 +1178,7 @@ contract Unit is Test {
         vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
         vault.grantRole(vault.OPERATOR(), operator);
         _setUp(vault);
+        _setupDepositPermissions(vault);
         vm.stopPrank();
 
         uint256[] memory amounts = new uint256[](3);
@@ -1196,12 +1200,34 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
+    function _setupDepositPermissions(IVault vault) private {
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        uint8 depositRole = 14;
+        IManagedValidator validator = IManagedValidator(
+            configurator.validator()
+        );
+        if (address(validator) == address(0)) {
+            validator = new ManagedValidator(admin);
+            configurator.stageValidator(address(validator));
+            configurator.commitValidator();
+        }
+        validator.grantPublicRole(depositRole);
+        validator.grantContractSignatureRole(
+            address(vault),
+            IVault.deposit.selector,
+            depositRole
+        );
+    }
+
     function testDepositInitialFailsWithValueZero() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
         vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
         vault.grantRole(vault.OPERATOR(), operator);
         _setUp(vault);
+        _setupDepositPermissions(vault);
         vm.stopPrank();
 
         deal(Constants.WSTETH, operator, 10 gwei);
@@ -2016,8 +2042,11 @@ contract Unit is Test {
         address[] memory users = new address[](1);
         users[0] = depositor;
         vault.processWithdrawals(users);
-        vm.stopPrank();
-
+        {
+            address[] memory withdrawers = vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+        }
+        vault.processWithdrawals(users);
         {
             address[] memory withdrawers = vault.pendingWithdrawers();
             assertEq(withdrawers.length, 0);

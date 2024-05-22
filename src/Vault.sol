@@ -288,6 +288,11 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         returns (uint256[] memory actualAmounts, uint256 lpAmount)
     {
         if (configurator.isDepositsLocked()) revert Forbidden();
+        IValidator(configurator.validator()).validate(
+            msg.sender,
+            address(this),
+            abi.encodeWithSelector(msg.sig)
+        );
         (
             address[] memory tokens,
             uint256[] memory totalAmounts
