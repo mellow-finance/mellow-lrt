@@ -37,8 +37,8 @@ import "../../src/interfaces/external/lido/IStakingRouter.sol";
 import "../../src/interfaces/external/lido/IDepositContract.sol";
 import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 
-import "./mocks/WStethRatiosAggregatorV3.sol";
-import "./mocks/ConstantAggregatorV3.sol";
+import "../../src/oracles/WStethRatiosAggregatorV3.sol";
+import "../../src/oracles/ConstantAggregatorV3.sol";
 
 library Constants {
     address public constant VAULT_ADMIN =

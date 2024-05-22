@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.0;
 
-import "../../../src/interfaces/external/chainlink/IAggregatorV3.sol";
+import "../interfaces/external/chainlink/IAggregatorV3.sol";
 
 contract ConstantAggregatorV3 is IAggregatorV3 {
     uint8 public constant decimals = 18;

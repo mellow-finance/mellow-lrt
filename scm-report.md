@@ -44,13 +44,13 @@ This section lists files that are in scope for the metrics report.
 
 ### <span id=t-source-Units-in-Scope>Source Units in Scope</span>
 
-Source Units Analyzed: **`19`**<br>
-Source Units in Scope: **`19`** (**100%**)
+Source Units Analyzed: **`21`**<br>
+Source Units in Scope: **`21`** (**100%**)
 
 | Type | File   | Logic Contracts | Interfaces | Lines | nLines | nSLOC | Comment Lines | Complex. Score | Capabilities |
 | ---- | ------ | --------------- | ---------- | ----- | ------ | ----- | ------------- | -------------- | ------------ | 
-| 📝 | ./src/Vault.sol | 1 | **** | 546 | 483 | 406 | 24 | 553 | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
-| 📝 | ./src/VaultConfigurator.sol | 1 | **** | 601 | 517 | 336 | 87 | 444 | **<abbr title='Uses Assembly'>🖥</abbr>** |
+| 📝 | ./src/Vault.sol | 1 | **** | 581 | 515 | 434 | 26 | 583 | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
+| 📝 | ./src/VaultConfigurator.sol | 1 | **** | 603 | 519 | 338 | 87 | 448 | **<abbr title='Uses Assembly'>🖥</abbr>** |
 | 🎨 | ./src/modules/DefaultModule.sol | 1 | **** | 18 | 18 | 13 | 1 | 12 | **** |
 | 📝 | ./src/modules/erc20/ERC20SwapModule.sol | 1 | **** | 44 | 40 | 30 | 2 | 36 | **** |
 | 📝 | ./src/modules/erc20/ERC20TvlModule.sol | 1 | **** | 21 | 19 | 15 | 2 | 28 | **** |
@@ -58,17 +58,19 @@ Source Units in Scope: **`19`** (**100%**)
 | 📝 | ./src/modules/obol/StakingModule.sol | 1 | **** | 83 | 75 | 54 | 9 | 40 | **** |
 | 📝 | ./src/modules/symbiotic/DefaultBondModule.sol | 1 | **** | 33 | 27 | 20 | 3 | 29 | **** |
 | 📝 | ./src/modules/symbiotic/DefaultBondTvlModule.sol | 1 | **** | 36 | 31 | 23 | 4 | 38 | **** |
-| 📝 | ./src/oracles/ChainlinkOracle.sol | 1 | **** | 83 | 73 | 56 | 9 | 51 | **** |
+| 📝 | ./src/oracles/ChainlinkOracle.sol | 1 | **** | 102 | 87 | 65 | 11 | 64 | **** |
+| 📝 | ./src/oracles/ConstantAggregatorV3.sol | 1 | **** | 47 | 23 | 17 | 1 | 11 | **** |
 | 📝 | ./src/oracles/ManagedRatiosOracle.sol | 1 | **** | 48 | 41 | 30 | 5 | 36 | **<abbr title='Uses Hash-Functions'>🧮</abbr>** |
+| 📝 | ./src/oracles/WStethRatiosAggregatorV3.sol | 1 | **** | 52 | 28 | 21 | 1 | 18 | **** |
 | 📝 | ./src/strategies/DefaultBondStrategy.sol | 1 | **** | 120 | 120 | 95 | 10 | 89 | **** |
-| 📝 | ./src/strategies/DefaultObolStakingStrategy.sol | 1 | **** | 86 | 75 | 58 | 7 | 37 | **** |
+| 📝 | ./src/strategies/SimpleDVTStakingStrategy.sol | 1 | **** | 86 | 75 | 58 | 7 | 37 | **** |
 | 📝 | ./src/utils/DefaultAccessControl.sol | 1 | **** | 64 | 64 | 44 | 7 | 44 | **<abbr title='Uses Hash-Functions'>🧮</abbr>** |
 | 📝 | ./src/utils/DepositWrapper.sol | 1 | **** | 80 | 74 | 58 | 6 | 78 | **<abbr title='Payable Functions'>💰</abbr>** |
 | 📝 | ./src/validators/AllowAllValidator.sol | 1 | **** | 9 | 9 | 5 | 2 | 5 | **** |
 | 📝 | ./src/validators/DefaultBondValidator.sol | 1 | **** | 37 | 37 | 27 | 4 | 23 | **** |
 | 📝 | ./src/validators/ERC20SwapValidator.sol | 1 | **** | 57 | 57 | 45 | 6 | 30 | **** |
 | 📝 | ./src/validators/ManagedValidator.sol | 1 | **** | 176 | 140 | 96 | 20 | 99 | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr>** |
-| 📝🎨 | **Totals** | **19** | **** | **2171**  | **1924** | **1427** | **212** | **1690** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
+| 📝🎨 | **Totals** | **21** | **** | **2326**  | **2023** | **1504** | **218** | **1766** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
 
 <sub>
 Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
@@ -87,7 +89,7 @@ Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
 
 
 ##### <span id=t-deployable-contracts>Deployable Logic Contracts</span>
-Total: 17
+Total: 19
 * 📝 `Vault`
 * 📝 `VaultConfigurator`
 * 📝 `ERC20SwapModule`
@@ -100,9 +102,11 @@ Total: 17
 <li> 📝 <code>DefaultBondModule</code></li>
 <li> 📝 <code>DefaultBondTvlModule</code></li>
 <li> 📝 <code>ChainlinkOracle</code></li>
+<li> 📝 <code>ConstantAggregatorV3</code></li>
 <li> 📝 <code>ManagedRatiosOracle</code></li>
+<li> 📝 <code>WStethRatiosAggregatorV3</code></li>
 <li> 📝 <code>DefaultBondStrategy</code></li>
-<li> 📝 <code>DefaultObolStakingStrategy</code></li>
+<li> 📝 <code>SimpleDVTStakingStrategy</code></li>
 <li> 📝 <code>DepositWrapper</code></li>
 <li> 📝 <code>AllowAllValidator</code></li>
 <li> 📝 <code>DefaultBondValidator</code></li>
@@ -178,14 +182,14 @@ The analysis finished with **`0`** errors and **`0`** duplicate files.
 
 #### <span id=t-inline-documentation>Inline Documentation</span>
 
-- **Comment-to-Source Ratio:** On average there are`7.9` code lines per comment (lower=better).
+- **Comment-to-Source Ratio:** On average there are`8.29` code lines per comment (lower=better).
 - **ToDo's:** `0` 
 
 #### <span id=t-components>Components</span>
 
 | 📝Contracts   | 📚Libraries | 🔍Interfaces | 🎨Abstract |
 | ------------- | ----------- | ------------ | ---------- |
-| 18 | 0  | 0  | 1 |
+| 20 | 0  | 0  | 1 |
 
 #### <span id=t-exposed-functions>Exposed Functions</span>
 
@@ -193,23 +197,23 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | 🌐Public   | 💰Payable |
 | ---------- | --------- |
-| 154 | 3  | 
+| 162 | 3  | 
 
 | External   | Internal | Private | Pure | View |
 | ---------- | -------- | ------- | ---- | ---- |
-| 145 | 128  | 13 | 3 | 53 |
+| 152 | 130  | 14 | 3 | 62 |
 
 #### <span id=t-statevariables>StateVariables</span>
 
 | Total      | 🌐Public  |
 | ---------- | --------- |
-| 66  | 40 |
+| 74  | 47 |
 
 #### <span id=t-capabilities>Capabilities</span>
 
 | Solidity Versions observed | 🧪 Experimental Features | 💰 Can Receive Funds | 🖥 Uses Assembly | 💣 Has Destroyable Contracts | 
 | -------------------------- | ------------------------ | -------------------- | ---------------- | ---------------------------- |
-| `^0.8.21` |  | `yes` | `yes` <br/>(5 asm blocks) | **** | 
+| `^0.8.21`<br/>`^0.8.0` |  | `yes` | `yes` <br/>(5 asm blocks) | **** | 
 
 | 📤 Transfers ETH | ⚡ Low-Level Calls | 👥 DelegateCall | 🧮 Uses Hash Functions | 🔖 ECRecover | 🌀 New/Create/Create2 |
 | ---------------- | ----------------- | --------------- | ---------------------- | ------------ | --------------------- |
@@ -292,9 +296,11 @@ This section lists functions that are explicitly declared public or payable. Ple
 | ./src/modules/symbiotic/DefaultBondModule.sol | [object Promise] |
 | ./src/modules/symbiotic/DefaultBondTvlModule.sol | [object Promise] |
 | ./src/oracles/ChainlinkOracle.sol | [object Promise] |
+| ./src/oracles/ConstantAggregatorV3.sol | [object Promise] |
 | ./src/oracles/ManagedRatiosOracle.sol | [object Promise] |
+| ./src/oracles/WStethRatiosAggregatorV3.sol | [object Promise] |
 | ./src/strategies/DefaultBondStrategy.sol | [object Promise] |
-| ./src/strategies/DefaultObolStakingStrategy.sol | [object Promise] |
+| ./src/strategies/SimpleDVTStakingStrategy.sol | [object Promise] |
 | ./src/utils/DefaultAccessControl.sol | [object Promise] |
 | ./src/utils/DepositWrapper.sol | [object Promise] |
 | ./src/validators/AllowAllValidator.sol | [object Promise] |
@@ -312,6 +318,8 @@ This section lists functions that are explicitly declared public or payable. Ple
 ||||||
 | **Vault** | Implementation | IVault, ERC20, DefaultAccessControl, ReentrancyGuard |||
 | └ | withdrawalRequest | External ❗️ |   |NO❗️ |
+| └ | pendingWithdrawersCount | External ❗️ |   |NO❗️ |
+| └ | pendingWithdrawers | External ❗️ |   |NO❗️ |
 | └ | pendingWithdrawers | External ❗️ |   |NO❗️ |
 | └ | underlyingTokens | External ❗️ |   |NO❗️ |
 | └ | tvlModules | External ❗️ |   |NO❗️ |
@@ -452,14 +460,27 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | tvl | External ❗️ |   | noDelegateCall |
 ||||||
 | **ChainlinkOracle** | Implementation | IChainlinkOracle |||
+| └ | aggregatorsData | External ❗️ |   |NO❗️ |
 | └ | setBaseToken | External ❗️ | 🛑  |NO❗️ |
 | └ | setChainlinkOracles | External ❗️ | 🛑  |NO❗️ |
+| └ | _validateAndGetPrice | Private 🔐 |   | |
 | └ | getPrice | Public ❗️ |   |NO❗️ |
 | └ | priceX96 | External ❗️ |   |NO❗️ |
+||||||
+| **ConstantAggregatorV3** | Implementation | IAggregatorV3 |||
+| └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
+| └ | getRoundData | External ❗️ |   |NO❗️ |
+| └ | latestRoundData | External ❗️ |   |NO❗️ |
 ||||||
 | **ManagedRatiosOracle** | Implementation | IManagedRatiosOracle |||
 | └ | updateRatios | External ❗️ | 🛑  |NO❗️ |
 | └ | getTargetRatiosX96 | External ❗️ |   |NO❗️ |
+||||||
+| **WStethRatiosAggregatorV3** | Implementation | IAggregatorV3 |||
+| └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
+| └ | getAnswer | Public ❗️ |   |NO❗️ |
+| └ | getRoundData | External ❗️ |   |NO❗️ |
+| └ | latestRoundData | External ❗️ |   |NO❗️ |
 ||||||
 | **DefaultBondStrategy** | Implementation | IDefaultBondStrategy, DefaultAccessControl |||
 | └ | <Constructor> | Public ❗️ | 🛑  | DefaultAccessControl |
@@ -470,7 +491,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | processWithdrawals | External ❗️ | 🛑  |NO❗️ |
 | └ | _processWithdrawals | Private 🔐 | 🛑  | |
 ||||||
-| **DefaultObolStakingStrategy** | Implementation | IDefaultObolStakingStrategy, DefaultAccessControl |||
+| **SimpleDVTStakingStrategy** | Implementation | ISimpleDVTStakingStrategy, DefaultAccessControl |||
 | └ | <Constructor> | Public ❗️ | 🛑  | DefaultAccessControl |
 | └ | setMaxAllowedRemainder | External ❗️ | 🛑  |NO❗️ |
 | └ | convertAndDeposit | External ❗️ | 🛑  |NO❗️ |
