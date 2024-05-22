@@ -1,6 +1,6 @@
 {
   "name": "mellow-lrt",
-  "license": "BSL-1.1",
+  "license": "UNLICENSED",
   "version": "1.0.0",
   "files": [
     "src/**/*.sol"
@@ -14,7 +14,7 @@
     "prettier": "prettier --write ./src/** && prettier --write ./tests/** && prettier --write ./scripts/**",
     "prettier:check": "prettier --check ./src/** && prettier --check ./tests/**",
     "prettier:changed": "prettier --write $(git status | grep '\\.sol' | grep -v 'deleted:' | cut -d ' ' -f 4)",
-    "test": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./tests/mainnet/unit/\\*",
+    "test": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./tests/mainnet/\\*",
     "size": "forge build --sizes --force",
     "deploy:holesky": "forge script --use 0.8.21 scripts/holesky/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast",
     "compile": "forge build",

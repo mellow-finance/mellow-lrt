@@ -20,6 +20,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     Data private _withdrawalFeeD9Delay;
     Data private _maximalTotalSupplyDelay;
     Data private _isDepositsLockedDelay;
+    Data private _isTransfersLockedDelay;
     Data private _isDelegateModuleApprovedDelay;
     Data private _ratiosOracleDelay;
     Data private _priceOracleDelay;
@@ -31,6 +32,7 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     Data private _withdrawalFeeD9;
     Data private _maximalTotalSupply;
     Data private _isDepositsLocked;
+    Data private _isTransfersLocked;
     Data private _ratiosOracle;
     Data private _priceOracle;
     Data private _validator;
@@ -96,6 +98,11 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     /// @inheritdoc IVaultConfigurator
     function isDepositsLocked() external view returns (bool) {
         return _isDepositsLocked.value != 0;
+    }
+
+    /// @inheritdoc IVaultConfigurator
+    function isTransfersLocked() external view returns (bool) {
+        return _isTransfersLocked.value != 0;
     }
 
     /// @inheritdoc IVaultConfigurator
@@ -172,6 +179,21 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     /// @inheritdoc IVaultConfigurator
     function revokeDepositsLock() external atLeastOperator nonReentrant {
         _isDepositsLocked.value = 0;
+    }
+
+    /// @inheritdoc IVaultConfigurator
+    function stageTransfersLock(bool flag) external onlyAdmin nonReentrant {
+        _stage(_isTransfersLocked, flag ? 1 : 0);
+    }
+
+    /// @inheritdoc IVaultConfigurator
+    function commitTransfersLock() external onlyAdmin nonReentrant {
+        _commit(_isTransfersLocked, _isTransfersLockedDelay);
+    }
+
+    /// @inheritdoc IVaultConfigurator
+    function rollbackStagedTransfersLock() external onlyAdmin nonReentrant {
+        _rollback(_isTransfersLocked);
     }
 
     /// @inheritdoc IVaultConfigurator
@@ -380,6 +402,33 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
         nonReentrant
     {
         _rollback(_isDepositsLockedDelay);
+    }
+
+    /// @inheritdoc IVaultConfigurator
+    function isTransfersLockedDelay() external view returns (uint256) {
+        return _isTransfersLockedDelay.value;
+    }
+
+    /// @inheritdoc IVaultConfigurator
+    function stageTransfersLockedDelay(
+        uint256 delay_
+    ) external onlyAdmin nonReentrant {
+        if (delay_ > MAX_DELAY) revert InvalidDelay();
+        _stage(_isTransfersLockedDelay, delay_);
+    }
+
+    /// @inheritdoc IVaultConfigurator
+    function commitTransfersLockedDelay() external onlyAdmin nonReentrant {
+        _commit(_isTransfersLockedDelay, _baseDelay);
+    }
+
+    /// @inheritdoc IVaultConfigurator
+    function rollbackStagedTransfersLockedDelay()
+        external
+        onlyAdmin
+        nonReentrant
+    {
+        _rollback(_isTransfersLockedDelay);
     }
 
     /// @inheritdoc IVaultConfigurator

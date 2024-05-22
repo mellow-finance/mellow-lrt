@@ -578,4 +578,19 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     receive() external payable {}
+
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override {
+        if (configurator.isTransfersLocked()) {
+            address this_ = address(this);
+            address zero_ = address(0);
+            if (from != this_ && to != this_ && from != zero_ && to != zero_)
+                revert Forbidden();
+        }
+
+        super._update(from, to, value);
+    }
 }

@@ -127,6 +127,23 @@ contract Unit is Test {
         );
     }
 
+    function testIsTransfersLockedDelay() external {
+        VaultMock vault = new VaultMock(admin);
+        VaultConfigurator configurator = vault.configurator();
+
+        validValue = 1 days;
+        invalidValue = DELAY + 1;
+        expectedError = abi.encodeWithSignature("InvalidDelay()");
+        initialValue = 0;
+        _runTest(
+            configurator.baseDelay,
+            configurator.isTransfersLockedDelay,
+            configurator.stageTransfersLockedDelay,
+            configurator.commitTransfersLockedDelay,
+            configurator.rollbackStagedTransfersLockedDelay
+        );
+    }
+
     function testIsDelegateModuleApprovedDelay() external {
         VaultMock vault = new VaultMock(admin);
         VaultConfigurator configurator = vault.configurator();
@@ -396,6 +413,24 @@ contract Unit is Test {
         );
     }
 
+    bool public validValueBool;
+    bool public initialValueBool;
+
+    function testIsTransfersLocked() external {
+        VaultMock vault = new VaultMock(admin);
+        VaultConfigurator configurator = vault.configurator();
+        executor = admin;
+        initialValueBool = false;
+        validValueBool = true;
+        _runTest(
+            configurator.isTransfersLockedDelay,
+            configurator.isTransfersLocked,
+            configurator.stageTransfersLock,
+            configurator.commitTransfersLock,
+            configurator.rollbackStagedTransfersLock
+        );
+    }
+
     function testIsDepositsLockedOnBehalfOfAdmin() external {
         VaultMock vault = new VaultMock(admin);
         VaultConfigurator configurator = vault.configurator();
@@ -495,6 +530,64 @@ contract Unit is Test {
         commitFunction();
 
         assertEq(value(), validValue);
+
+        vm.stopPrank();
+    }
+
+    function _runTest(
+        function() external view returns (uint256) delay,
+        function() external view returns (bool) value,
+        function(bool) external stageFunction,
+        function() external commitFunction,
+        function() external rollbackFunction
+    ) private {
+        address randomUser = address(bytes20(keccak256("random-user")));
+        vm.startPrank(randomUser);
+
+        vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
+        stageFunction(true);
+        vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
+        stageFunction(false);
+        vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
+        commitFunction();
+        vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
+        rollbackFunction();
+
+        vm.stopPrank();
+        vm.startPrank(admin);
+
+        assertEq(value(), initialValueBool);
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidTimestamp()"));
+        commitFunction();
+
+        stageFunction(validValueBool);
+
+        uint256 delay_ = delay();
+        if (delay_ != 0) {
+            vm.expectRevert(abi.encodeWithSignature("InvalidTimestamp()"));
+            commitFunction();
+            skip(delay_);
+        }
+
+        commitFunction();
+
+        assertEq(value(), validValueBool);
+
+        stageFunction(initialValueBool);
+
+        delay_ = delay();
+        if (delay_ != 0) {
+            skip(delay_);
+        }
+
+        rollbackFunction();
+        assertEq(value(), validValueBool);
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidTimestamp()"));
+        commitFunction();
+
+        assertEq(value(), validValueBool);
 
         vm.stopPrank();
     }

@@ -49,8 +49,8 @@ Source Units in Scope: **`21`** (**100%**)
 
 | Type | File   | Logic Contracts | Interfaces | Lines | nLines | nSLOC | Comment Lines | Complex. Score | Capabilities |
 | ---- | ------ | --------------- | ---------- | ----- | ------ | ----- | ------------- | -------------- | ------------ | 
-| 📝 | ./src/Vault.sol | 1 | **** | 581 | 515 | 434 | 26 | 583 | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
-| 📝 | ./src/VaultConfigurator.sol | 1 | **** | 603 | 519 | 338 | 87 | 448 | **<abbr title='Uses Assembly'>🖥</abbr>** |
+| 📝 | ./src/Vault.sol | 1 | **** | 596 | 526 | 443 | 26 | 590 | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
+| 📝 | ./src/VaultConfigurator.sol | 1 | **** | 652 | 562 | 365 | 95 | 487 | **<abbr title='Uses Assembly'>🖥</abbr>** |
 | 🎨 | ./src/modules/DefaultModule.sol | 1 | **** | 18 | 18 | 13 | 1 | 12 | **** |
 | 📝 | ./src/modules/erc20/ERC20SwapModule.sol | 1 | **** | 44 | 40 | 30 | 2 | 36 | **** |
 | 📝 | ./src/modules/erc20/ERC20TvlModule.sol | 1 | **** | 21 | 19 | 15 | 2 | 28 | **** |
@@ -70,7 +70,7 @@ Source Units in Scope: **`21`** (**100%**)
 | 📝 | ./src/validators/DefaultBondValidator.sol | 1 | **** | 37 | 37 | 27 | 4 | 23 | **** |
 | 📝 | ./src/validators/ERC20SwapValidator.sol | 1 | **** | 57 | 57 | 45 | 6 | 30 | **** |
 | 📝 | ./src/validators/ManagedValidator.sol | 1 | **** | 176 | 140 | 96 | 20 | 99 | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr>** |
-| 📝🎨 | **Totals** | **21** | **** | **2302**  | **2023** | **1504** | **218** | **1767** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
+| 📝🎨 | **Totals** | **21** | **** | **2366**  | **2077** | **1540** | **226** | **1813** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
 
 <sub>
 Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
@@ -182,7 +182,7 @@ The analysis finished with **`0`** errors and **`0`** duplicate files.
 
 #### <span id=t-inline-documentation>Inline Documentation</span>
 
-- **Comment-to-Source Ratio:** On average there are`8.18` code lines per comment (lower=better).
+- **Comment-to-Source Ratio:** On average there are`8.09` code lines per comment (lower=better).
 - **ToDo's:** `0` 
 
 #### <span id=t-components>Components</span>
@@ -197,17 +197,17 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | 🌐Public   | 💰Payable |
 | ---------- | --------- |
-| 162 | 3  | 
+| 170 | 3  | 
 
 | External   | Internal | Private | Pure | View |
 | ---------- | -------- | ------- | ---- | ---- |
-| 151 | 130  | 14 | 3 | 62 |
+| 158 | 138  | 14 | 3 | 64 |
 
 #### <span id=t-statevariables>StateVariables</span>
 
 | Total      | 🌐Public  |
 | ---------- | --------- |
-| 74  | 47 |
+| 76  | 47 |
 
 #### <span id=t-capabilities>Capabilities</span>
 
@@ -344,6 +344,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | calculateStack | Public ❗️ |   |NO❗️ |
 | └ | processWithdrawals | External ❗️ | 🛑  | nonReentrant |
 | └ | <Receive Ether> | External ❗️ |  💵 |NO❗️ |
+| └ | _update | Internal 🔒 | 🛑  | |
 ||||||
 | **VaultConfigurator** | Implementation | IVaultConfigurator, ReentrancyGuard |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
@@ -352,6 +353,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | _rollback | Private 🔐 | 🛑  | |
 | └ | isDelegateModuleApproved | External ❗️ |   |NO❗️ |
 | └ | isDepositsLocked | External ❗️ |   |NO❗️ |
+| └ | isTransfersLocked | External ❗️ |   |NO❗️ |
 | └ | maximalTotalSupply | External ❗️ |   |NO❗️ |
 | └ | depositCallback | External ❗️ |   |NO❗️ |
 | └ | withdrawalCallback | External ❗️ |   |NO❗️ |
@@ -364,6 +366,9 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | commitDepositsLock | External ❗️ | 🛑  | atLeastOperator nonReentrant |
 | └ | rollbackStagedDepositsLock | External ❗️ | 🛑  | atLeastOperator nonReentrant |
 | └ | revokeDepositsLock | External ❗️ | 🛑  | atLeastOperator nonReentrant |
+| └ | stageTransfersLock | External ❗️ | 🛑  | onlyAdmin nonReentrant |
+| └ | commitTransfersLock | External ❗️ | 🛑  | onlyAdmin nonReentrant |
+| └ | rollbackStagedTransfersLock | External ❗️ | 🛑  | onlyAdmin nonReentrant |
 | └ | stageMaximalTotalSupply | External ❗️ | 🛑  | onlyAdmin nonReentrant |
 | └ | commitMaximalTotalSupply | External ❗️ | 🛑  | onlyAdmin nonReentrant |
 | └ | rollbackStagedMaximalTotalSupply | External ❗️ | 🛑  | onlyAdmin nonReentrant |
@@ -396,6 +401,10 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | stageDepositsLockedDelay | External ❗️ | 🛑  | onlyAdmin nonReentrant |
 | └ | commitDepositsLockedDelay | External ❗️ | 🛑  | onlyAdmin nonReentrant |
 | └ | rollbackStagedDepositsLockedDelay | External ❗️ | 🛑  | onlyAdmin nonReentrant |
+| └ | isTransfersLockedDelay | External ❗️ |   |NO❗️ |
+| └ | stageTransfersLockedDelay | External ❗️ | 🛑  | onlyAdmin nonReentrant |
+| └ | commitTransfersLockedDelay | External ❗️ | 🛑  | onlyAdmin nonReentrant |
+| └ | rollbackStagedTransfersLockedDelay | External ❗️ | 🛑  | onlyAdmin nonReentrant |
 | └ | delegateModuleApprovalDelay | External ❗️ |   |NO❗️ |
 | └ | stageDelegateModuleApprovalDelay | External ❗️ | 🛑  | onlyAdmin nonReentrant |
 | └ | commitDelegateModuleApprovalDelay | External ❗️ | 🛑  | onlyAdmin nonReentrant |
@@ -470,7 +479,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 | **ConstantAggregatorV3** | Implementation | IAggregatorV3 |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
 | └ | getRoundData | External ❗️ |   |NO❗️ |
-| └ | latestRoundData | External ❗️ |   |NO❗️ |
+| └ | latestRoundData | Public ❗️ |   |NO❗️ |
 ||||||
 | **ManagedRatiosOracle** | Implementation | IManagedRatiosOracle |||
 | └ | updateRatios | External ❗️ | 🛑  |NO❗️ |

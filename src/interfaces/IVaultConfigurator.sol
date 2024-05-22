@@ -17,6 +17,7 @@ import "./IVault.sol";
  *            - withdrawalCallbackDelay: delay for changing the withdrawal callback contract address
  *            - withdrawalFeeD9Delay: delay for changing the withdrawal fee
  *            - isDepositsLockedDelay: delay for locking deposits
+ *            - isTransfersLockedDelay: delay for locking LP token transfers
  *            - delegateModuleApprovalDelay: delay for approving delegated modules
  *            - maximalTotalSupplyDelay: delay for changing the maximum total supply
  *            - ratiosOracleDelay: delay for changing the ratios oracle address
@@ -73,9 +74,6 @@ interface IVaultConfigurator {
     /// @param module The address of the module to revoke approval from.
     function revokeDelegateModuleApproval(address module) external;
 
-    /// @notice Revokes the current deposits lock, unlocking deposits.
-    function revokeDepositsLock() external;
-
     /// @notice Returns the base delay value for all staging operations.
     /// @return uint256 The base delay value in seconds.
     function baseDelay() external view returns (uint256);
@@ -91,6 +89,11 @@ interface IVaultConfigurator {
     /// @notice operator owned parameter.
     /// @return bool `true` if deposits are locked, otherwise `false`.
     function isDepositsLocked() external view returns (bool);
+
+    /// @notice Returns whether LP token transfers are currently locked.
+    /// @notice admin owned parameter.
+    /// @return bool `true` if transfers are locked, otherwise `false`.
+    function isTransfersLocked() external view returns (bool);
 
     /// @notice Returns the maximum total supply of LP tokens allowed.
     /// @return uint256 The maximum total supply of LP tokens.
@@ -123,6 +126,10 @@ interface IVaultConfigurator {
     /// @notice Returns the delay for committing deposit locks.
     /// @return uint256 The delay in seconds.
     function isDepositsLockedDelay() external view returns (uint256);
+
+    /// @notice Returns the delay for committing transfers locks.
+    /// @return uint256 The delay in seconds.
+    function isTransfersLockedDelay() external view returns (uint256);
 
     /// @notice Returns the delay for committing delegate module approvals.
     /// @return uint256 The delay in seconds.
@@ -168,6 +175,19 @@ interface IVaultConfigurator {
 
     /// @notice Rolls back any staged deposits lock.
     function rollbackStagedDepositsLock() external;
+
+    /// @notice Revokes the current deposits lock, unlocking deposits.
+    function revokeDepositsLock() external;
+
+    /// @notice Stages the transfers lock by setting a staged value and timestamp.
+    /// @param flag The new value to stage.
+    function stageTransfersLock(bool flag) external;
+
+    /// @notice Commits the previously staged transfers lock after the delay period.
+    function commitTransfersLock() external;
+
+    /// @notice Rolls back any staged transfers lock.
+    function rollbackStagedTransfersLock() external;
 
     /// @notice Stages the maximum total supply with a staged value and timestamp.
     /// @param maximalTotalSupply_ The maximum total supply to stage.
@@ -258,6 +278,16 @@ interface IVaultConfigurator {
 
     /// @notice Rolls back any staged deposits lock delay changes.
     function rollbackStagedDepositsLockedDelay() external;
+
+    /// @notice Stages a delay value for locking transfers.
+    /// @param delay_ The delay value to stage.
+    function stageTransfersLockedDelay(uint256 delay_) external;
+
+    /// @notice Commits the previously staged transfers lock delay after the delay period.
+    function commitTransfersLockedDelay() external;
+
+    /// @notice Rolls back any staged transfers lock delay changes.
+    function rollbackStagedTransfersLockedDelay() external;
 
     /// @notice Stages a delay value for the delegate module approval.
     /// @param delay_ The delay value to stage.
