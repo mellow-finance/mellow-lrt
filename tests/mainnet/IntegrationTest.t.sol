@@ -89,14 +89,13 @@ contract Integration is Fixture {
     }
 
     function _initialDeposit() private {
-        newPrank(Constants.VAULT_ADMIN);
-        _setupDepositPermissions(vault);
         uint256 amount = 10 gwei;
         IERC20(Constants.WSTETH).safeTransfer(Constants.VAULT_ADMIN, amount);
         newPrank(Constants.VAULT_ADMIN);
         IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
+        _setupDepositPermissions(vault);
         vault.deposit(address(vault), amounts, amount, type(uint256).max);
     }
 

@@ -1,7 +1,7 @@
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 Language                              Files     Lines   Blanks  Comments     Code Complexity Complexity/Lines
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Solidity                                 21      2326      302       217     1807        286           327.71
+Solidity                                 21      2302      302       217     1783        286           327.71
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 src/Vault.sol                                     581       55        26      500        114            22.80
 src/VaultConfigurator.sol                         603       95        86      422         29             6.87
@@ -13,9 +13,9 @@ src/modules/obol/StakingModule.sol                 83       12         9       6
 ~rc/modules/symbiotic/DefaultBondModule.sol        33        4         3       26          6            23.08
 ~modules/symbiotic/DefaultBondTvlModule.sol        36        4         4       28          3            10.71
 src/oracles/ChainlinkOracle.sol                   102       11        11       80         18            22.50
-src/oracles/ConstantAggregatorV3.sol               47        5         1       41          0             0.00
+src/oracles/ConstantAggregatorV3.sol               35        5         1       29          0             0.00
 src/oracles/ManagedRatiosOracle.sol                48        6         5       37          9            24.32
-src/oracles/WStethRatiosAggregatorV3.sol           52        6         1       45          0             0.00
+src/oracles/WStethRatiosAggregatorV3.sol           40        6         1       33          0             0.00
 src/strategies/DefaultBondStrategy.sol            120       15        10       95         28            29.47
 ~rc/strategies/SimpleDVTStakingStrategy.sol        86       10         7       69          5             7.25
 src/utils/DefaultAccessControl.sol                 64       13         7       44          6            13.64
@@ -25,8 +25,8 @@ src/validators/DefaultBondValidator.sol            37        6         4       2
 src/validators/ERC20SwapValidator.sol              57        6         6       45          9            20.00
 src/validators/ManagedValidator.sol               176       24        20      132         10             7.58
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Total                                    21      2326      302       217     1807        286           327.71
+Total                                    21      2302      302       217     1783        286           327.71
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Processed 76476 bytes, 0.076 megabytes (SI)
+Processed 75919 bytes, 0.076 megabytes (SI)
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 

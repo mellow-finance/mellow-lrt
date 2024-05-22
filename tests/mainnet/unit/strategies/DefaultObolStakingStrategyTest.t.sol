@@ -369,10 +369,7 @@ contract Unit is Test {
             address[] memory oracles = new address[](2);
             oracles[0] = Constants.WETH_CHAINLINK_ORACLE;
             oracles[1] = address(
-                new AggregatorV3WstethMock(
-                    Constants.WSTETH,
-                    IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
-                )
+                new WStethRatiosAggregatorV3(Constants.WSTETH)
             );
             oracle.setChainlinkOracles(
                 address(vault),
@@ -531,10 +528,7 @@ contract Unit is Test {
             address[] memory oracles = new address[](2);
             oracles[0] = Constants.WETH_CHAINLINK_ORACLE;
             oracles[1] = address(
-                new AggregatorV3WstethMock(
-                    Constants.WSTETH,
-                    IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
-                )
+                new WStethRatiosAggregatorV3(Constants.WSTETH)
             );
             oracle.setChainlinkOracles(
                 address(vault),
@@ -677,12 +671,9 @@ contract Unit is Test {
             tokens[0] = Constants.WETH;
             tokens[1] = Constants.WSTETH;
             address[] memory oracles = new address[](2);
-            oracles[0] = Constants.WETH_CHAINLINK_ORACLE;
+            oracles[0] = address(new ConstantAggregatorV3(1 ether));
             oracles[1] = address(
-                new AggregatorV3WstethMock(
-                    Constants.WSTETH,
-                    IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
-                )
+                new WStethRatiosAggregatorV3(Constants.WSTETH)
             );
             oracle.setChainlinkOracles(
                 address(vault),
@@ -736,7 +727,6 @@ contract Unit is Test {
             );
         }
         vm.stopPrank();
-
         vm.startPrank(admin);
         {
             (bool success, ) = vault.delegateCall(
@@ -820,10 +810,7 @@ contract Unit is Test {
             address[] memory oracles = new address[](2);
             oracles[0] = Constants.WETH_CHAINLINK_ORACLE;
             oracles[1] = address(
-                new AggregatorV3WstethMock(
-                    Constants.WSTETH,
-                    IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
-                )
+                new WStethRatiosAggregatorV3(Constants.WSTETH)
             );
             oracle.setChainlinkOracles(
                 address(vault),

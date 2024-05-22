@@ -193,13 +193,10 @@ contract Unit is Test {
 
             address[] memory oracles = new address[](3);
             oracles[0] = address(
-                new AggregatorV3WstethMock(
-                    Constants.WSTETH,
-                    IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
-                )
+                new WStethRatiosAggregatorV3(Constants.WSTETH)
             );
             oracles[1] = Constants.RETH_CHAINLINK_ORACLE;
-            oracles[2] = address(new AggregatorV3WethMock());
+            oracles[2] = address(new ConstantAggregatorV3(1 ether));
 
             chainlinkOracle.setChainlinkOracles(
                 address(vault),

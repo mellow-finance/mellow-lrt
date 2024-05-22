@@ -19,28 +19,16 @@ contract ConstantAggregatorV3 is IAggregatorV3 {
         external
         view
         override
-        returns (
-            uint80 roundId,
-            int256 answer_,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80, int256, uint256, uint256, uint80)
     {
-        return (0, answer, block.timestamp, block.timestamp, 0);
+        return latestRoundData();
     }
 
     function latestRoundData()
-        external
+        public
         view
         override
-        returns (
-            uint80 roundId,
-            int256 answer_,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80, int256, uint256, uint256, uint80)
     {
         return (0, answer, block.timestamp, block.timestamp, 0);
     }

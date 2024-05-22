@@ -59,9 +59,9 @@ Source Units in Scope: **`21`** (**100%**)
 | 📝 | ./src/modules/symbiotic/DefaultBondModule.sol | 1 | **** | 33 | 27 | 20 | 3 | 29 | **** |
 | 📝 | ./src/modules/symbiotic/DefaultBondTvlModule.sol | 1 | **** | 36 | 31 | 23 | 4 | 38 | **** |
 | 📝 | ./src/oracles/ChainlinkOracle.sol | 1 | **** | 102 | 87 | 65 | 11 | 64 | **** |
-| 📝 | ./src/oracles/ConstantAggregatorV3.sol | 1 | **** | 47 | 23 | 17 | 1 | 11 | **** |
+| 📝 | ./src/oracles/ConstantAggregatorV3.sol | 1 | **** | 35 | 23 | 17 | 1 | 12 | **** |
 | 📝 | ./src/oracles/ManagedRatiosOracle.sol | 1 | **** | 48 | 41 | 30 | 5 | 36 | **<abbr title='Uses Hash-Functions'>🧮</abbr>** |
-| 📝 | ./src/oracles/WStethRatiosAggregatorV3.sol | 1 | **** | 52 | 28 | 21 | 1 | 18 | **** |
+| 📝 | ./src/oracles/WStethRatiosAggregatorV3.sol | 1 | **** | 40 | 28 | 21 | 1 | 18 | **** |
 | 📝 | ./src/strategies/DefaultBondStrategy.sol | 1 | **** | 120 | 120 | 95 | 10 | 89 | **** |
 | 📝 | ./src/strategies/SimpleDVTStakingStrategy.sol | 1 | **** | 86 | 75 | 58 | 7 | 37 | **** |
 | 📝 | ./src/utils/DefaultAccessControl.sol | 1 | **** | 64 | 64 | 44 | 7 | 44 | **<abbr title='Uses Hash-Functions'>🧮</abbr>** |
@@ -70,7 +70,7 @@ Source Units in Scope: **`21`** (**100%**)
 | 📝 | ./src/validators/DefaultBondValidator.sol | 1 | **** | 37 | 37 | 27 | 4 | 23 | **** |
 | 📝 | ./src/validators/ERC20SwapValidator.sol | 1 | **** | 57 | 57 | 45 | 6 | 30 | **** |
 | 📝 | ./src/validators/ManagedValidator.sol | 1 | **** | 176 | 140 | 96 | 20 | 99 | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr>** |
-| 📝🎨 | **Totals** | **21** | **** | **2326**  | **2023** | **1504** | **218** | **1766** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
+| 📝🎨 | **Totals** | **21** | **** | **2302**  | **2023** | **1504** | **218** | **1767** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
 
 <sub>
 Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
@@ -182,7 +182,7 @@ The analysis finished with **`0`** errors and **`0`** duplicate files.
 
 #### <span id=t-inline-documentation>Inline Documentation</span>
 
-- **Comment-to-Source Ratio:** On average there are`8.29` code lines per comment (lower=better).
+- **Comment-to-Source Ratio:** On average there are`8.18` code lines per comment (lower=better).
 - **ToDo's:** `0` 
 
 #### <span id=t-components>Components</span>
@@ -201,7 +201,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | External   | Internal | Private | Pure | View |
 | ---------- | -------- | ------- | ---- | ---- |
-| 152 | 130  | 14 | 3 | 62 |
+| 151 | 130  | 14 | 3 | 62 |
 
 #### <span id=t-statevariables>StateVariables</span>
 
@@ -480,7 +480,7 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
 | └ | getAnswer | Public ❗️ |   |NO❗️ |
 | └ | getRoundData | External ❗️ |   |NO❗️ |
-| └ | latestRoundData | External ❗️ |   |NO❗️ |
+| └ | latestRoundData | Public ❗️ |   |NO❗️ |
 ||||||
 | **DefaultBondStrategy** | Implementation | IDefaultBondStrategy, DefaultAccessControl |||
 | └ | <Constructor> | Public ❗️ | 🛑  | DefaultAccessControl |

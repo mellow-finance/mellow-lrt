@@ -1111,10 +1111,7 @@ contract Unit is Test {
                 memory data = new IChainlinkOracle.AggregatorData[](3);
             data[0] = IChainlinkOracle.AggregatorData({
                 aggregatorV3: address(
-                    new AggregatorV3WstethMock(
-                        Constants.WSTETH,
-                        IAggregatorV3(Constants.STETH_CHAINLINK_ORACLE)
-                    )
+                    new WStethRatiosAggregatorV3(Constants.WSTETH)
                 ),
                 maxAge: 30 days
             });
@@ -1123,7 +1120,7 @@ contract Unit is Test {
                 maxAge: 30 days
             });
             data[2] = IChainlinkOracle.AggregatorData({
-                aggregatorV3: address(new AggregatorV3WethMock()),
+                aggregatorV3: address(new ConstantAggregatorV3(1 ether)),
                 maxAge: 30 days
             });
             chainlinkOracle.setChainlinkOracles(address(vault), tokens, data);
