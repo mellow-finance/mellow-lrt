@@ -24,7 +24,6 @@ contract Deploy is Script {
             ratiosX96[0] = 0;
             ratiosX96[1] = 2 ** 96; // WETH deposit
             ratiosOracle.updateRatios(address(vault), true, ratiosX96);
-
             ratiosX96[1] = 0;
             ratiosX96[0] = 2 ** 96; // WSTETH withdrawal
             ratiosOracle.updateRatios(address(vault), false, ratiosX96);
@@ -47,7 +46,7 @@ contract Deploy is Script {
                 maxAge: 30 days
             });
             data[1] = IChainlinkOracle.AggregatorData({
-                aggregatorV3: address(new ConstantAggregatorV3(10 ** 18)),
+                aggregatorV3: address(new ConstantAggregatorV3(1 ether)),
                 maxAge: 30 days
             });
 
@@ -57,8 +56,15 @@ contract Deploy is Script {
         }
 
         // setting initial total supply
-        configurator.stageMaximalTotalSupply(10_000 ether);
-        configurator.commitMaximalTotalSupply();
+        {
+            configurator.stageMaximalTotalSupply(10_000 ether);
+            configurator.commitMaximalTotalSupply();
+        }
+
+        // validators setup
+        {
+
+        }
     }
 
     function initialDeposit(Vault vault) public {
@@ -70,9 +76,6 @@ contract Deploy is Script {
     }
 
     function deployVault() public {
-        vm.startBroadcast(
-            uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
-        );
         Vault vault = new Vault(
             "TestTokenName",
             "TestTokenSymbol",
@@ -82,11 +85,15 @@ contract Deploy is Script {
         vault.grantRole(vault.OPERATOR(), Constants.VAULT_OPERATOR);
         setUpVault(vault);
         initialDeposit(vault);
-
-        vm.stopBroadcast();
     }
 
     function run() external {
+        vm.startBroadcast(
+            uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
+        );
+
         deployVault();
+
+        vm.stopBroadcast();
     }
 }

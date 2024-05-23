@@ -23,10 +23,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
 
     mapping(address => WithdrawalRequest) private _withdrawalRequest;
     EnumerableSet.AddressSet private _pendingWithdrawers;
-
     address[] private _underlyingTokens;
     mapping(address => bool) private _isUnderlyingToken;
-
     EnumerableSet.AddressSet private _tvlModules;
 
     modifier checkDeadline(uint256 deadline) {
