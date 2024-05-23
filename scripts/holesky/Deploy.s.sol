@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.21;
 
 import "./Constants.sol";
 
@@ -61,10 +61,38 @@ contract Deploy is Script {
             configurator.commitMaximalTotalSupply();
         }
 
+        // creating default bond factory and default bond contract
+        address wstethBondContract;
+        {
+            DefaultCollateralFactory defaultCollateralFactory = new DefaultCollateralFactory();
+            wstethBondContract = defaultCollateralFactory.create(
+                Constants.WSTETH,
+                10_000 ether,
+                Constants.VAULT_ADMIN
+            );
+        }
+
         // validators setup
         {
+            ManagedValidator validator = new ManagedValidator(
+                Constnants.VAULT_ADMIN
+            );
+            DefaultBondValidator bondValidator = new DefaultBondValidator();
+            address[] memory tokens = new address[](1);
+            tokens[0] = Constants.WSTETH;
+            address[] memory bonds = new address[](1);
+            bonds[0] = wstethBondContract;
+            bondValidator.setVaultData(address(vault), tokens, bonds);
+            vault.setCustomValidator(address(vault), tokens, bonds);
 
+            validator.stageValidator(address(bondValidator));
+            validator.commitValidator();
         }
+
+        DefaultBondStrategy bondStrategy = new DefaultBondStrategy(
+            Constants.VAULT_ADMIN
+        );
+        StakingDVTStrategy = new DefaultBondStrategy(Constants.VAULT_ADMIN);
     }
 
     function initialDeposit(Vault vault) public {

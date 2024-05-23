@@ -9,6 +9,9 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import "@symbiotic/defaultCollateral/DefaultCollateral.sol";
+import "@symbiotic/defaultCollateral/DefaultCollateralFactory.sol";
+
 import "../../src/Vault.sol";
 import "../../src/VaultConfigurator.sol";
 import "../../src/validators/AllowAllValidator.sol";
@@ -43,10 +46,6 @@ import "../../src/oracles/ConstantAggregatorV3.sol";
 library Constants {
     address public constant VAULT_ADMIN =
         0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
-    address public constant VAULT_OPERATOR =
-        address(bytes20(keccak256("VAULT_OPERATOR")));
-    address public constant DEPOSITOR =
-        address(bytes20(keccak256("DEPOSITOR")));
 
     uint8 public constant OBOL_MODULE_ROLE = 0;
     uint8 public constant OBOL_STRATEGY_ROLE = 1;
