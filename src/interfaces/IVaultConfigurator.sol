@@ -16,8 +16,8 @@ import "./IVault.sol";
  *            - depositCallbackDelay: delay for changing the deposit callback contract address
  *            - withdrawalCallbackDelay: delay for changing the withdrawal callback contract address
  *            - withdrawalFeeD9Delay: delay for changing the withdrawal fee
- *            - isDepositsLockedDelay: delay for locking deposits
- *            - isTransfersLockedDelay: delay for locking LP token transfers
+ *            - isDepositLockedDelay: delay for locking deposits
+ *            - areTransfersLockedDelay: delay for locking LP token transfers
  *            - delegateModuleApprovalDelay: delay for approving delegated modules
  *            - maximalTotalSupplyDelay: delay for changing the maximum total supply
  *            - ratiosOracleDelay: delay for changing the ratios oracle address
@@ -27,7 +27,7 @@ import "./IVault.sol";
  *
  *         Each of the above parameters has a pair of functions, stage/commit, through which their updates occur. The delay for all these parameters is set to baseDelay.
  *
- *         With the exception of functions for isDepositsLocked parameter, all mutable functions of the contract can only be called by the vault's admin.
+ *         With the exception of functions for isDepositLocked parameter, all mutable functions of the contract can only be called by the vault's admin.
  *         Function for isDepositLocked parameter can be called by either the operator or the vault's admin
  *         to enable faster deposit locking if deemed necessary from the operator/strategy standpoint.
  */
@@ -88,12 +88,12 @@ interface IVaultConfigurator {
     /// @notice Returns whether deposits are currently locked.
     /// @notice operator owned parameter.
     /// @return bool `true` if deposits are locked, otherwise `false`.
-    function isDepositsLocked() external view returns (bool);
+    function isDepositLocked() external view returns (bool);
 
     /// @notice Returns whether LP token transfers are currently locked.
     /// @notice admin owned parameter.
     /// @return bool `true` if transfers are locked, otherwise `false`.
-    function isTransfersLocked() external view returns (bool);
+    function areTransfersLocked() external view returns (bool);
 
     /// @notice Returns the maximum total supply of LP tokens allowed.
     /// @return uint256 The maximum total supply of LP tokens.
@@ -125,11 +125,11 @@ interface IVaultConfigurator {
 
     /// @notice Returns the delay for committing deposit locks.
     /// @return uint256 The delay in seconds.
-    function isDepositsLockedDelay() external view returns (uint256);
+    function isDepositLockedDelay() external view returns (uint256);
 
     /// @notice Returns the delay for committing transfers locks.
     /// @return uint256 The delay in seconds.
-    function isTransfersLockedDelay() external view returns (uint256);
+    function areTransfersLockedDelay() external view returns (uint256);
 
     /// @notice Returns the delay for committing delegate module approvals.
     /// @return uint256 The delay in seconds.

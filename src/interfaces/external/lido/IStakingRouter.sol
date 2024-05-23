@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 interface IStakingRouter {
     function pauseStakingModule(uint256 _stakingModuleId) external;
     function resumeStakingModule(uint256 _stakingModuleId) external;
-    function getStakingModuleIsDepositsPaused(
+    function getStakingModuleIsDepositPaused(
         uint256 _stakingModuleId
     ) external view returns (bool);
     function getStakingModuleIsActive(

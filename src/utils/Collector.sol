@@ -143,12 +143,12 @@ contract Collector {
         external
         view
         returns (
-            bool isDepositsPossible,
+            bool isDepositPossible,
             bool isDepositorWhitelisted,
             uint256 lpPriceX96
         )
     {
-        if (IVault(vault).configurator().isDepositsLocked())
+        if (IVault(vault).configurator().isDepositLocked())
             return (false, false, 0);
         {
             IValidator validator = IValidator(
@@ -167,7 +167,7 @@ contract Collector {
                 return (true, false, 0);
             }
         }
-        isDepositsPossible = true;
+        isDepositPossible = true;
         address[] memory vaults = new address[](1);
         vaults[0] = vault;
         Response memory response = collect(address(0), vaults)[0];
@@ -183,14 +183,14 @@ contract Collector {
         external
         view
         returns (
-            bool isDepositsPossible,
+            bool isDepositPossible,
             bool isDepositorWhitelisted,
             address[] memory tokens,
             uint256 expectedLpAmount,
             uint256[] memory expectedAmounts
         )
     {
-        if (IVault(vault).configurator().isDepositsLocked())
+        if (IVault(vault).configurator().isDepositLocked())
             return (false, false, new address[](0), 0, new uint256[](0));
         {
             IValidator validator = IValidator(
@@ -210,7 +210,7 @@ contract Collector {
             }
         }
 
-        isDepositsPossible = true;
+        isDepositPossible = true;
         address[] memory vaults = new address[](1);
         vaults[0] = vault;
         Response memory response = collect(address(0), vaults)[0];

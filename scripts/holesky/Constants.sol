@@ -59,4 +59,12 @@ library Constants {
     address public constant DEPOSIT_SECURITY_MODULE =
         0x045dd46212A178428c088573A7d102B9d89a022A;
     uint256 public constant SIMPLE_DVT_MODULE_ID = 1;
+
+    uint8 public constant defaultBondStrategyRole = 1;
+    uint8 public constant simpleDvtStrategyRole = 2;
+    uint8 public constant defaultBondModuleRole = 3;
+    uint8 public constant simpleDvtModuleRole = 4;
+    uint8 public constant depositRole = 5;
+
+    uint256 public constant Q96 = 2 ** 96;
 }

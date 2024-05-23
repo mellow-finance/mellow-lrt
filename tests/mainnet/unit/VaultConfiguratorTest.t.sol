@@ -110,7 +110,7 @@ contract Unit is Test {
         );
     }
 
-    function testIsDepositsLockedDelay() external {
+    function testIsDepositLockedDelay() external {
         VaultMock vault = new VaultMock(admin);
         VaultConfigurator configurator = vault.configurator();
 
@@ -120,14 +120,14 @@ contract Unit is Test {
         initialValue = 0;
         _runTest(
             configurator.baseDelay,
-            configurator.isDepositsLockedDelay,
+            configurator.isDepositLockedDelay,
             configurator.stageDepositsLockedDelay,
             configurator.commitDepositsLockedDelay,
             configurator.rollbackStagedDepositsLockedDelay
         );
     }
 
-    function testIsTransfersLockedDelay() external {
+    function testAreTransfersLockedDelay() external {
         VaultMock vault = new VaultMock(admin);
         VaultConfigurator configurator = vault.configurator();
 
@@ -137,7 +137,7 @@ contract Unit is Test {
         initialValue = 0;
         _runTest(
             configurator.baseDelay,
-            configurator.isTransfersLockedDelay,
+            configurator.areTransfersLockedDelay,
             configurator.stageTransfersLockedDelay,
             configurator.commitTransfersLockedDelay,
             configurator.rollbackStagedTransfersLockedDelay
@@ -416,22 +416,22 @@ contract Unit is Test {
     bool public validValueBool;
     bool public initialValueBool;
 
-    function testIsTransfersLocked() external {
+    function testAreTransfersLocked() external {
         VaultMock vault = new VaultMock(admin);
         VaultConfigurator configurator = vault.configurator();
         executor = admin;
         initialValueBool = false;
         validValueBool = true;
         _runTest(
-            configurator.isTransfersLockedDelay,
-            configurator.isTransfersLocked,
+            configurator.areTransfersLockedDelay,
+            configurator.areTransfersLocked,
             configurator.stageTransfersLock,
             configurator.commitTransfersLock,
             configurator.rollbackStagedTransfersLock
         );
     }
 
-    function testIsDepositsLockedOnBehalfOfAdmin() external {
+    function testIsDepositLockedOnBehalfOfAdmin() external {
         VaultMock vault = new VaultMock(admin);
         VaultConfigurator configurator = vault.configurator();
 
@@ -439,8 +439,8 @@ contract Unit is Test {
         expectedError = abi.encodeWithSignature("AddressZero()");
 
         _runTest(
-            configurator.isDepositsLockedDelay,
-            configurator.isDepositsLocked,
+            configurator.isDepositLockedDelay,
+            configurator.isDepositLocked,
             configurator.stageDepositsLock,
             configurator.commitDepositsLock,
             configurator.rollbackStagedDepositsLock,
@@ -448,7 +448,7 @@ contract Unit is Test {
         );
     }
 
-    function testIsDepositsLockedOnBehalfOfOperator() external {
+    function testIsDepositLockedOnBehalfOfOperator() external {
         VaultMock vault = new VaultMock(admin);
 
         bytes32 adminRole = vault.ADMIN_ROLE();
@@ -461,8 +461,8 @@ contract Unit is Test {
         expectedError = abi.encodeWithSignature("AddressZero()");
 
         _runTest(
-            configurator.isDepositsLockedDelay,
-            configurator.isDepositsLocked,
+            configurator.isDepositLockedDelay,
+            configurator.isDepositLocked,
             configurator.stageDepositsLock,
             configurator.commitDepositsLock,
             configurator.rollbackStagedDepositsLock,

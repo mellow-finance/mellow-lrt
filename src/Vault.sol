@@ -285,7 +285,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         checkDeadline(deadline)
         returns (uint256[] memory actualAmounts, uint256 lpAmount)
     {
-        if (configurator.isDepositsLocked()) revert Forbidden();
+        if (configurator.isDepositLocked()) revert Forbidden();
         IValidator(configurator.validator()).validate(
             msg.sender,
             address(this),
@@ -582,7 +582,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         address to,
         uint256 value
     ) internal override {
-        if (configurator.isTransfersLocked()) {
+        if (configurator.areTransfersLocked()) {
             address this_ = address(this);
             address zero_ = address(0);
             if (from != this_ && to != this_ && from != zero_ && to != zero_)

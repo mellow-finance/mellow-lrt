@@ -25,7 +25,7 @@ import "./IVaultConfigurator.sol";
  *      System parameters are set within the corresponding contract - VaultConfigurator.
  *      Upon deposit, LP tokens are issued to users based on asset valuation by oracles.
  *      Deposits are made through the deposit function, where a deposit can only be made in underlyingTokens and
- *      only at the specified ratiosOracle ratio. Deposits can be paused by setting the isDepositsLocked flag.
+ *      only at the specified ratiosOracle ratio. Deposits can be paused by setting the isDepositLocked flag.
  *
  *      Withdrawals can occur through two scenarios:
  *          - Regular withdrawal via the registerWithdrawal function and emergency withdrawal via the emergencyWithdraw function.
