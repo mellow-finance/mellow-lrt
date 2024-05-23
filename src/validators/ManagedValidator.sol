@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity ^0.8.21;
+pragma solidity 0.8.25;
 
 import "../interfaces/validators/IManagedValidator.sol";
 

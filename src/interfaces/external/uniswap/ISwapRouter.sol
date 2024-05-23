@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.21;
+pragma solidity 0.8.25;
 
 /// @title Router token swapping functionality
 /// @notice Functions for swapping tokens via Uniswap V3

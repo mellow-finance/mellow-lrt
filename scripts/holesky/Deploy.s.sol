@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity ^0.8.21;
+pragma solidity 0.8.25;
 
 import "./Constants.sol";
 
@@ -72,27 +72,49 @@ contract Deploy is Script {
             );
         }
 
+        StakingModule stakingModule = new StakingModule(
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH,
+            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
+            Constants.SIMPLE_DVT_MODULE_ID
+        );
+
+        DefaultBondModule bondModule = new DefaultBondModule();
+
         // validators setup
         {
             ManagedValidator validator = new ManagedValidator(
-                Constnants.VAULT_ADMIN
+                Constants.VAULT_ADMIN
             );
-            DefaultBondValidator bondValidator = new DefaultBondValidator();
-            address[] memory tokens = new address[](1);
-            tokens[0] = Constants.WSTETH;
-            address[] memory bonds = new address[](1);
-            bonds[0] = wstethBondContract;
-            bondValidator.setVaultData(address(vault), tokens, bonds);
-            vault.setCustomValidator(address(vault), tokens, bonds);
-
-            validator.stageValidator(address(bondValidator));
-            validator.commitValidator();
+            DefaultBondValidator bondValidator = new DefaultBondValidator(
+                Constants.VAULT_ADMIN
+            );
+            bondValidator.setSupportedBond(wstethBondContract, true);
+            validator.setCustomValidator(
+                address(bondModule),
+                address(bondValidator)
+            );
+            configurator.stageValidator(address(validator));
+            configurator.commitValidator();
         }
 
         DefaultBondStrategy bondStrategy = new DefaultBondStrategy(
-            Constants.VAULT_ADMIN
+            Constants.VAULT_ADMIN,
+            vault,
+            erc20TvlModule,
+            bondModule
         );
-        StakingDVTStrategy = new DefaultBondStrategy(Constants.VAULT_ADMIN);
+
+        SimpleDVTStakingStrategy dvtStrategy = new SimpleDVTStakingStrategy(
+            Constants.VAULT_ADMIN,
+            vault,
+            stakingModule
+        );
+
+        vault.grantRole(vault.OPERATOR(), address(bondStrategy));
+        vault.grantRole(vault.OPERATOR(), address(dvtStrategy));
     }
 
     function initialDeposit(Vault vault) public {
@@ -110,7 +132,7 @@ contract Deploy is Script {
             Constants.VAULT_ADMIN
         );
         vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
-        vault.grantRole(vault.OPERATOR(), Constants.VAULT_OPERATOR);
+        vault.grantRole(vault.OPERATOR(), Constants.VAULT_ADMIN);
         setUpVault(vault);
         initialDeposit(vault);
     }
