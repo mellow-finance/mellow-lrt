@@ -27,6 +27,7 @@ contract Deploy is Script {
     DefaultBondStrategy public bondStrategy;
     SimpleDVTStakingStrategy public dvtStrategy;
 
+    DefaultCollateralFactory public defaultCollateralFactory;
     address public wstethDefaultBond;
 
     function setUpVault() private {
@@ -91,7 +92,7 @@ contract Deploy is Script {
         // creating default bond factory and default bond contract for wsteth
         {
             // symbiotic contracts
-            DefaultCollateralFactory defaultCollateralFactory = new DefaultCollateralFactory();
+            defaultCollateralFactory = new DefaultCollateralFactory();
             wstethDefaultBond = defaultCollateralFactory.create(
                 Constants.WSTETH,
                 10_000 ether,
@@ -216,7 +217,7 @@ contract Deploy is Script {
         );
     }
 
-    function convertAllWethToWSteh() public {
+    function convertAllWethToWSteh(bool enableInitialChecks) public {
         uint256 wethBalance = IERC20(Constants.WETH).balanceOf(address(vault));
         (bool success, ) = vault.delegateCall(
             address(stakingModule),
@@ -224,11 +225,13 @@ contract Deploy is Script {
         );
 
         assert(success);
-        assert(IERC20(Constants.WETH).balanceOf(address(vault)) == 0);
-        assert(IERC20(Constants.WSTETH).balanceOf(address(vault)) != 0);
+        if (enableInitialChecks) {
+            assert(IERC20(Constants.WETH).balanceOf(address(vault)) == 0);
+            assert(IERC20(Constants.WSTETH).balanceOf(address(vault)) != 0);
+        }
     }
 
-    function wrapAllIntoSymbioticBond() public {
+    function wrapAllIntoSymbioticBond(bool enableInitialChecks) public {
         uint256 wstethVaultBalance = IERC20(Constants.WSTETH).balanceOf(
             address(vault)
         );
@@ -237,13 +240,48 @@ contract Deploy is Script {
         uint256 bondVaultBalace = IERC20(wstethDefaultBond).balanceOf(
             address(vault)
         );
-        assert(wstethVaultBalance == bondVaultBalace);
-        wstethVaultBalance = IERC20(Constants.WSTETH).balanceOf(address(vault));
-        assert(wstethVaultBalance == 0);
-        uint256 wstethBondBalance = IERC20(Constants.WSTETH).balanceOf(
-            wstethDefaultBond
+        if (enableInitialChecks) {
+            assert(wstethVaultBalance == bondVaultBalace);
+            wstethVaultBalance = IERC20(Constants.WSTETH).balanceOf(
+                address(vault)
+            );
+            assert(wstethVaultBalance == 0);
+            uint256 wstethBondBalance = IERC20(Constants.WSTETH).balanceOf(
+                wstethDefaultBond
+            );
+            assert(wstethBondBalance == bondVaultBalace);
+        }
+    }
+
+    function regularRegisterWithdrawal() public {
+        uint256 lpAmount = vault.balanceOf(Constants.VAULT_ADMIN) >> 1;
+        uint256[] memory minAmounts = new uint256[](2);
+        minAmounts[0] = lpAmount;
+        minAmounts[1] = 0;
+        vault.registerWithdrawal(
+            Constants.VAULT_ADMIN,
+            lpAmount,
+            minAmounts,
+            type(uint256).max,
+            type(uint256).max,
+            false
         );
-        assert(wstethBondBalance == bondVaultBalace);
+
+        (
+            bool isProcessingPossible,
+            bool isWithdrawalPossible,
+            uint256[] memory expectedAmounts
+        ) = vault.analyzeRequest(
+                vault.calculateStack(),
+                vault.withdrawalRequest(Constants.VAULT_ADMIN)
+            );
+
+        console2.log(
+            isProcessingPossible,
+            isWithdrawalPossible,
+            expectedAmounts[0],
+            expectedAmounts[1]
+        );
     }
 
     function deployVault() public {
@@ -257,9 +295,39 @@ contract Deploy is Script {
         vault.grantRole(vault.OPERATOR(), Constants.VAULT_ADMIN);
         setUpVault();
         initialDeposit();
-        convertAllWethToWSteh();
-        wrapAllIntoSymbioticBond();
-        regularDeposit(100 gwei);
+        convertAllWethToWSteh(true);
+        wrapAllIntoSymbioticBond(true);
+        regularDeposit(10000 gwei);
+        convertAllWethToWSteh(false);
+        wrapAllIntoSymbioticBond(false);
+    }
+
+    function print() public view {
+        console2.log("Vault: %s", address(vault));
+        console2.log("VaultConfigurator: %s", address(configurator));
+        console2.log("ERC20TvlModule: %s", address(erc20TvlModule));
+        console2.log("DefaultBondTvlModule: %s", address(defaultBondTvlModule));
+        console2.log("StakingModule: %s", address(stakingModule));
+        console2.log("DefaultBondModule: %s", address(bondModule));
+        console2.log("ManagedValidator: %s", address(validator));
+        console2.log("DefaultBondValidator: %s", address(bondValidator));
+        console2.log("ManagedRatiosOracle: %s", address(ratiosOracle));
+        console2.log("ChainlinkOracle: %s", address(chainlinkOracle));
+        console2.log(
+            "ConstantAggregatorV3: %s",
+            address(wethChainlinkAggregator)
+        );
+        console2.log(
+            "WStethRatiosAggregatorV3: %s",
+            address(wstethChainlinkAggregator)
+        );
+        console2.log("DefaultBondStrategy: %s", address(bondStrategy));
+        console2.log("SimpleDVTStakingStrategy: %s", address(dvtStrategy));
+        console2.log("WStethDefaultBond: %s", address(wstethDefaultBond));
+        console2.log(
+            "DefaultCollateralFactory: %s",
+            address(defaultCollateralFactory)
+        );
     }
 
     function run() external {
@@ -268,6 +336,8 @@ contract Deploy is Script {
         );
         deployVault();
         vm.stopBroadcast();
+        print();
+
         // preventing accidental deployment
         revert("Failed successfully");
     }

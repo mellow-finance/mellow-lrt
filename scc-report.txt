@@ -1,9 +1,9 @@
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 Language                              Files     Lines   Blanks  Comments     Code Complexity Complexity/Lines
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Solidity                                 21      2366      312       225     1829        297           328.83
+Solidity                                 22      2617      327       226     2064        313           335.64
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-src/Vault.sol                                     596       57        26      513        123            23.98
+src/Vault.sol                                     594       55        26      513        123            23.98
 src/VaultConfigurator.sol                         652      103        94      455         31             6.81
 src/modules/DefaultModule.sol                      18        4         1       13          4            30.77
 src/modules/erc20/ERC20SwapModule.sol              44        8         2       34          6            17.65
@@ -18,6 +18,7 @@ src/oracles/ManagedRatiosOracle.sol                48        6         5       3
 src/oracles/WStethRatiosAggregatorV3.sol           40        6         1       33          0             0.00
 src/strategies/DefaultBondStrategy.sol            120       15        10       95         28            29.47
 ~rc/strategies/SimpleDVTStakingStrategy.sol        86       10         7       69          5             7.25
+src/utils/Collector.sol                           253       17         1      235         16             6.81
 src/utils/DefaultAccessControl.sol                 64       13         7       44          6            13.64
 src/utils/DepositWrapper.sol                       80       10         6       64         24            37.50
 src/validators/AllowAllValidator.sol                9        2         2        5          0             0.00
@@ -25,8 +26,8 @@ src/validators/DefaultBondValidator.sol            37        6         4       2
 src/validators/ERC20SwapValidator.sol              57        6         6       45          9            20.00
 src/validators/ManagedValidator.sol               176       24        20      132         10             7.58
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Total                                    21      2366      312       225     1829        297           328.83
+Total                                    22      2617      327       226     2064        313           335.64
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Processed 77874 bytes, 0.078 megabytes (SI)
+Processed 86983 bytes, 0.087 megabytes (SI)
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
