@@ -42,7 +42,6 @@ contract SimpleDVTStakingStrategy is
         bytes calldata depositCalldata,
         IDepositSecurityModule.Signature[] calldata sortedGuardianSignatures
     ) external returns (bool success) {
-        _requireAtLeastOperator();
         (success, ) = vault.delegateCall(
             address(stakingModule),
             abi.encodeWithSelector(

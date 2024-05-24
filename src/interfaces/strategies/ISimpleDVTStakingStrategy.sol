@@ -15,6 +15,8 @@ interface ISimpleDVTStakingStrategy {
 
     function setMaxAllowedRemainder(uint256 newMaxAllowedRemainder) external;
 
+    /// @notice Converts the given amount of wETH to wstETH and deposits corresponding buffered ETH using depositSecurityModule
+    /// @notice permissionless function
     function convertAndDeposit(
         uint256 amount,
         uint256 blockNumber,

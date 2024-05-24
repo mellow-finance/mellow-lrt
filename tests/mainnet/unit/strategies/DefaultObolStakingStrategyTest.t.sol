@@ -250,7 +250,7 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
-    function testConvertAndDepositFailsWithForbidden() external {
+    function testConvertAndDepositIsPermissionless() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         IVaultConfigurator configurator = vault.configurator();
 
@@ -287,7 +287,6 @@ contract Unit is Test {
         configurator.stageDelegateModuleApproval(address(stakingModule));
         configurator.commitDelegateModuleApproval(address(stakingModule));
 
-        // lazy option. TODO: add production-accurate integrational tests
         configurator.stageValidator(address(new AllowAllValidator()));
         configurator.commitValidator();
 
@@ -295,7 +294,6 @@ contract Unit is Test {
 
         uint256 amount = 1 ether;
         deal(Constants.WETH, address(vault), amount);
-        vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
         strategy.convertAndDeposit(
             amount,
             blockNumber,
