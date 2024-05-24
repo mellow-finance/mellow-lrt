@@ -10,9 +10,9 @@ contract AdminProxy {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     ITransparentUpgradeableProxy public immutable proxy;
-    address public immutable admin;
-    address public immutable baseImplementation;
 
+    address public baseImplementation;
+    address public admin;
     address public proposer;
     address public acceptor;
 
@@ -63,6 +63,16 @@ contract AdminProxy {
 
     function upgradeAcceptor(address newAcceptor) external onlyAdmin {
         acceptor = newAcceptor;
+    }
+
+    function upgradeAdmin(address newAdmin) external onlyAdmin {
+        admin = newAdmin;
+    }
+
+    function upgradeBaseImplementation(
+        address newBaseImplementation
+    ) external onlyAdmin {
+        baseImplementation = newBaseImplementation;
     }
 
     function proposeImplementation(
