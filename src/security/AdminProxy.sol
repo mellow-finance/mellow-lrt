@@ -57,11 +57,11 @@ contract AdminProxy {
         return _implementations.length();
     }
 
-    function upgradeProposer(address newProposer) external onlyProposer {
+    function upgradeProposer(address newProposer) external onlyAdmin {
         proposer = newProposer;
     }
 
-    function upgradeAcceptor(address newAcceptor) external onlyAcceptor {
+    function upgradeAcceptor(address newAcceptor) external onlyAdmin {
         acceptor = newAcceptor;
     }
 
@@ -95,13 +95,5 @@ contract AdminProxy {
     function resetToBaseImplementation() external onlyProposer {
         proxy.upgradeToAndCall(baseImplementation, new bytes(0));
         proposer = address(0);
-    }
-
-    function setProposer(address proposer_) external onlyAdmin {
-        proposer = proposer_;
-    }
-
-    function setAcceptor(address acceptor_) external onlyAdmin {
-        acceptor = acceptor_;
     }
 }
