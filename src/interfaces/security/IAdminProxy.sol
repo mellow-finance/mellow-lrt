@@ -8,11 +8,11 @@ interface IAdminProxy {
     error Forbidden();
 
     function proxy() external view returns (ITransparentUpgradeableProxy);
-    
+
     function baseImplementation() external view returns (address);
-    
+
     function proposer() external view returns (address);
-    
+
     function acceptor() external view returns (address);
 
     function proposedImplementationAt(
@@ -24,7 +24,7 @@ interface IAdminProxy {
     function setProposer(address newProposer) external;
 
     function upgradeProposer(address newProposer) external;
-    
+
     function upgradeAcceptor(address newAcceptor) external;
 
     function proposeImplementation(address implementation) external;
