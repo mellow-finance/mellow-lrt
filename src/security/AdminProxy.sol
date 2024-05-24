@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "../interfaces/security/IAdminProxy.sol";
 
-contract AdminProxy {
-    error Forbidden();
-
+contract AdminProxy is IAdminProxy {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    /// @inheritdoc IAdminProxy
     ITransparentUpgradeableProxy public immutable proxy;
+    /// @inheritdoc IAdminProxy
     address public immutable baseImplementation;
 
+    /// @inheritdoc IAdminProxy
     address public proposer;
+    /// @inheritdoc IAdminProxy
     address public acceptor;
 
     EnumerableSet.AddressSet private _implementations;
@@ -39,41 +40,49 @@ contract AdminProxy {
         _;
     }
 
+    /// @inheritdoc IAdminProxy
     function proposedImplementationAt(
         uint256 index
     ) external view returns (address) {
         return _implementations.at(index);
     }
 
+    /// @inheritdoc IAdminProxy
     function proposedImplementationsCount() external view returns (uint256) {
         return _implementations.length();
     }
 
+    /// @inheritdoc IAdminProxy
     function setProposer(address newProposer) external onlyAcceptor {
         if (proposer != address(0)) revert Forbidden();
         proposer = newProposer;
     }
 
+    /// @inheritdoc IAdminProxy
     function upgradeProposer(address newProposer) external onlyProposer {
         proposer = newProposer;
     }
 
+    /// @inheritdoc IAdminProxy
     function upgradeAcceptor(address newAcceptor) external onlyAcceptor {
         acceptor = newAcceptor;
     }
 
+    /// @inheritdoc IAdminProxy
     function proposeImplementation(
         address implementation
     ) external onlyProposer {
         _implementations.add(implementation);
     }
 
+    /// @inheritdoc IAdminProxy
     function cancelImplementation(
         address implementation
     ) external onlyProposer {
         _implementations.remove(implementation);
     }
 
+    /// @inheritdoc IAdminProxy
     function acceptImplementation(
         address implementation
     ) external onlyAcceptor {
@@ -82,6 +91,7 @@ contract AdminProxy {
         _implementations.remove(implementation);
     }
 
+    /// @inheritdoc IAdminProxy
     function rejectImplementation(
         address implementation
     ) external onlyAcceptor {
@@ -89,6 +99,7 @@ contract AdminProxy {
         _implementations.remove(implementation);
     }
 
+    /// @inheritdoc IAdminProxy
     function resetToBaseImplementation() external onlyProposer {
         proxy.upgradeToAndCall(baseImplementation, new bytes(0));
         proposer = address(0);
