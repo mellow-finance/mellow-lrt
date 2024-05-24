@@ -10,9 +10,8 @@ contract AdminProxy {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     ITransparentUpgradeableProxy public immutable proxy;
+    address public immutable baseImplementation;
 
-    address public baseImplementation;
-    address public admin;
     address public proposer;
     address public acceptor;
 
@@ -20,13 +19,11 @@ contract AdminProxy {
 
     constructor(
         address proxy_,
-        address admin_,
         address proposer_,
         address acceptor_,
         address baseImplementation_
     ) {
         proxy = ITransparentUpgradeableProxy(proxy_);
-        admin = admin_;
         proposer = proposer_;
         acceptor = acceptor_;
         baseImplementation = baseImplementation_;
@@ -42,37 +39,27 @@ contract AdminProxy {
         _;
     }
 
-    modifier onlyAdmin() {
-        if (msg.sender != admin) revert Forbidden();
-        _;
-    }
-
     function proposedImplementationAt(
         uint256 index
     ) external view returns (address) {
         return _implementations.at(index);
     }
 
-    function proposeImplementationsCount() external view returns (uint256) {
+    function proposedImplementationsCount() external view returns (uint256) {
         return _implementations.length();
     }
 
-    function upgradeProposer(address newProposer) external onlyAdmin {
+    function setProposer(address newProposer) external onlyAcceptor {
+        if (proposer != address(0)) revert Forbidden();
         proposer = newProposer;
     }
 
-    function upgradeAcceptor(address newAcceptor) external onlyAdmin {
+    function upgradeProposer(address newProposer) external onlyProposer {
+        proposer = newProposer;
+    }
+
+    function upgradeAcceptor(address newAcceptor) external onlyAcceptor {
         acceptor = newAcceptor;
-    }
-
-    function upgradeAdmin(address newAdmin) external onlyAdmin {
-        admin = newAdmin;
-    }
-
-    function upgradeBaseImplementation(
-        address newBaseImplementation
-    ) external onlyAdmin {
-        baseImplementation = newBaseImplementation;
     }
 
     function proposeImplementation(
