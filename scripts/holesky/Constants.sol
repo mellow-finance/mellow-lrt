@@ -56,6 +56,9 @@ library Constants {
     address public constant WSTETH = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
     address public constant WETH = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
+    address public constant DEFAULT_COLLATERAL_FACTORY =
+        0x6c8509dbCf264fF1A8F2A9dEEeE5453391B1d2b7;
+
     address public constant WITHDRAWAL_QUEUE =
         0xc7cc160b58F8Bb0baC94b80847E2CF2800565C50;
     address public constant DEPOSIT_SECURITY_MODULE =

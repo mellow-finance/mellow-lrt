@@ -10,10 +10,8 @@ contract Unit is Test {
         WStethRatiosAggregatorV3 oracle = new WStethRatiosAggregatorV3(
             Constants.WSTETH
         );
-        assertEq(oracle.decimals(), 18);
-        assertEq(oracle.description(), "WStethRatiosAggregatorV3");
-        assertEq(oracle.version(), 1);
         assertEq(oracle.wsteth(), Constants.WSTETH);
+        assertEq(oracle.decimals(), 18);
     }
 
     function testGetAnswer() external {
@@ -24,19 +22,6 @@ contract Unit is Test {
         oracle.getAnswer();
         oracle = new WStethRatiosAggregatorV3(Constants.WSTETH);
         int256 price = oracle.getAnswer();
-        assertTrue(price > 1 ether && price < 1.3 ether);
-    }
-
-    function testGetRoundData() external {
-        WStethRatiosAggregatorV3 oracle = new WStethRatiosAggregatorV3(
-            address(0)
-        );
-        vm.expectRevert();
-        oracle.getRoundData(0);
-        oracle = new WStethRatiosAggregatorV3(Constants.WSTETH);
-        (, int256 price, , , ) = oracle.getRoundData(0);
-        assertTrue(price > 1 ether && price < 1.3 ether);
-        (, price, , , ) = oracle.getRoundData(type(uint80).max);
         assertTrue(price > 1 ether && price < 1.3 ether);
     }
 

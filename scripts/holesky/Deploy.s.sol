@@ -28,7 +28,6 @@ contract Deploy is Script {
     DefaultBondStrategy public bondStrategy;
     SimpleDVTStakingStrategy public dvtStrategy;
 
-    DefaultCollateralFactory public defaultCollateralFactory;
     address public wstethDefaultBond;
 
     Collector public collector;
@@ -96,7 +95,9 @@ contract Deploy is Script {
         // creating default bond factory and default bond contract for wsteth
         {
             // symbiotic contracts
-            defaultCollateralFactory = new DefaultCollateralFactory();
+            DefaultCollateralFactory defaultCollateralFactory = DefaultCollateralFactory(
+                    Constants.DEFAULT_COLLATERAL_FACTORY
+                );
             wstethDefaultBond = defaultCollateralFactory.create(
                 Constants.WSTETH,
                 10_000 ether,

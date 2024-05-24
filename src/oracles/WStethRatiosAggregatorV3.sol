@@ -6,8 +6,6 @@ import "../interfaces/external/lido/IWSteth.sol";
 
 contract WStethRatiosAggregatorV3 is IAggregatorV3 {
     uint8 public constant decimals = 18;
-    string public constant description = "WStethRatiosAggregatorV3";
-    uint256 public constant version = 1;
     address public immutable wsteth;
 
     constructor(address wsteth_) {
@@ -16,17 +14,6 @@ contract WStethRatiosAggregatorV3 is IAggregatorV3 {
 
     function getAnswer() public view returns (int256) {
         return int256(IWSteth(wsteth).getStETHByWstETH(10 ** decimals));
-    }
-
-    function getRoundData(
-        uint80
-    )
-        external
-        view
-        override
-        returns (uint80, int256, uint256, uint256, uint80)
-    {
-        return latestRoundData();
     }
 
     function latestRoundData()
