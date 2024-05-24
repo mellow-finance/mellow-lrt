@@ -44,8 +44,8 @@ This section lists files that are in scope for the metrics report.
 
 ### <span id=t-source-Units-in-Scope>Source Units in Scope</span>
 
-Source Units Analyzed: **`22`**<br>
-Source Units in Scope: **`22`** (**100%**)
+Source Units Analyzed: **`21`**<br>
+Source Units in Scope: **`21`** (**100%**)
 
 | Type | File   | Logic Contracts | Interfaces | Lines | nLines | nSLOC | Comment Lines | Complex. Score | Capabilities |
 | ---- | ------ | --------------- | ---------- | ----- | ------ | ----- | ------------- | -------------- | ------------ | 
@@ -59,19 +59,18 @@ Source Units in Scope: **`22`** (**100%**)
 | 📝 | ./src/modules/symbiotic/DefaultBondModule.sol | 1 | **** | 33 | 27 | 20 | 3 | 29 | **** |
 | 📝 | ./src/modules/symbiotic/DefaultBondTvlModule.sol | 1 | **** | 36 | 31 | 23 | 4 | 38 | **** |
 | 📝 | ./src/oracles/ChainlinkOracle.sol | 1 | **** | 102 | 87 | 65 | 11 | 64 | **** |
-| 📝 | ./src/oracles/ConstantAggregatorV3.sol | 1 | **** | 35 | 23 | 17 | 1 | 12 | **** |
+| 📝 | ./src/oracles/ConstantAggregatorV3.sol | 1 | **** | 22 | 17 | 12 | 1 | 7 | **** |
 | 📝 | ./src/oracles/ManagedRatiosOracle.sol | 1 | **** | 48 | 41 | 30 | 5 | 36 | **<abbr title='Uses Hash-Functions'>🧮</abbr>** |
-| 📝 | ./src/oracles/WStethRatiosAggregatorV3.sol | 1 | **** | 40 | 28 | 21 | 1 | 18 | **** |
+| 📝 | ./src/oracles/WStethRatiosAggregatorV3.sol | 1 | **** | 27 | 22 | 16 | 1 | 13 | **** |
 | 📝 | ./src/strategies/DefaultBondStrategy.sol | 1 | **** | 120 | 120 | 95 | 10 | 89 | **** |
-| 📝 | ./src/strategies/SimpleDVTStakingStrategy.sol | 1 | **** | 86 | 75 | 58 | 7 | 37 | **** |
-| 📝 | ./src/utils/Collector.sol | 1 | **** | 253 | 222 | 204 | 1 | 235 | **<abbr title='TryCatch Blocks'>♻️</abbr>** |
+| 📝 | ./src/strategies/SimpleDVTStakingStrategy.sol | 1 | **** | 85 | 74 | 57 | 7 | 36 | **** |
 | 📝 | ./src/utils/DefaultAccessControl.sol | 1 | **** | 64 | 64 | 44 | 7 | 44 | **<abbr title='Uses Hash-Functions'>🧮</abbr>** |
 | 📝 | ./src/utils/DepositWrapper.sol | 1 | **** | 80 | 74 | 58 | 6 | 78 | **<abbr title='Payable Functions'>💰</abbr>** |
 | 📝 | ./src/validators/AllowAllValidator.sol | 1 | **** | 9 | 9 | 5 | 2 | 5 | **** |
 | 📝 | ./src/validators/DefaultBondValidator.sol | 1 | **** | 37 | 37 | 27 | 4 | 23 | **** |
 | 📝 | ./src/validators/ERC20SwapValidator.sol | 1 | **** | 57 | 57 | 45 | 6 | 30 | **** |
 | 📝 | ./src/validators/ManagedValidator.sol | 1 | **** | 176 | 140 | 96 | 20 | 99 | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr>** |
-| 📝🎨 | **Totals** | **22** | **** | **2617**  | **2297** | **1744** | **227** | **2048** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr><abbr title='TryCatch Blocks'>♻️</abbr>** |
+| 📝🎨 | **Totals** | **21** | **** | **2337**  | **2062** | **1529** | **226** | **1802** | **<abbr title='Uses Assembly'>🖥</abbr><abbr title='Payable Functions'>💰</abbr><abbr title='DelegateCall'>👥</abbr><abbr title='Uses Hash-Functions'>🧮</abbr><abbr title='create/create2'>🌀</abbr>** |
 
 <sub>
 Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
@@ -90,7 +89,7 @@ Legend: <a onclick="toggleVisibility('table-legend', this)">[➕]</a>
 
 
 ##### <span id=t-deployable-contracts>Deployable Logic Contracts</span>
-Total: 20
+Total: 19
 * 📝 `Vault`
 * 📝 `VaultConfigurator`
 * 📝 `ERC20SwapModule`
@@ -108,7 +107,6 @@ Total: 20
 <li> 📝 <code>WStethRatiosAggregatorV3</code></li>
 <li> 📝 <code>DefaultBondStrategy</code></li>
 <li> 📝 <code>SimpleDVTStakingStrategy</code></li>
-<li> 📝 <code>Collector</code></li>
 <li> 📝 <code>DepositWrapper</code></li>
 <li> 📝 <code>AllowAllValidator</code></li>
 <li> 📝 <code>DefaultBondValidator</code></li>
@@ -184,14 +182,14 @@ The analysis finished with **`0`** errors and **`0`** duplicate files.
 
 #### <span id=t-inline-documentation>Inline Documentation</span>
 
-- **Comment-to-Source Ratio:** On average there are`9.09` code lines per comment (lower=better).
+- **Comment-to-Source Ratio:** On average there are`7.98` code lines per comment (lower=better).
 - **ToDo's:** `0` 
 
 #### <span id=t-components>Components</span>
 
 | 📝Contracts   | 📚Libraries | 🔍Interfaces | 🎨Abstract |
 | ------------- | ----------- | ------------ | ---------- |
-| 21 | 0  | 0  | 1 |
+| 20 | 0  | 0  | 1 |
 
 #### <span id=t-exposed-functions>Exposed Functions</span>
 
@@ -199,17 +197,17 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | 🌐Public   | 💰Payable |
 | ---------- | --------- |
-| 175 | 3  | 
+| 168 | 3  | 
 
 | External   | Internal | Private | Pure | View |
 | ---------- | -------- | ------- | ---- | ---- |
-| 162 | 138  | 14 | 4 | 68 |
+| 156 | 138  | 14 | 3 | 62 |
 
 #### <span id=t-statevariables>StateVariables</span>
 
 | Total      | 🌐Public  |
 | ---------- | --------- |
-| 78  | 49 |
+| 72  | 43 |
 
 #### <span id=t-capabilities>Capabilities</span>
 
@@ -223,16 +221,13 @@ This section lists functions that are explicitly declared public or payable. Ple
 
 | ♻️ TryCatch | Σ Unchecked |
 | ---------- | ----------- |
-| `yes` | **** |
+| **** | **** |
 
 #### <span id=t-package-imports>Dependencies / External Imports</span>
 
 | Dependency / Import Path | Count  | 
 | ------------------------ | ------ |
 | @openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol | 1 |
-| @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol | 1 |
-| @openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol | 1 |
-| @openzeppelin/contracts/utils/Strings.sol | 1 |
 
 #### <span id=t-totals>Totals</span>
 
@@ -306,7 +301,6 @@ This section lists functions that are explicitly declared public or payable. Ple
 | ./src/oracles/WStethRatiosAggregatorV3.sol | [object Promise] |
 | ./src/strategies/DefaultBondStrategy.sol | [object Promise] |
 | ./src/strategies/SimpleDVTStakingStrategy.sol | [object Promise] |
-| ./src/utils/Collector.sol | [object Promise] |
 | ./src/utils/DefaultAccessControl.sol | [object Promise] |
 | ./src/utils/DepositWrapper.sol | [object Promise] |
 | ./src/validators/AllowAllValidator.sol | [object Promise] |
@@ -484,7 +478,6 @@ This section lists functions that are explicitly declared public or payable. Ple
 ||||||
 | **ConstantAggregatorV3** | Implementation | IAggregatorV3 |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
-| └ | getRoundData | External ❗️ |   |NO❗️ |
 | └ | latestRoundData | Public ❗️ |   |NO❗️ |
 ||||||
 | **ManagedRatiosOracle** | Implementation | IManagedRatiosOracle |||
@@ -494,7 +487,6 @@ This section lists functions that are explicitly declared public or payable. Ple
 | **WStethRatiosAggregatorV3** | Implementation | IAggregatorV3 |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |
 | └ | getAnswer | Public ❗️ |   |NO❗️ |
-| └ | getRoundData | External ❗️ |   |NO❗️ |
 | └ | latestRoundData | Public ❗️ |   |NO❗️ |
 ||||||
 | **DefaultBondStrategy** | Implementation | IDefaultBondStrategy, DefaultAccessControl |||
@@ -511,13 +503,6 @@ This section lists functions that are explicitly declared public or payable. Ple
 | └ | setMaxAllowedRemainder | External ❗️ | 🛑  |NO❗️ |
 | └ | convertAndDeposit | External ❗️ | 🛑  |NO❗️ |
 | └ | processWithdrawals | External ❗️ | 🛑  |NO❗️ |
-||||||
-| **Collector** | Implementation |  |||
-| └ | collect | Public ❗️ |   |NO❗️ |
-| └ | fetchWithdrawalAmounts | External ❗️ |   |NO❗️ |
-| └ | fetchDepositWrapperParams | External ❗️ |   |NO❗️ |
-| └ | fetchDepositAmounts | External ❗️ |   |NO❗️ |
-| └ | test | External ❗️ |   |NO❗️ |
 ||||||
 | **DefaultAccessControl** | Implementation | IDefaultAccessControl, AccessControlEnumerable |||
 | └ | <Constructor> | Public ❗️ | 🛑  |NO❗️ |

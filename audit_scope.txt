@@ -8,9 +8,9 @@
    33 ./src/modules/symbiotic/DefaultBondModule.sol
    36 ./src/modules/symbiotic/DefaultBondTvlModule.sol
   102 ./src/oracles/ChainlinkOracle.sol
-   35 ./src/oracles/ConstantAggregatorV3.sol
+   22 ./src/oracles/ConstantAggregatorV3.sol
    48 ./src/oracles/ManagedRatiosOracle.sol
-   40 ./src/oracles/WStethRatiosAggregatorV3.sol
+   27 ./src/oracles/WStethRatiosAggregatorV3.sol
   120 ./src/strategies/DefaultBondStrategy.sol
    85 ./src/strategies/SimpleDVTStakingStrategy.sol
    64 ./src/utils/DefaultAccessControl.sol
@@ -19,4 +19,4 @@
    37 ./src/validators/DefaultBondValidator.sol
    57 ./src/validators/ERC20SwapValidator.sol
   176 ./src/validators/ManagedValidator.sol
- 2363 total
+ 2337 total
