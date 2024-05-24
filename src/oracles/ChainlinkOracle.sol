@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 
 import "../interfaces/oracles/IChainlinkOracle.sol";
 
@@ -12,9 +12,18 @@ contract ChainlinkOracle is IChainlinkOracle {
     uint256 public constant Q96 = 2 ** 96;
 
     /// @inheritdoc IChainlinkOracle
-    mapping(address => mapping(address => address)) public aggregatorsV3;
-    /// @inheritdoc IChainlinkOracle
     mapping(address => address) public baseTokens;
+
+    mapping(address => mapping(address => AggregatorData))
+        private _aggregatorsData;
+
+    /// @inheritdoc IChainlinkOracle
+    function aggregatorsData(
+        address vault,
+        address token
+    ) external view returns (AggregatorData memory) {
+        return _aggregatorsData[vault][token];
+    }
 
     /// @inheritdoc IChainlinkOracle
     function setBaseToken(address vault, address baseToken) external {
@@ -26,20 +35,39 @@ contract ChainlinkOracle is IChainlinkOracle {
     /// @inheritdoc IChainlinkOracle
     function setChainlinkOracles(
         address vault,
-        address[] memory tokens,
-        address[] memory oracles
+        address[] calldata tokens,
+        AggregatorData[] calldata data_
     ) external {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
-        if (tokens.length != oracles.length) revert InvalidLength();
+        if (tokens.length != data_.length) revert InvalidLength();
         for (uint256 i = 0; i < tokens.length; i++) {
-            aggregatorsV3[vault][tokens[i]] = oracles[i];
+            if (data_[i].aggregatorV3 == address(0)) continue;
+            _validateAndGetPrice(data_[i]);
+        }
+        for (uint256 i = 0; i < tokens.length; i++) {
+            _aggregatorsData[vault][tokens[i]] = data_[i];
         }
         emit ChainlinkOracleSetChainlinkOracles(
             vault,
             tokens,
-            oracles,
+            data_,
             block.timestamp
         );
+    }
+
+    function _validateAndGetPrice(
+        AggregatorData memory data
+    ) private view returns (uint256 answer, uint8 decimals) {
+        if (data.aggregatorV3 == address(0)) revert AddressZero();
+        (, int256 signedAnswer, , uint256 lastTimestamp, ) = IAggregatorV3(
+            data.aggregatorV3
+        ).latestRoundData();
+        // The roundId and latestRound are not used in the validation process to ensure compatibility
+        // with various custom aggregator implementations that may handle these parameters differently
+        if (signedAnswer < 0) revert InvalidOracleData();
+        answer = uint256(signedAnswer);
+        if (block.timestamp - data.maxAge > lastTimestamp) revert StaleOracle();
+        decimals = IAggregatorV3(data.aggregatorV3).decimals();
     }
 
     /// @inheritdoc IChainlinkOracle
@@ -47,16 +75,7 @@ contract ChainlinkOracle is IChainlinkOracle {
         address vault,
         address token
     ) public view returns (uint256 answer, uint8 decimals) {
-        address aggregatorV3 = aggregatorsV3[vault][token];
-        if (aggregatorV3 == address(0)) revert AddressZero();
-        uint256 lastTimestamp;
-        int256 signedAnswer;
-        (, signedAnswer, , lastTimestamp, ) = IAggregatorV3(aggregatorV3)
-            .latestRoundData();
-        answer = uint256(signedAnswer);
-        if (block.timestamp - MAX_ORACLE_AGE > lastTimestamp)
-            revert StaleOracle();
-        decimals = IAggregatorV3(aggregatorV3).decimals();
+        return _validateAndGetPrice(_aggregatorsData[vault][token]);
     }
 
     /// @inheritdoc IPriceOracle

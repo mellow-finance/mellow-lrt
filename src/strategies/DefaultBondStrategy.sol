@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 
 import "../interfaces/strategies/IDefaultBondStrategy.sol";
 
@@ -39,6 +39,8 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
         uint256 cumulativeRatio = 0;
         for (uint256 i = 0; i < data.length; i++) {
             if (data[i].bond == address(0)) revert AddressZero();
+            if (IDefaultBond(data[i].bond).asset() != token)
+                revert InvalidBond();
             cumulativeRatio += data[i].ratioX96;
         }
         if (cumulativeRatio != Q96) revert InvalidCumulativeRatio();
@@ -102,12 +104,14 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
             if (data_.length == 0) continue;
             Data[] memory data = abi.decode(data_, (Data[]));
             for (uint256 i = 0; i < data.length; i++) {
+                uint256 amount = IERC20(data[i].bond).balanceOf(address(vault));
+                if (amount == 0) continue;
                 vault.delegateCall(
                     address(bondModule),
                     abi.encodeWithSelector(
                         IDefaultBondModule.withdraw.selector,
                         data[i].bond,
-                        IERC20(data[i].bond).balanceOf(address(vault))
+                        amount
                     )
                 );
             }

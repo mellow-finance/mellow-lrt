@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSL-1.1
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -25,7 +25,7 @@ import "./IVaultConfigurator.sol";
  *      System parameters are set within the corresponding contract - VaultConfigurator.
  *      Upon deposit, LP tokens are issued to users based on asset valuation by oracles.
  *      Deposits are made through the deposit function, where a deposit can only be made in underlyingTokens and
- *      only at the specified ratiosOracle ratio. Deposits can be paused by setting the isDepositsLocked flag.
+ *      only at the specified ratiosOracle ratio. Deposits can be paused by setting the isDepositLocked flag.
  *
  *      Withdrawals can occur through two scenarios:
  *          - Regular withdrawal via the registerWithdrawal function and emergency withdrawal via the emergencyWithdraw function.
@@ -57,7 +57,7 @@ import "./IVaultConfigurator.sol";
  *      Upon calling removeToken, it is checked that the underlyingTvl function for the specified token returns a zero value. Otherwise, the function reverts with a NonZeroValue error.
  *      It is important to note that there is no such check when calling removeTvlModule, so when updating parameters, sequential execution of a transaction to remove the old and add the new tvlModule is implied.
  */
-interface IVault {
+interface IVault is IERC20 {
     /// @dev Errors
     error Deadline();
     error InvalidState();
@@ -68,6 +68,7 @@ interface IVault {
     error InsufficientLpAmount();
     error InsufficientAmount();
     error LimitOverflow();
+    error AlreadyAdded();
 
     /// @notice Struct representing a user's withdrawal request.
     struct WithdrawalRequest {
@@ -109,12 +110,24 @@ interface IVault {
         address user
     ) external view returns (WithdrawalRequest memory request);
 
+    /// @return count The number of users with pending withdrawal requests.
+    function pendingWithdrawersCount() external view returns (uint256 count);
+
     /// @notice Returns an array of addresses with pending withdrawal requests.
     /// @return users An array of addresses with pending withdrawal requests.
     function pendingWithdrawers()
         external
         view
         returns (address[] memory users);
+
+    /// @notice Returns an array of addresses with pending withdrawal requests.
+    /// @param limit The maximum number of users to return.
+    /// @param offset The number of users to skip before returning.
+    /// @return users An array of addresses with pending withdrawal requests.
+    function pendingWithdrawers(
+        uint256 limit,
+        uint256 offset
+    ) external view returns (address[] memory users);
 
     /// @notice Returns an array of underlying tokens of the vault.
     /// @return underlyinigTokens_ An array of underlying token addresses.

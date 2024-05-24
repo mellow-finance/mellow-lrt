@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 
 import "../utils/IDefaultAccessControl.sol";
 import "../external/chainlink/IAggregatorV3.sol";
@@ -16,6 +16,15 @@ interface IChainlinkOracle is IPriceOracle {
     error InvalidLength();
     error Forbidden();
     error StaleOracle();
+    error InvalidOracleData();
+
+    /// @notice Struct containing Chainlink oracle data.
+    /// @param aggregatorV3 The address of the Chainlink aggregator.
+    /// @param maxAge The maximum allowable age for an oracle result before it's considered stale.
+    struct AggregatorData {
+        address aggregatorV3;
+        uint256 maxAge;
+    }
 
     /**
      * @notice Returns the maximum allowable age for an oracle result before it's considered stale.
@@ -33,12 +42,12 @@ interface IChainlinkOracle is IPriceOracle {
      * @notice Returns the Chainlink price aggregator address for a specific vault and token.
      * @param vault The address of the vault.
      * @param token The address of the token.
-     * @return address of the Chainlink price aggregator.
+     * @return data The Chainlink oracle data for the token.
      */
-    function aggregatorsV3(
+    function aggregatorsData(
         address vault,
         address token
-    ) external view returns (address);
+    ) external view returns (AggregatorData memory data);
 
     /**
      * @notice Returns the base token associated with a specific vault.
@@ -58,13 +67,13 @@ interface IChainlinkOracle is IPriceOracle {
      * @notice Sets Chainlink price oracles for a given vault and an array of tokens.
      * @param vault The address of the vault to associate the tokens and oracles with.
      * @param tokens An array of token addresses that require price data.
-     * @param oracles An array of corresponding Chainlink oracle addresses.
+     * @param aggregatorsData An array of Chainlink oracle addresses set with max allowed ages for the tokens.
      * @dev Both arrays should have the same length.
      */
     function setChainlinkOracles(
         address vault,
         address[] memory tokens,
-        address[] memory oracles
+        AggregatorData[] memory aggregatorsData
     ) external;
 
     /**
@@ -96,13 +105,13 @@ interface IChainlinkOracle is IPriceOracle {
      * @notice Emitted when Chainlink oracles are set for a specific vault in the Chainlink Oracle.
      * @param vault The address of the vault for which Chainlink oracles are set.
      * @param tokens An array of token addresses for which Chainlink oracles are set.
-     * @param oracles An array of Chainlink oracle addresses set for the tokens.
+     * @param aggregatorsData An array of Chainlink oracle addresses set with max allowed ages for the tokens.
      * @param timestamp The timestamp when Chainlink oracles are set.
      */
     event ChainlinkOracleSetChainlinkOracles(
         address indexed vault,
         address[] tokens,
-        address[] oracles,
+        AggregatorData[] aggregatorsData,
         uint256 timestamp
     );
 }

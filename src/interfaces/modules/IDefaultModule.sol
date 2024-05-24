@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 
 // Solidity version pragma
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 
 /**
  * @title IDefaultModule

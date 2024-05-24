@@ -1,6 +1,6 @@
 {
   "name": "mellow-lrt",
-  "license": "BSL-1.1",
+  "license": "UNLICENSED",
   "version": "1.0.0",
   "files": [
     "src/**/*.sol"
@@ -11,15 +11,20 @@
     "prettier-plugin-solidity": "^1.0.0-beta.13"
   },
   "scripts": {
-    "prettier": "prettier --write ./src/** && prettier --write ./test/**",
-    "prettier:check": "prettier --check ./src/** && prettier --check ./test/**",
-    "prettier:changed": "prettier --write $(git status | grep '.sol' | grep -v 'deleted:' | cut -d ' ' -f 4)",
-    "test": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19762100 --match-path ./test/mainnet/unit/\\*",
+    "prettier": "prettier --write ./src/** && prettier --write ./tests/** && prettier --write ./scripts/**",
+    "prettier:check": "prettier --check ./src/** && prettier --check ./tests/**",
+    "prettier:changed": "prettier --write $(git status | grep '\\.sol' | grep -v 'deleted:' | cut -d ' ' -f 4)",
+    "test": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./tests/mainnet/\\*",
     "size": "forge build --sizes --force",
-    "deploy:optimism:core": "forge script --use 0.8.21 src/scripts/deploy/optimism/Deploy.sol:Deploy --rpc-url $(grep OPTIMISM_RPC .env | cut -d '=' -f2) --broadcast --slow --verify -vvvv",
+    "deploy:holesky": "forge script --use 0.8.25 scripts/holesky/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
     "compile": "forge build",
     "audit_scope": "tree -f -i -I '*interfaces*' -I '*libraries*' | grep '^./src.*sol' | xargs ls -d 2>/dev/null | xargs wc -l > audit_scope.txt && cat audit_scope.txt",
-    "coverage": "forge coverage --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19762100",
-    "coverage:report": "forge coverage --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19762100 --report lcov && genhtml lcov.info -o report --branch-coverage && rm lcov.info"
+    "scc:report": "scc src --sort names --no-cocomo --exclude-dir libraries --exclude-dir interfaces --by-file --format wide > scc-report.txt",
+    "scm:report": "solidity-code-metrics $(tree -f -i -I '*interfaces*' -I '*libraries*' | grep '^./src.*sol' | xargs ls -d 2>/dev/null) > scm-report.md",
+    "coverage": "forge coverage --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261",
+    "coverage:report": "forge coverage --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --report lcov && genhtml lcov.info -o report --branch-coverage && rm lcov.info"
+  },
+  "dependencies": {
+    "solidity-code-metrics": "^0.0.26"
   }
 }
