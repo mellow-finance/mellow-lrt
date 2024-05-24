@@ -12,12 +12,11 @@
    48 ./src/oracles/ManagedRatiosOracle.sol
    40 ./src/oracles/WStethRatiosAggregatorV3.sol
   120 ./src/strategies/DefaultBondStrategy.sol
-   86 ./src/strategies/SimpleDVTStakingStrategy.sol
-  253 ./src/utils/Collector.sol
+   85 ./src/strategies/SimpleDVTStakingStrategy.sol
    64 ./src/utils/DefaultAccessControl.sol
    80 ./src/utils/DepositWrapper.sol
     9 ./src/validators/AllowAllValidator.sol
    37 ./src/validators/DefaultBondValidator.sol
    57 ./src/validators/ERC20SwapValidator.sol
   176 ./src/validators/ManagedValidator.sol
- 2617 total
+ 2363 total

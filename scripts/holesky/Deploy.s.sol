@@ -59,7 +59,7 @@ contract Deploy is Script {
             configurator.commitRatiosOracle();
 
             chainlinkOracle = new ChainlinkOracle();
-            chainlinkOracle.setBaseToken(address(vault), Constants.WSTETH);
+            chainlinkOracle.setBaseToken(address(vault), Constants.WETH);
             address[] memory tokens = new address[](2);
             tokens[0] = Constants.WSTETH;
             tokens[1] = Constants.WETH;
@@ -398,11 +398,10 @@ contract Deploy is Script {
         vm.startBroadcast(
             uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
         );
-        // deployVault();
-        // deployCollector();
-        ChainlinkOracle(0x2afFEbF93FB352844fAdE3438Ee8E507A01e7658).setBaseToken(address(0x7C9FA592083CFb9657D1869508116238F551A68d), Constants.WETH);
+        deployVault();
+        deployCollector();
         vm.stopBroadcast();
-        // print();
+        print();
         // preventing accidental deployment
         // revert("Failed successfully");
     }
