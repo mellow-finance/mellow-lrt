@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract AdminProxy {
+    error Forbidden();
+
     using EnumerableSet for EnumerableSet.AddressSet;
 
     ITransparentUpgradeableProxy public immutable vault;
@@ -14,7 +16,7 @@ contract AdminProxy {
     address public proposer;
     address public acceptor;
 
-    EnumerableSet.AddressSet private _proposedImplementations;
+    EnumerableSet.AddressSet private _implementations;
 
     constructor(
         address vault_,
@@ -31,23 +33,17 @@ contract AdminProxy {
     }
 
     modifier onlyProposer() {
-        require(
-            msg.sender == proposer,
-            "AdminProxy: caller is not the proposer"
-        );
+        if (msg.sender != proposer) revert Forbidden();
         _;
     }
 
     modifier onlyAcceptor() {
-        require(
-            msg.sender == acceptor,
-            "AdminProxy: caller is not the acceptor"
-        );
+        if (msg.sender != acceptor) revert Forbidden();
         _;
     }
 
     modifier onlyAdmin() {
-        require(msg.sender == admin, "AdminProxy: caller is not the admin");
+        if (msg.sender != admin) revert Forbidden();
         _;
     }
 
@@ -58,40 +54,38 @@ contract AdminProxy {
     function proposedImplementationAt(
         uint256 index
     ) external view returns (address) {
-        return _proposedImplementations.at(index);
+        return _implementations.at(index);
     }
 
     function proposeImplementationsCount() external view returns (uint256) {
-        return _proposedImplementations.length();
+        return _implementations.length();
     }
 
     function proposeImplementation(
         address implementation
     ) external onlyProposer {
-        _proposedImplementations.add(implementation);
+        _implementations.add(implementation);
     }
 
     function cancelImplementation(
         address implementation
     ) external onlyProposer {
-        _proposedImplementations.remove(implementation);
+        _implementations.remove(implementation);
     }
 
     function acceptImplementation(
         address implementation
     ) external onlyAcceptor {
-        if (!_proposedImplementations.contains(implementation))
-            revert("AdminProxy: implementation not proposed");
+        if (!_implementations.contains(implementation)) revert Forbidden();
         vault.upgradeToAndCall(implementation, new bytes(0));
-        _proposedImplementations.remove(implementation);
+        _implementations.remove(implementation);
     }
 
     function rejectImplementation(
         address implementation
     ) external onlyAcceptor {
-        if (!_proposedImplementations.contains(implementation))
-            revert("AdminProxy: implementation not proposed");
-        _proposedImplementations.remove(implementation);
+        if (!_implementations.contains(implementation)) revert Forbidden();
+        _implementations.remove(implementation);
     }
 
     function resetToBaseImplementation() external onlyProposer {
