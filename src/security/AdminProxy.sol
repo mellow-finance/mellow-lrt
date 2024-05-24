@@ -9,7 +9,7 @@ contract AdminProxy {
 
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    ITransparentUpgradeableProxy public immutable vault;
+    ITransparentUpgradeableProxy public immutable proxy;
     address public immutable admin;
     address public immutable baseImplementation;
 
@@ -19,13 +19,13 @@ contract AdminProxy {
     EnumerableSet.AddressSet private _implementations;
 
     constructor(
-        address vault_,
+        address proxy_,
         address admin_,
         address proposer_,
         address acceptor_,
         address baseImplementation_
     ) {
-        vault = ITransparentUpgradeableProxy(vault_);
+        proxy = ITransparentUpgradeableProxy(proxy_);
         admin = admin_;
         proposer = proposer_;
         acceptor = acceptor_;
@@ -77,7 +77,7 @@ contract AdminProxy {
         address implementation
     ) external onlyAcceptor {
         if (!_implementations.contains(implementation)) revert Forbidden();
-        vault.upgradeToAndCall(implementation, new bytes(0));
+        proxy.upgradeToAndCall(implementation, new bytes(0));
         _implementations.remove(implementation);
     }
 
@@ -89,7 +89,7 @@ contract AdminProxy {
     }
 
     function resetToBaseImplementation() external onlyProposer {
-        vault.upgradeToAndCall(baseImplementation, new bytes(0));
+        proxy.upgradeToAndCall(baseImplementation, new bytes(0));
         proposer = address(0);
     }
 
