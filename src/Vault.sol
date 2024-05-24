@@ -224,9 +224,10 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
             if (!_isUnderlyingToken[data[i].underlyingToken])
                 revert InvalidToken();
         }
-        if (_tvlModules.add(module)) {
-            emit TvlModuleAdded(module);
+        if (!_tvlModules.add(module)) {
+            revert AlreadyAdded();
         }
+        emit TvlModuleAdded(module);
     }
 
     /// @inheritdoc IVault
@@ -471,9 +472,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     ) public pure returns (bool, bool, uint256[] memory expectedAmounts) {
         uint256 lpAmount = request.lpAmount;
         if (
-            request.tokensHash != s.tokensHash ||
-            lpAmount == 0 ||
-            request.deadline < s.timestamp
+            request.tokensHash != s.tokensHash || request.deadline < s.timestamp
         ) return (false, false, expectedAmounts);
 
         uint256 value = FullMath.mulDiv(lpAmount, s.totalValue, s.totalSupply);

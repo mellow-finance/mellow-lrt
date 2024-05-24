@@ -68,6 +68,7 @@ interface IVault is IERC20 {
     error InsufficientLpAmount();
     error InsufficientAmount();
     error LimitOverflow();
+    error AlreadyAdded();
 
     /// @notice Struct representing a user's withdrawal request.
     struct WithdrawalRequest {

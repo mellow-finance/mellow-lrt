@@ -24,10 +24,10 @@ contract DepositWrapper is IDepositWrapper {
 
     function _wethToWsteth(uint256 amount) private returns (uint256) {
         IWeth(weth).withdraw(amount);
-        return _ethToSteth(amount);
+        return _ethToWsteth(amount);
     }
 
-    function _ethToSteth(uint256 amount) private returns (uint256) {
+    function _ethToWsteth(uint256 amount) private returns (uint256) {
         ISteth(steth).submit{value: amount}(address(0));
         return _stethToWsteth(amount);
     }
@@ -60,7 +60,7 @@ contract DepositWrapper is IDepositWrapper {
             amount = _wethToWsteth(amount);
         } else if (token == address(0)) {
             if (msg.value != amount) revert InvalidAmount();
-            amount = _ethToSteth(amount);
+            amount = _ethToWsteth(amount);
         } else if (wsteth == token) {
             IERC20(wsteth).safeTransferFrom(sender, wrapper, amount);
         } else revert InvalidToken();

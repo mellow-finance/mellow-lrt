@@ -15,6 +15,7 @@ import "../modules/symbiotic/IDefaultBondModule.sol";
 interface IDefaultBondStrategy is IDepositCallback {
     /// @dev Errors
     error InvalidCumulativeRatio();
+    error InvalidBond();
 
     /**
      * @notice Structure representing data for a specific bond allocation.

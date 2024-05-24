@@ -61,8 +61,8 @@ contract Unit is Test {
         vm.startPrank(strategyAdmin);
         IDefaultBondStrategy.Data[]
             memory data = new IDefaultBondStrategy.Data[](2);
-        data[0].bond = address(2);
-        data[1].bond = address(3);
+        data[0].bond = address(new DefaultBondMock(address(1)));
+        data[1].bond = address(new DefaultBondMock(address(1)));
         data[0].ratioX96 = 2 ** 96 / 2;
         data[1].ratioX96 = 2 ** 96 / 2;
 
@@ -106,8 +106,8 @@ contract Unit is Test {
         vm.startPrank(strategyAdmin);
         IDefaultBondStrategy.Data[]
             memory data = new IDefaultBondStrategy.Data[](2);
-        data[0].bond = address(2);
-        data[1].bond = address(3);
+        data[0].bond = address(new DefaultBondMock(address(1)));
+        data[1].bond = address(new DefaultBondMock(address(1)));
         data[0].ratioX96 = 2 ** 96 / 2;
         data[1].ratioX96 = 2 ** 96 / 2;
 
@@ -134,12 +134,37 @@ contract Unit is Test {
         vm.startPrank(strategyAdmin);
         IDefaultBondStrategy.Data[]
             memory data = new IDefaultBondStrategy.Data[](2);
-        data[0].bond = address(2);
-        data[1].bond = address(3);
+        data[0].bond = address(new DefaultBondMock(address(1)));
+        data[1].bond = address(new DefaultBondMock(address(1)));
         data[0].ratioX96 = 2 ** 96 / 2;
         data[1].ratioX96 = 2 ** 96 / 2 - 1;
 
         vm.expectRevert(abi.encodeWithSignature("InvalidCumulativeRatio()"));
+        strategy.setData(address(1), data);
+        vm.stopPrank();
+    }
+
+    function testSetDataFailsWithInvalidBond() external {
+        Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
+        ERC20TvlModule erc20TvlModule = new ERC20TvlModule();
+        DefaultBondModule bondModule = new DefaultBondModule();
+
+        DefaultBondStrategy strategy = new DefaultBondStrategy(
+            strategyAdmin,
+            vault,
+            erc20TvlModule,
+            bondModule
+        );
+
+        vm.startPrank(strategyAdmin);
+        IDefaultBondStrategy.Data[]
+            memory data = new IDefaultBondStrategy.Data[](2);
+        data[0].bond = address(new DefaultBondMock(address(1)));
+        data[1].bond = address(new DefaultBondMock(address(2)));
+        data[0].ratioX96 = 2 ** 96 / 2;
+        data[1].ratioX96 = 2 ** 96 / 2;
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidBond()"));
         strategy.setData(address(1), data);
         vm.stopPrank();
     }

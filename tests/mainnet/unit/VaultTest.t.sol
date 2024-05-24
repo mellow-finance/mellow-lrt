@@ -237,6 +237,26 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
+    function testAddTvlModuleFailsWithAlreadyAdded() external {
+        Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+
+        ERC20TvlModule tvlModule = new ERC20TvlModule();
+
+        address[] memory tvlModules = vault.tvlModules();
+        assertEq(tvlModules.length, 0);
+
+        vault.addTvlModule(address(tvlModule));
+
+        tvlModules = vault.tvlModules();
+        assertEq(tvlModules.length, 1);
+        assertEq(tvlModules[0], address(tvlModule));
+
+        vm.expectRevert(abi.encodeWithSignature("AlreadyAdded()"));
+        vault.addTvlModule(address(tvlModule));
+        vm.stopPrank();
+    }
+
     function testAddTvlModuleFailsWithForbidden() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         ERC20TvlModule tvlModule = new ERC20TvlModule();
