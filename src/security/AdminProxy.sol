@@ -12,7 +12,7 @@ contract AdminProxy {
     address public immutable baseImplementation;
 
     address public proposer;
-    address public accepter;
+    address public acceptor;
 
     EnumerableSet.AddressSet private _proposedImplementations;
 
@@ -20,13 +20,13 @@ contract AdminProxy {
         address vault_,
         address admin_,
         address proposer_,
-        address accepter_,
+        address acceptor_,
         address baseImplementation_
     ) {
         vault = ITransparentUpgradeableProxy(vault_);
         admin = admin_;
         proposer = proposer_;
-        accepter = accepter_;
+        acceptor = acceptor_;
         baseImplementation = baseImplementation_;
     }
 
@@ -40,7 +40,7 @@ contract AdminProxy {
 
     modifier onlyAcceptor() {
         require(
-            msg.sender == accepter,
+            msg.sender == acceptor,
             "AdminProxy: caller is not the acceptor"
         );
         _;
@@ -53,6 +53,16 @@ contract AdminProxy {
 
     function upgradeProposer(address newProposer) external onlyProposer {
         proposer = newProposer;
+    }
+
+    function proposedImplementationAt(
+        uint256 index
+    ) external view returns (address) {
+        return _proposedImplementations.at(index);
+    }
+
+    function proposeImplementationsCount() external view returns (uint256) {
+        return _proposedImplementations.length();
     }
 
     function proposeImplementation(
@@ -91,5 +101,9 @@ contract AdminProxy {
 
     function setProposer(address proposer_) external onlyAdmin {
         proposer = proposer_;
+    }
+
+    function setAcceptor(address acceptor_) external onlyAdmin {
+        acceptor = acceptor_;
     }
 }
