@@ -21,7 +21,8 @@ contract Deploy is Script {
     ManagedRatiosOracle public ratiosOracle;
 
     ChainlinkOracle public chainlinkOracle;
-    ConstantAggregatorV3 public wethChainlinkAggregator;
+    ConstantAggregatorV3 public wethToETHChainlinkAggregator;
+    ConstantAggregatorV3 public wethToUSDChainlinkAggregator;
     WStethRatiosAggregatorV3 public wstethChainlinkAggregator;
 
     DefaultBondStrategy public bondStrategy;
@@ -29,6 +30,8 @@ contract Deploy is Script {
 
     DefaultCollateralFactory public defaultCollateralFactory;
     address public wstethDefaultBond;
+
+    Collector public collector;
 
     function setUpVault() private {
         erc20TvlModule = new ERC20TvlModule();
@@ -67,14 +70,15 @@ contract Deploy is Script {
             wstethChainlinkAggregator = new WStethRatiosAggregatorV3(
                 Constants.WSTETH
             );
-            wethChainlinkAggregator = new ConstantAggregatorV3(1 ether);
+            wethToETHChainlinkAggregator = new ConstantAggregatorV3(1 ether);
+            wethToUSDChainlinkAggregator = new ConstantAggregatorV3(3800 * 1e8);
 
             data[0] = IChainlinkOracle.AggregatorData({
                 aggregatorV3: address(wstethChainlinkAggregator),
                 maxAge: 0 // due to the fact that we are using instant aggregator implementation
             });
             data[1] = IChainlinkOracle.AggregatorData({
-                aggregatorV3: address(wethChainlinkAggregator),
+                aggregatorV3: address(wethToETHChainlinkAggregator),
                 maxAge: 0 // due to the fact that we are using instant aggregator implementation
             });
 
@@ -302,6 +306,60 @@ contract Deploy is Script {
         wrapAllIntoSymbioticBond(false);
     }
 
+    function deployCollector() public {
+        collector = new Collector(
+            Constants.WSTETH,
+            wstethChainlinkAggregator,
+            wethToUSDChainlinkAggregator
+        );
+        address[] memory vaults = new address[](1);
+        vaults[0] = address(vault);
+        Collector.Response memory r = collector.collect(
+            Constants.VAULT_ADMIN,
+            vaults
+        )[0];
+
+        console2.log("Total supply: %d", r.totalSupply);
+        console2.log("Total value in ETH: %d", r.totalValueETH);
+        console2.log("Total value in USD: %d", r.totalValueUSDC);
+        console2.log("Vault address %s", r.vault);
+        console2.log("Used lp token balance: %d", r.balance);
+
+        console2.log(
+            "Underlying tokens: %s %s",
+            IERC20Metadata(r.underlyingTokens[0]).symbol(),
+            IERC20Metadata(r.underlyingTokens[1]).symbol()
+        );
+        console2.log(
+            "Underlying amounts: %d",
+            r.underlyingAmounts[0],
+            r.underlyingAmounts[1]
+        );
+        console2.log(
+            "Underlying token decimals: %d %d",
+            r.underlyingTokenDecimals[0],
+            r.underlyingTokenDecimals[1]
+        );
+        console2.log(
+            "Deposit ratios X96: %d %d",
+            r.depositRatiosX96[0],
+            r.depositRatiosX96[1]
+        );
+        console2.log(
+            "Withdrawal ratios X96: %d %d",
+            r.withdrawalRatiosX96[0],
+            r.withdrawalRatiosX96[1]
+        );
+        console2.log("Prices X96: %d %d", r.pricesX96[0], r.pricesX96[1]);
+        console2.log("User balance ETH: %d", r.userBalanceETH);
+        console2.log("User balance USDC: %d", r.userBalanceUSDC);
+        console2.log("LP price D18: %d", r.lpPriceD18);
+        console2.log(
+            "Should close withdrawal request: %s",
+            r.shouldCloseWithdrawalRequest
+        );
+    }
+
     function print() public view {
         console2.log("Vault: %s", address(vault));
         console2.log("VaultConfigurator: %s", address(configurator));
@@ -314,8 +372,12 @@ contract Deploy is Script {
         console2.log("ManagedRatiosOracle: %s", address(ratiosOracle));
         console2.log("ChainlinkOracle: %s", address(chainlinkOracle));
         console2.log(
-            "ConstantAggregatorV3: %s",
-            address(wethChainlinkAggregator)
+            "weth-to-eth ConstantAggregatorV3: %s",
+            address(wethToETHChainlinkAggregator)
+        );
+        console2.log(
+            "weth-to-usd (testnet mock) ConstantAggregatorV3: %s",
+            address(wethToUSDChainlinkAggregator)
         );
         console2.log(
             "WStethRatiosAggregatorV3: %s",
@@ -328,17 +390,20 @@ contract Deploy is Script {
             "DefaultCollateralFactory: %s",
             address(defaultCollateralFactory)
         );
+
+        console2.log("Collector: %s", address(collector));
     }
 
     function run() external {
         vm.startBroadcast(
             uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
         );
+
         deployVault();
+        deployCollector();
         vm.stopBroadcast();
         print();
-
         // preventing accidental deployment
-        revert("Failed successfully");
+        // revert("Failed successfully");
     }
 }

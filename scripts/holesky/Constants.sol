@@ -43,6 +43,8 @@ import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 import "../../src/oracles/WStethRatiosAggregatorV3.sol";
 import "../../src/oracles/ConstantAggregatorV3.sol";
 
+import "../../src/utils/Collector.sol";
+
 library Constants {
     address public constant VAULT_ADMIN =
         0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
