@@ -47,10 +47,6 @@ contract AdminProxy {
         _;
     }
 
-    function upgradeProposer(address newProposer) external onlyProposer {
-        proposer = newProposer;
-    }
-
     function proposedImplementationAt(
         uint256 index
     ) external view returns (address) {
@@ -59,6 +55,14 @@ contract AdminProxy {
 
     function proposeImplementationsCount() external view returns (uint256) {
         return _implementations.length();
+    }
+
+    function upgradeProposer(address newProposer) external onlyProposer {
+        proposer = newProposer;
+    }
+
+    function upgradeAcceptor(address newAcceptor) external onlyAcceptor {
+        acceptor = newAcceptor;
     }
 
     function proposeImplementation(
