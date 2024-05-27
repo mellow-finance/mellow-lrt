@@ -14,6 +14,9 @@ contract DefaultBondTvlModule is IDefaultBondTvlModule, DefaultModule {
         address[] memory bonds
     ) external noDelegateCall {
         IDefaultAccessControl(vault).requireAdmin(msg.sender);
+        for (uint256 i = 0; i < bonds.length; i++)
+            if (!IVault(vault).isUnderlyingToken(IBond(bonds[i]).asset()))
+                revert InvalidToken();
         vaultParams[vault] = abi.encode(bonds);
         emit DefaultBondTvlModuleSetParams(vault, bonds);
     }

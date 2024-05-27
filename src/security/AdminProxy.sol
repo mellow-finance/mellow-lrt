@@ -9,14 +9,17 @@ contract AdminProxy is IAdminProxy {
     /// @inheritdoc IAdminProxy
     ITransparentUpgradeableProxy public immutable proxy;
     /// @inheritdoc IAdminProxy
-    address public immutable baseImplementation;
-
-    /// @inheritdoc IAdminProxy
     address public proposer;
     /// @inheritdoc IAdminProxy
     address public acceptor;
+    /// @inheritdoc IAdminProxy
+    address public emergencyOperator;
+    /// @inheritdoc IAdminProxy
+    uint256 public latestAcceptedNonce;
 
-    EnumerableSet.AddressSet private _implementations;
+    Proposal private _baseImplementation;
+    Proposal private _proposedBaseImplementation;
+    Proposal[] private _proposals;
 
     constructor(
         address proxy_,
@@ -27,11 +30,15 @@ contract AdminProxy is IAdminProxy {
         proxy = ITransparentUpgradeableProxy(proxy_);
         proposer = proposer_;
         acceptor = acceptor_;
-        baseImplementation = baseImplementation_;
+        _baseImplementation = Proposal({
+            implementation: baseImplementation_,
+            callData: new bytes(0)
+        });
     }
 
-    modifier onlyProposer() {
-        if (msg.sender != proposer) revert Forbidden();
+    modifier requireProposerOrAcceptor() {
+        if (msg.sender != proposer || msg.sender == acceptor)
+            revert Forbidden();
         _;
     }
 
@@ -40,68 +47,111 @@ contract AdminProxy is IAdminProxy {
         _;
     }
 
-    /// @inheritdoc IAdminProxy
-    function proposedImplementationAt(
-        uint256 index
-    ) external view returns (address) {
-        return _implementations.at(index);
+    modifier onlyEmergencyOperator() {
+        if (msg.sender != emergencyOperator) revert Forbidden();
+        _;
     }
 
     /// @inheritdoc IAdminProxy
-    function proposedImplementationsCount() external view returns (uint256) {
-        return _implementations.length();
+    function baseImplementation() external view returns (Proposal memory) {
+        return _baseImplementation;
     }
 
     /// @inheritdoc IAdminProxy
-    function setProposer(address newProposer) external onlyAcceptor {
-        if (proposer != address(0)) revert Forbidden();
+    function proposedBaseImplementation()
+        external
+        view
+        returns (Proposal memory)
+    {
+        return _proposedBaseImplementation;
+    }
+
+    /// @inheritdoc IAdminProxy
+    function proposalAt(uint256 index) external view returns (Proposal memory) {
+        return _proposals[index - 1];
+    }
+
+    /// @inheritdoc IAdminProxy
+    function proposalsCount() external view returns (uint256) {
+        return _proposals.length;
+    }
+
+    /// @inheritdoc IAdminProxy
+    function upgradeEmergencyOperator(
+        address newEmergencyOperator
+    ) external onlyAcceptor {
+        emergencyOperator = newEmergencyOperator;
+        emit EmergencyOperatorUpgraded(newEmergencyOperator, tx.origin);
+    }
+
+    /// @inheritdoc IAdminProxy
+    function upgradeProposer(address newProposer) external onlyAcceptor {
         proposer = newProposer;
-    }
-
-    /// @inheritdoc IAdminProxy
-    function upgradeProposer(address newProposer) external onlyProposer {
-        proposer = newProposer;
+        emit ProposerUpgraded(newProposer, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
     function upgradeAcceptor(address newAcceptor) external onlyAcceptor {
         acceptor = newAcceptor;
+        emit AcceptorUpgraded(newAcceptor, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
-    function proposeImplementation(
-        address implementation
-    ) external onlyProposer {
-        _implementations.add(implementation);
+    function proposeBaseImplementation(
+        address implementation,
+        bytes calldata callData
+    ) external requireProposerOrAcceptor {
+        _proposedBaseImplementation = Proposal({
+            implementation: implementation,
+            callData: callData
+        });
+        emit BaseImplementationProposed(_proposedBaseImplementation, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
-    function cancelImplementation(
-        address implementation
-    ) external onlyProposer {
-        _implementations.remove(implementation);
+    function propose(
+        address implementation,
+        bytes calldata callData
+    ) external requireProposerOrAcceptor {
+        _proposals.push(
+            Proposal({implementation: implementation, callData: callData})
+        );
+        emit ImplementationProposed(implementation, callData, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
-    function acceptImplementation(
-        address implementation
-    ) external onlyAcceptor {
-        if (!_implementations.contains(implementation)) revert Forbidden();
-        proxy.upgradeToAndCall(implementation, new bytes(0));
-        _implementations.remove(implementation);
+    function acceptBaseImplementation() external onlyAcceptor {
+        _baseImplementation = _proposedBaseImplementation;
+        delete _proposedBaseImplementation;
+        emit BaseImplementationAccepted(_baseImplementation, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
-    function rejectImplementation(
-        address implementation
-    ) external onlyAcceptor {
-        if (!_implementations.contains(implementation)) revert Forbidden();
-        _implementations.remove(implementation);
+    function acceptProposal(uint256 index) external onlyAcceptor {
+        if (
+            index == 0 ||
+            index <= latestAcceptedNonce ||
+            _proposals.length < index
+        ) revert Forbidden();
+        Proposal memory proposal = _proposals[index - 1];
+        proxy.upgradeToAndCall(proposal.implementation, proposal.callData);
+        latestAcceptedNonce = index;
+        emit ProposalAccepted(index, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
-    function resetToBaseImplementation() external onlyProposer {
-        proxy.upgradeToAndCall(baseImplementation, new bytes(0));
-        proposer = address(0);
+    function rejectAllProposals() external onlyAcceptor {
+        latestAcceptedNonce = _proposals.length;
+        emit AllProposalsRejected(latestAcceptedNonce, tx.origin);
+    }
+
+    /// @inheritdoc IAdminProxy
+    function resetToBaseImplementation() external onlyEmergencyOperator {
+        proxy.upgradeToAndCall(
+            _baseImplementation.implementation,
+            _baseImplementation.callData
+        );
+        emergencyOperator = address(0);
+        emit ResetToBaseImplementation(_baseImplementation, tx.origin);
     }
 }

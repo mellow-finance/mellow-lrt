@@ -4,8 +4,12 @@ pragma solidity 0.8.25;
 import "../ITvlModule.sol";
 import "../../utils/IDefaultAccessControl.sol";
 
+import "../../IVault.sol";
+
 // Interface declaration for a Managed Total Value Locked (TVL) Module
 interface IManagedTvlModule is ITvlModule {
+    error InvalidToken();
+
     /**
      * @notice Retrieves the parameters set for a specific vault.
      * @param vault The address of the vault for which to retrieve parameters.

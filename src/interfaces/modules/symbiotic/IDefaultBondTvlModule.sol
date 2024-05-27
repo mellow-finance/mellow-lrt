@@ -8,8 +8,12 @@ import "../../utils/IDefaultAccessControl.sol";
 
 import "../ITvlModule.sol";
 
+import "../../IVault.sol";
+
 // Interface declaration for Default Bond TVL Module
 interface IDefaultBondTvlModule is ITvlModule {
+    error InvalidToken();
+
     /**
      * @notice Retrieves the bond parameters set for a specific vault.
      * @param vault The address of the vault for which to retrieve bond parameters.

@@ -72,6 +72,13 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     /// @inheritdoc IVault
+    function isUnderlyingToken(
+        address token
+    ) external view returns (bool isUnderlying) {
+        return _isUnderlyingToken[token];
+    }
+
+    /// @inheritdoc IVault
     function tvlModules() external view returns (address[] memory) {
         return _tvlModules.values();
     }
