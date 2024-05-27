@@ -251,21 +251,30 @@ contract Deploy is Script {
         // IAggregatorV3 wethToUSDChainlinkAggregator = new ConstantAggregatorV3(
         //     3800 * 1e8
         // );
-        collector = Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4);
+        // collector = Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4);
 
         // address[] memory vaults = new address[](2);
         // vaults[0] = 0xEBB01cfBc08A891ca81034B80DBE7748963AdE53;
         // vaults[1] = 0xBF706Bb08D760a766D990697477F6da2f1834993;
+        // address wsteth_,
+        // IAggregatorV3 _wstethOracle,
+        // IAggregatorV3 _wethToUSDOracle
+        collector = new Collector(
+            Constants.WSTETH,
+            Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4)
+                .wstethOracle(),
+            Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4).wethOracle()
+        );
 
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = 989508703726688500;
+        // uint256[] memory amounts = new uint256[](1);
+        // amounts[0] = 989508703726688500;
 
-        Collector.FetchDepositAmountsResponse memory responses = collector
-            .fetchDepositAmounts(
-                amounts,
-                0xBF706Bb08D760a766D990697477F6da2f1834993,
-                0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE
-            );
+        // Collector.FetchDepositAmountsResponse memory responses = collector
+        //     .fetchDepositAmounts(
+        //         amounts,
+        //         0xBF706Bb08D760a766D990697477F6da2f1834993,
+        //         0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE
+        //     );
 
         // uint256[] memory amounts = new uint256[](2);
         // amounts[0] = 989508703726688500;
@@ -292,8 +301,8 @@ contract Deploy is Script {
         // deployVault();
         // deployCollector();
         vm.stopBroadcast();
-        print();
+        // print();
         // preventing accidental deployment
-        revert("Failed successfully");
+        // revert("Failed successfully");
     }
 }

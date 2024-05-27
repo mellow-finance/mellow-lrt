@@ -224,6 +224,7 @@ contract Collector {
     {
         if (IVault(vault).configurator().isDepositLocked())
             return (false, false, false, 0, 0);
+        isDepositPossible = true;
         {
             IValidator validator = IValidator(
                 IVault(vault).configurator().validator()
