@@ -700,94 +700,94 @@ contract Unit is Test {
         assertEq(IERC20(data[1].bond).balanceOf(address(vault)), 10 gwei);
     }
 
-    function testprocessWithdrawalsOnBehalfOfUser() external {
-        Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
-        vm.startPrank(admin);
-        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
-        vault.grantRole(vault.OPERATOR(), operator);
-        _setUp(vault);
-        vm.stopPrank();
-        _initialDeposit(vault);
+    // function testprocessWithdrawalsOnBehalfOfUser() external {
+    //     Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
+    //     vm.startPrank(admin);
+    //     vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+    //     vault.grantRole(vault.OPERATOR(), operator);
+    //     _setUp(vault);
+    //     vm.stopPrank();
+    //     _initialDeposit(vault);
 
-        vm.startPrank(admin);
+    //     vm.startPrank(admin);
 
-        VaultConfigurator configurator = VaultConfigurator(
-            address(vault.configurator())
-        );
+    //     VaultConfigurator configurator = VaultConfigurator(
+    //         address(vault.configurator())
+    //     );
 
-        DefaultBondModule bondModule = new DefaultBondModule();
-        DefaultBondStrategy strategy = new DefaultBondStrategy(
-            strategyAdmin,
-            vault,
-            IERC20TvlModule(vault.tvlModules()[0]),
-            bondModule
-        );
+    //     DefaultBondModule bondModule = new DefaultBondModule();
+    //     DefaultBondStrategy strategy = new DefaultBondStrategy(
+    //         strategyAdmin,
+    //         vault,
+    //         IERC20TvlModule(vault.tvlModules()[0]),
+    //         bondModule
+    //     );
 
-        configurator.stageDepositCallback(address(strategy));
-        configurator.commitDepositCallback();
+    //     configurator.stageDepositCallback(address(strategy));
+    //     configurator.commitDepositCallback();
 
-        ManagedValidator validator = ManagedValidator(
-            address(configurator.validator())
-        );
+    //     ManagedValidator validator = ManagedValidator(
+    //         address(configurator.validator())
+    //     );
 
-        uint8 bondModuleRole = 1;
+    //     uint8 bondModuleRole = 1;
 
-        validator.grantRole(address(strategy), bondModuleRole);
-        validator.grantRole(address(vault), bondModuleRole);
-        validator.grantContractRole(address(vault), bondModuleRole);
-        validator.grantContractRole(address(bondModule), bondModuleRole);
-        configurator.stageDelegateModuleApproval(address(bondModule));
-        configurator.commitDelegateModuleApproval(address(bondModule));
+    //     validator.grantRole(address(strategy), bondModuleRole);
+    //     validator.grantRole(address(vault), bondModuleRole);
+    //     validator.grantContractRole(address(vault), bondModuleRole);
+    //     validator.grantContractRole(address(bondModule), bondModuleRole);
+    //     configurator.stageDelegateModuleApproval(address(bondModule));
+    //     configurator.commitDelegateModuleApproval(address(bondModule));
 
-        vault.grantRole(vault.OPERATOR(), address(strategy));
+    //     vault.grantRole(vault.OPERATOR(), address(strategy));
 
-        vm.stopPrank();
+    //     vm.stopPrank();
 
-        vm.startPrank(strategyAdmin);
-        IDefaultBondStrategy.Data[]
-            memory data = new IDefaultBondStrategy.Data[](2);
-        data[0].bond = address(new DefaultBondMock(Constants.WSTETH));
-        data[1].bond = address(new DefaultBondMock(Constants.WSTETH));
-        data[0].ratioX96 = 0;
-        data[1].ratioX96 = 2 ** 96;
-        strategy.setData(Constants.WSTETH, data);
-        vm.stopPrank();
+    //     vm.startPrank(strategyAdmin);
+    //     IDefaultBondStrategy.Data[]
+    //         memory data = new IDefaultBondStrategy.Data[](2);
+    //     data[0].bond = address(new DefaultBondMock(Constants.WSTETH));
+    //     data[1].bond = address(new DefaultBondMock(Constants.WSTETH));
+    //     data[0].ratioX96 = 0;
+    //     data[1].ratioX96 = 2 ** 96;
+    //     strategy.setData(Constants.WSTETH, data);
+    //     vm.stopPrank();
 
-        address depositor = address(bytes20(keccak256("depositor")));
+    //     address depositor = address(bytes20(keccak256("depositor")));
 
-        vm.startPrank(depositor);
+    //     vm.startPrank(depositor);
 
-        deal(Constants.WSTETH, depositor, 10 ether);
-        IERC20(Constants.WSTETH).safeIncreaseAllowance(
-            address(vault),
-            10 ether
-        );
+    //     deal(Constants.WSTETH, depositor, 10 ether);
+    //     IERC20(Constants.WSTETH).safeIncreaseAllowance(
+    //         address(vault),
+    //         10 ether
+    //     );
 
-        uint256[] memory amounts = new uint256[](3);
-        amounts[0] = 10 ether;
+    //     uint256[] memory amounts = new uint256[](3);
+    //     amounts[0] = 10 ether;
 
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
-        vault.registerWithdrawal(
-            depositor,
-            10 ether,
-            new uint256[](3),
-            type(uint256).max,
-            type(uint256).max,
-            false
-        );
+    //     vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+    //     vault.registerWithdrawal(
+    //         depositor,
+    //         10 ether,
+    //         new uint256[](3),
+    //         type(uint256).max,
+    //         type(uint256).max,
+    //         false
+    //     );
 
-        address[] memory users = new address[](1);
-        users[0] = depositor;
-        strategy.processWithdrawals(users);
-        vm.stopPrank();
+    //     address[] memory users = new address[](1);
+    //     users[0] = depositor;
+    //     strategy.processWithdrawals(users);
+    //     vm.stopPrank();
 
-        assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 0 gwei);
-        assertEq(
-            IERC20(Constants.WSTETH).balanceOf(address(depositor)),
-            10 ether
-        );
-        assertEq(IERC20(data[1].bond).balanceOf(address(vault)), 10 gwei);
-    }
+    //     assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 0 gwei);
+    //     assertEq(
+    //         IERC20(Constants.WSTETH).balanceOf(address(depositor)),
+    //         10 ether
+    //     );
+    //     assertEq(IERC20(data[1].bond).balanceOf(address(vault)), 10 gwei);
+    // }
 
     function testprocessWithdrawalsOnBehalfOfOperator() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);

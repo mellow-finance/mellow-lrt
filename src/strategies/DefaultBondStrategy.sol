@@ -89,8 +89,7 @@ contract DefaultBondStrategy is IDefaultBondStrategy, DefaultAccessControl {
     /// @inheritdoc IDefaultBondStrategy
     function processWithdrawals(address[] memory users) external {
         if (users.length == 0) return;
-        if (users.length > 1 || users[0] != msg.sender)
-            _requireAtLeastOperator();
+        _requireAtLeastOperator();
         _processWithdrawals(users);
     }
 
