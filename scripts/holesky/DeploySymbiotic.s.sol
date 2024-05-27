@@ -259,12 +259,23 @@ contract Deploy is Script {
         // address wsteth_,
         // IAggregatorV3 _wstethOracle,
         // IAggregatorV3 _wethToUSDOracle
-        collector = new Collector(
-            Constants.WSTETH,
-            Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4)
-                .wstethOracle(),
-            Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4).wethOracle()
-        );
+        DefaultBondStrategy(0x8aEe3A603ACCC3AB950cA929ef6C3e2c264AeA20)
+            .processAllWithdrawals();
+        // collector = new Collector(
+        //     Constants.WSTETH,
+        //     Constants.WETH,
+        //     Constants.STETH,
+        //     Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4)
+        //         .wstethOracle(),
+        //     Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4).wethOracle()
+        // );
+
+        // collector.fetchDepositWrapperParams(
+        //     0xBF706Bb08D760a766D990697477F6da2f1834993,
+        //     0x9803910bC53427942A3bAd440a5737A85193A983,
+        //     Constants.WSTETH,
+        //     1 ether
+        // );
 
         // uint256[] memory amounts = new uint256[](1);
         // amounts[0] = 989508703726688500;
