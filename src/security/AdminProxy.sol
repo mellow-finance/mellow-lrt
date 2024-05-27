@@ -10,7 +10,6 @@ contract AdminProxy is IAdminProxy {
     ITransparentUpgradeableProxy public immutable proxy;
     /// @inheritdoc IAdminProxy
     address public proposer;
-    address public stagedProposer;
     /// @inheritdoc IAdminProxy
     address public acceptor;
     /// @inheritdoc IAdminProxy
@@ -69,7 +68,7 @@ contract AdminProxy is IAdminProxy {
 
     /// @inheritdoc IAdminProxy
     function proposalAt(uint256 index) external view returns (Proposal memory) {
-        return _proposals[index];
+        return _proposals[index - 1];
     }
 
     /// @inheritdoc IAdminProxy
