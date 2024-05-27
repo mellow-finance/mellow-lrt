@@ -37,10 +37,7 @@ interface IAdminProxy {
 
     function upgradeEmergencyOperator(address newAcceptor) external;
 
-    function propose(
-        address implementation,
-        bytes calldata callData
-    ) external;
+    function propose(address implementation, bytes calldata callData) external;
 
     function proposeBaseImplementation(
         address implementation,
@@ -56,4 +53,27 @@ interface IAdminProxy {
     function rejectAllProposals() external;
 
     function resetToBaseImplementation() external;
+
+    event EmergencyOperatorUpgraded(
+        address newEmergencyOperator,
+        address origin
+    );
+
+    event ProposerUpgraded(address newProposer, address origin);
+
+    event AcceptorUpgraded(address newAcceptor, address origin);
+
+    event ProposalAccepted(uint256 index, address origin);
+
+    event AllProposalsRejected(uint256 latestAcceptedNonce, address origin);
+    event ResetToBaseImplementation(Proposal implementation, address origin);
+
+    event ImplementationProposed(
+        address implementation,
+        bytes callData,
+        address origin
+    );
+
+    event BaseImplementationProposed(Proposal implementation, address origin);
+    event BaseImplementationAccepted(Proposal implementation, address origin);
 }

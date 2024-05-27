@@ -81,16 +81,19 @@ contract AdminProxy is IAdminProxy {
         address newEmergencyOperator
     ) external onlyAcceptor {
         emergencyOperator = newEmergencyOperator;
+        emit EmergencyOperatorUpgraded(newEmergencyOperator, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
     function upgradeProposer(address newProposer) external onlyAcceptor {
         proposer = newProposer;
+        emit ProposerUpgraded(newProposer, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
     function upgradeAcceptor(address newAcceptor) external onlyAcceptor {
         acceptor = newAcceptor;
+        emit AcceptorUpgraded(newAcceptor, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
@@ -102,6 +105,7 @@ contract AdminProxy is IAdminProxy {
             implementation: implementation,
             callData: callData
         });
+        emit BaseImplementationProposed(_proposedBaseImplementation, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
@@ -112,11 +116,14 @@ contract AdminProxy is IAdminProxy {
         _proposals.push(
             Proposal({implementation: implementation, callData: callData})
         );
+        emit ImplementationProposed(implementation, callData, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
     function acceptBaseImplementation() external onlyAcceptor {
         _baseImplementation = _proposedBaseImplementation;
+        delete _proposedBaseImplementation;
+        emit BaseImplementationAccepted(_baseImplementation, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
@@ -129,11 +136,13 @@ contract AdminProxy is IAdminProxy {
         Proposal memory proposal = _proposals[index - 1];
         proxy.upgradeToAndCall(proposal.implementation, proposal.callData);
         latestAcceptedNonce = index;
+        emit ProposalAccepted(index, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
     function rejectAllProposals() external onlyAcceptor {
         latestAcceptedNonce = _proposals.length;
+        emit AllProposalsRejected(latestAcceptedNonce, tx.origin);
     }
 
     /// @inheritdoc IAdminProxy
@@ -143,5 +152,6 @@ contract AdminProxy is IAdminProxy {
             _baseImplementation.callData
         );
         emergencyOperator = address(0);
+        emit ResetToBaseImplementation(_baseImplementation, tx.origin);
     }
 }
