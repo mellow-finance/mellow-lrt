@@ -245,25 +245,35 @@ contract Deploy is Script {
             uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
         );
 
-        IAggregatorV3 wstethChainlinkAggregator = new WStethRatiosAggregatorV3(
-            Constants.WSTETH
-        );
-        IAggregatorV3 wethToUSDChainlinkAggregator = new ConstantAggregatorV3(
-            3800 * 1e8
-        );
-        collector = new Collector(
-            Constants.WSTETH,
-            wstethChainlinkAggregator,
-            wethToUSDChainlinkAggregator
-        );
+        // IAggregatorV3 wstethChainlinkAggregator = new WStethRatiosAggregatorV3(
+        //     Constants.WSTETH
+        // );
+        // IAggregatorV3 wethToUSDChainlinkAggregator = new ConstantAggregatorV3(
+        //     3800 * 1e8
+        // );
+        collector = Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4);
 
-        uint256[] memory amounts = new uint256[](2);
+        // address[] memory vaults = new address[](2);
+        // vaults[0] = 0xEBB01cfBc08A891ca81034B80DBE7748963AdE53;
+        // vaults[1] = 0xBF706Bb08D760a766D990697477F6da2f1834993;
+
+        uint256[] memory amounts = new uint256[](1);
         amounts[0] = 989508703726688500;
-        collector.fetchDepositAmounts(
-            amounts,
-            0xEBB01cfBc08A891ca81034B80DBE7748963AdE53,
-            0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F
-        );
+
+        Collector.FetchDepositAmountsResponse memory responses = collector
+            .fetchDepositAmounts(
+                amounts,
+                0xBF706Bb08D760a766D990697477F6da2f1834993,
+                0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE
+            );
+
+        // uint256[] memory amounts = new uint256[](2);
+        // amounts[0] = 989508703726688500;
+        // collector.fetchDepositAmounts(
+        //     amounts,
+        //     0xEBB01cfBc08A891ca81034B80DBE7748963AdE53,
+        //     0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F
+        // );
 
         // address a = 0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F;
 
