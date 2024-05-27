@@ -26,6 +26,7 @@ contract Unit is Test {
 
         vm.startPrank(admin);
         VaultMock vault = new VaultMock(admin);
+
         module.setParams(address(vault), new ITvlModule.Data[](0));
         vm.stopPrank();
 

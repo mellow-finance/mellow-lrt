@@ -136,6 +136,12 @@ interface IVault is IERC20 {
         view
         returns (address[] memory underlyinigTokens_);
 
+    /// @notice Checks if a token is an underlying token of the vault.
+    /// @return isUnderlyingToken_ true if the token is an underlying token of the vault.
+    function isUnderlyingToken(
+        address token
+    ) external view returns (bool isUnderlyingToken_);
+
     /// @notice Returns an array of addresses of all TVL modules.
     /// @return tvlModules_ An array of TVL module addresses.
     function tvlModules() external view returns (address[] memory tvlModules_);

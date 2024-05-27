@@ -30,6 +30,10 @@ contract VaultMock is DefaultAccessControl, ERC20 {
         coefD9 = coefD9_;
     }
 
+    function isUnderlyingToken(address) public pure returns (bool) {
+        return true;
+    }
+
     function deposit(
         address to,
         uint256[] memory amounts,

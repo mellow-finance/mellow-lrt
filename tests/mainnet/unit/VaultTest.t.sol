@@ -271,7 +271,11 @@ contract Unit is Test {
         DefaultBondTvlModule tvlModule = new DefaultBondTvlModule();
         address[] memory bonds = new address[](1);
         bonds[0] = address(new DefaultBondMock(Constants.WSTETH));
+        vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
         tvlModule.setParams(address(vault), bonds);
+        vault.addToken(Constants.WSTETH);
+        tvlModule.setParams(address(vault), bonds);
+        vault.removeToken(Constants.WSTETH);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
         vault.addTvlModule(address(tvlModule));
@@ -443,12 +447,11 @@ contract Unit is Test {
         address[] memory bonds = new address[](1);
         bonds[0] = address(new DefaultBondMock(Constants.WSTETH));
 
-        defaultBondTvlModule.setParams(address(vault), bonds);
-
         vault.addToken(Constants.WSTETH);
         vault.addToken(Constants.WETH);
         vault.addToken(Constants.RETH);
 
+        defaultBondTvlModule.setParams(address(vault), bonds);
         vault.addTvlModule(address(erc20TvlModule));
         vault.addTvlModule(address(defaultBondTvlModule));
         vault.addTvlModule(address(managedTvlModule));
@@ -503,12 +506,15 @@ contract Unit is Test {
 
         data[2] = ITvlModule.Data({
             token: Constants.WETH,
-            underlyingToken: Constants.WETH,
+            underlyingToken: address(123),
             amount: 100 ether,
             underlyingAmount: 100 ether - 1 ether,
             isDebt: true
         });
 
+        vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
+        managedTvlModule.setParams(address(vault), data);
+        data[2].underlyingToken = Constants.WETH;
         managedTvlModule.setParams(address(vault), data);
 
         (tokens, amounts) = vault.underlyingTvl();
@@ -578,11 +584,11 @@ contract Unit is Test {
         address[] memory bonds = new address[](1);
         bonds[0] = address(new DefaultBondMock(Constants.WSTETH));
 
-        defaultBondTvlModule.setParams(address(vault), bonds);
-
         vault.addToken(Constants.WSTETH);
         vault.addToken(Constants.WETH);
         vault.addToken(Constants.RETH);
+
+        defaultBondTvlModule.setParams(address(vault), bonds);
 
         vault.addTvlModule(address(erc20TvlModule));
         vault.addTvlModule(address(defaultBondTvlModule));
@@ -664,11 +670,11 @@ contract Unit is Test {
         address[] memory bonds = new address[](1);
         bonds[0] = address(new DefaultBondMock(Constants.WSTETH));
 
-        defaultBondTvlModule.setParams(address(vault), bonds);
-
         vault.addToken(Constants.WSTETH);
         vault.addToken(Constants.WETH);
         vault.addToken(Constants.RETH);
+
+        defaultBondTvlModule.setParams(address(vault), bonds);
 
         vault.addTvlModule(address(erc20TvlModule));
         vault.addTvlModule(address(defaultBondTvlModule));
@@ -816,12 +822,11 @@ contract Unit is Test {
         address[] memory bonds = new address[](1);
         bonds[0] = address(new DefaultBondMock(Constants.WSTETH));
 
-        defaultBondTvlModule.setParams(address(vault), bonds);
-
         vault.addToken(Constants.WSTETH);
         vault.addToken(Constants.WETH);
         vault.addToken(Constants.RETH);
 
+        defaultBondTvlModule.setParams(address(vault), bonds);
         vault.addTvlModule(address(defaultBondTvlModule));
         vault.addTvlModule(address(erc20TvlModule));
         vault.addTvlModule(address(managedTvlModule));
@@ -968,11 +973,11 @@ contract Unit is Test {
         address[] memory bonds = new address[](1);
         bonds[0] = address(new DefaultBondMock(Constants.WSTETH));
 
-        defaultBondTvlModule.setParams(address(vault), bonds);
-
         vault.addToken(Constants.WSTETH);
         vault.addToken(Constants.WETH);
         vault.addToken(Constants.RETH);
+
+        defaultBondTvlModule.setParams(address(vault), bonds);
 
         vault.addTvlModule(address(erc20TvlModule));
         vault.addTvlModule(address(defaultBondTvlModule));
