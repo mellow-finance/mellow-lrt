@@ -244,11 +244,46 @@ contract Deploy is Script {
         vm.startBroadcast(
             uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
         );
-        deployVault();
+
+        IAggregatorV3 wstethChainlinkAggregator = new WStethRatiosAggregatorV3(
+            Constants.WSTETH
+        );
+        IAggregatorV3 wethToUSDChainlinkAggregator = new ConstantAggregatorV3(
+            3800 * 1e8
+        );
+        collector = new Collector(
+            Constants.WSTETH,
+            wstethChainlinkAggregator,
+            wethToUSDChainlinkAggregator
+        );
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 989508703726688500;
+        collector.fetchDepositAmounts(
+            amounts,
+            0xEBB01cfBc08A891ca81034B80DBE7748963AdE53,
+            0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F
+        );
+
+        // address a = 0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F;
+
+        // IWeth(Constants.WETH).deposit{value: 1 ether}();
+        // ISteth(Constants.STETH).submit{value: 2 ether}(address(0));
+        // IERC20(Constants.STETH).safeIncreaseAllowance(
+        //     Constants.WSTETH,
+        //     1 ether
+        // );
+        // IWSteth(Constants.WSTETH).wrap(1 ether);
+        // payable(a).transfer(1 ether);
+        // IERC20(Constants.WETH).safeTransfer(a, 1 ether);
+        // IERC20(Constants.STETH).safeTransfer(a, 1 ether);
+        // IERC20(Constants.WSTETH).safeTransfer(a, IERC20(Constants.WSTETH).balanceOf(Constants.VAULT_ADMIN));
+
+        // deployVault();
         // deployCollector();
         vm.stopBroadcast();
         print();
         // preventing accidental deployment
-        // revert("Failed successfully");
+        revert("Failed successfully");
     }
 }
