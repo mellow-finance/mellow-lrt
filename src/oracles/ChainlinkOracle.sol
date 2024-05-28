@@ -7,8 +7,6 @@ import "../libraries/external/FullMath.sol";
 
 contract ChainlinkOracle is IChainlinkOracle {
     /// @inheritdoc IChainlinkOracle
-    uint256 public constant MAX_ORACLE_AGE = 2 days;
-    /// @inheritdoc IChainlinkOracle
     uint256 public constant Q96 = 2 ** 96;
 
     /// @inheritdoc IChainlinkOracle

@@ -27,12 +27,6 @@ interface IChainlinkOracle is IPriceOracle {
     }
 
     /**
-     * @notice Returns the maximum allowable age for an oracle result before it's considered stale.
-     * @return uint256 The value representing the maximum age of an oracle result.
-     */
-    function MAX_ORACLE_AGE() external view returns (uint256);
-
-    /**
      * @notice Returns the constant Q96 used for ratio calculations with 96-bit precision.
      * @return uint256 The value of Q96 (2^96) for ratio calculations.
      */
