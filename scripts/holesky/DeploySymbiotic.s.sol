@@ -241,9 +241,9 @@ contract Deploy is Script {
     }
 
     function run() external {
-        // vm.startBroadcast(
-        //     uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
-        // );
+        vm.startBroadcast(
+            uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
+        );
 
         // IAggregatorV3 wstethChainlinkAggregator = new WStethRatiosAggregatorV3(
         //     Constants.WSTETH
@@ -259,14 +259,16 @@ contract Deploy is Script {
         // address wsteth_,
         // IAggregatorV3 _wstethOracle,
         // IAggregatorV3 _wethToUSDOracle
-        depositWrapper = DepositWrapper(
-            payable(0x9803910bC53427942A3bAd440a5737A85193A983)
-        );
-        collector = Collector(0x79066fd1A55fdB803769C76bcae549eA95AEb7a7);
-        address vault_ = address(depositWrapper.vault());
-        address[] memory vaults = new address[](1);
-        vaults[0] = vault_;
-        collector.collect(0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F, vaults);
+        // depositWrapper = DepositWrapper(
+        //     payable(0x9803910bC53427942A3bAd440a5737A85193A983)
+        // );
+
+        IWeth(Constants.WETH).deposit{value: 1 ether}();
+
+        // collector = Collector(0x79066fd1A55fdB803769C76bcae549eA95AEb7a7);
+        // address[] memory vaults = new address[](1);
+        // vaults[0] = 0x7C9FA592083CFb9657D1869508116238F551A68d;
+        // collector.collect(0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F, vaults);
 
         // vm.startBroadcast(
         //     uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
