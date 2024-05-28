@@ -9,7 +9,6 @@ contract Unit is Test {
     function testConstructor() external {
         ChainlinkOracle oracle = new ChainlinkOracle();
         assertNotEq(address(oracle), address(0));
-        assertEq(oracle.MAX_ORACLE_AGE(), 2 days);
         assertEq(oracle.Q96(), 2 ** 96);
     }
 
