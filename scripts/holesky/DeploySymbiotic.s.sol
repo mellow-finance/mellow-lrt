@@ -3,31 +3,25 @@ pragma solidity 0.8.25;
 
 import "./Constants.sol";
 
+/*
+    Holesky: Symbiotic Vault deployment script
+*/
 contract Deploy is Script {
     using SafeERC20 for IERC20;
 
     Vault public vault;
     VaultConfigurator public configurator;
-
     ERC20TvlModule public erc20TvlModule;
     DefaultBondTvlModule public defaultBondTvlModule;
-
     DefaultBondModule public bondModule;
-
     ManagedValidator public validator;
     DefaultBondValidator public bondValidator;
-
     ManagedRatiosOracle public ratiosOracle;
-
     ChainlinkOracle public chainlinkOracle;
-
     DefaultBondStrategy public bondStrategy;
-
-    address public wstethDefaultBond;
-
     DepositWrapper public depositWrapper;
-
     Collector public collector;
+    address public wstethDefaultBond;
 
     function setUpVault() private {
         erc20TvlModule = new ERC20TvlModule();
@@ -237,150 +231,14 @@ contract Deploy is Script {
         console2.log("DefaultBondStrategy: %s", address(bondStrategy));
         console2.log("WStethDefaultBond: %s", address(wstethDefaultBond));
         console2.log("DepositWrapper: %s", address(depositWrapper));
-        // console2.log("Collector: %s", address(collector));
     }
 
     function run() external {
         vm.startBroadcast(
             uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
         );
-
-        // IAggregatorV3 wstethChainlinkAggregator = new WStethRatiosAggregatorV3(
-        //     Constants.WSTETH
-        // );
-        // IAggregatorV3 wethToUSDChainlinkAggregator = new ConstantAggregatorV3(
-        //     3800 * 1e8
-        // );
-        // collector = Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4);
-
-        // address[] memory vaults = new address[](2);
-        // vaults[0] = 0xEBB01cfBc08A891ca81034B80DBE7748963AdE53;
-        // vaults[1] = 0xBF706Bb08D760a766D990697477F6da2f1834993;
-        // address wsteth_,
-        // IAggregatorV3 _wstethOracle,
-        // IAggregatorV3 _wethToUSDOracle
-        // depositWrapper = DepositWrapper(
-        //     payable(0x9803910bC53427942A3bAd440a5737A85193A983)
-        // );
-
-        IWeth(Constants.WETH).deposit{value: 1 ether}();
-
-        // collector = Collector(0x79066fd1A55fdB803769C76bcae549eA95AEb7a7);
-        // address[] memory vaults = new address[](1);
-        // vaults[0] = 0x7C9FA592083CFb9657D1869508116238F551A68d;
-        // collector.collect(0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F, vaults);
-
-        // vm.startBroadcast(
-        //     uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
-        // );
-        // ChainlinkOracle oracle =  ChainlinkOracle(0x9fDaD53F17188A4810E9322DBFe2674E2cAcF847);
-        // IChainlinkOracle.AggregatorData[] memory data = new IChainlinkOracle.AggregatorData[](2);
-
-        // address[] memory tokens = new address[](2);
-        // tokens[0] = Constants.WSTETH;
-        // tokens[1] = Constants.WETH;
-        // data[0] = IChainlinkOracle.AggregatorData({
-        //     aggregatorV3: address(0xdAB433AF133DEFCC13676419E709Fbab463A2c95),
-        //     maxAge: 0
-        // });
-        // data[1] = IChainlinkOracle.AggregatorData({
-        //     aggregatorV3: address(0x04E0cD22Df68ce13c882FA4b670CcA91f4D0D529),
-        //     maxAge: 0
-        // });
-        // oracle.setBaseToken(vault_, Constants.WETH);
-        // oracle.setChainlinkOracles(
-        //     vault_,
-        //     tokens,
-        //     data
-        // );
-
-        // vm.stopBroadcast();
-
-        // vm.startPrank(0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F);
-
-        // uint256 amountIn = 1e10;
-        // (
-        //     bool isDepositPossible,
-        //     bool isDepositorWhitelisted,
-        //     bool isWhitelistedToken,
-        //     uint256 lpAmount, // in weis (1e18)
-        //     uint256 depositValueUSDC // in USD weis 1e8 (due to chainlink decimals)
-        // ) = Collector(0x79066fd1A55fdB803769C76bcae549eA95AEb7a7)
-        //         .fetchDepositWrapperParams(
-        //             vault_,
-        //             address(depositWrapper),
-        //             Constants.WETH,
-        //             amountIn
-        //         );
-        // // address to,
-        // // address token,
-        // // uint256 amount,
-        // // uint256 minLpAmount,
-        // // uint256 deadline
-
-        // depositWrapper.deposit(
-        //     vault_,
-        //     Constants.WETH,
-        //     amountIn,
-        //     lpAmount - 1 wei,
-        //     block.timestamp + 100000
-        // );
-
-        // DefaultBondStrategy(0x8aEe3A603ACCC3AB950cA929ef6C3e2c264AeA20)
-        //     .processAllWithdrawals();
-        // collector = new Collector(
-        //     Constants.WSTETH,
-        //     Constants.WETH,
-        //     Constants.STETH,
-        //     Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4)
-        //         .wstethOracle(),
-        //     Collector(0x49BF603Dd742C56Ed2f1b6e0147348d03F01C7D4).wethOracle()
-        // );
-
-        // collector.fetchDepositWrapperParams(
-        //     0xBF706Bb08D760a766D990697477F6da2f1834993,
-        //     0x9803910bC53427942A3bAd440a5737A85193A983,
-        //     Constants.WSTETH,
-        //     1 ether
-        // );
-
-        // uint256[] memory amounts = new uint256[](1);
-        // amounts[0] = 989508703726688500;
-
-        // Collector.FetchDepositAmountsResponse memory responses = collector
-        //     .fetchDepositAmounts(
-        //         amounts,
-        //         0xBF706Bb08D760a766D990697477F6da2f1834993,
-        //         0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE
-        //     );
-
-        // uint256[] memory amounts = new uint256[](2);
-        // amounts[0] = 989508703726688500;
-        // collector.fetchDepositAmounts(
-        //     amounts,
-        //     0xEBB01cfBc08A891ca81034B80DBE7748963AdE53,
-        //     0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F
-        // );
-
-        // address a = 0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F;
-
-        // IWeth(Constants.WETH).deposit{value: 1 ether}();
-        // ISteth(Constants.STETH).submit{value: 2 ether}(address(0));
-        // IERC20(Constants.STETH).safeIncreaseAllowance(
-        //     Constants.WSTETH,
-        //     1 ether
-        // );
-        // IWSteth(Constants.WSTETH).wrap(1 ether);
-        // payable(a).transfer(1 ether);
-        // IERC20(Constants.WETH).safeTransfer(a, 1 ether);
-        // IERC20(Constants.STETH).safeTransfer(a, 1 ether);
-        // IERC20(Constants.WSTETH).safeTransfer(a, IERC20(Constants.WSTETH).balanceOf(Constants.VAULT_ADMIN));
-
-        // deployVault();
-        // deployCollector();
+        deployVault();
+        deployCollector();
         vm.stopBroadcast();
-        // print();
-        // preventing accidental deployment
-        // revert("Failed successfully");
     }
 }
