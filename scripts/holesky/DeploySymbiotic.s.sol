@@ -241,9 +241,9 @@ contract Deploy is Script {
     }
 
     function run() external {
-        vm.startBroadcast(
-            uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
-        );
+        // vm.startBroadcast(
+        //     uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
+        // );
 
         // IAggregatorV3 wstethChainlinkAggregator = new WStethRatiosAggregatorV3(
         //     Constants.WSTETH
@@ -259,8 +259,73 @@ contract Deploy is Script {
         // address wsteth_,
         // IAggregatorV3 _wstethOracle,
         // IAggregatorV3 _wethToUSDOracle
-        DefaultBondStrategy(0x8aEe3A603ACCC3AB950cA929ef6C3e2c264AeA20)
-            .processAllWithdrawals();
+        depositWrapper = DepositWrapper(
+            payable(0x9803910bC53427942A3bAd440a5737A85193A983)
+        );
+        collector = Collector(0x79066fd1A55fdB803769C76bcae549eA95AEb7a7);
+        address vault_ = address(depositWrapper.vault());
+        address[] memory vaults = new address[](1);
+        vaults[0] = vault_;
+        collector.collect(0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F, vaults);
+
+        // vm.startBroadcast(
+        //     uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
+        // );
+        // ChainlinkOracle oracle =  ChainlinkOracle(0x9fDaD53F17188A4810E9322DBFe2674E2cAcF847);
+        // IChainlinkOracle.AggregatorData[] memory data = new IChainlinkOracle.AggregatorData[](2);
+
+        // address[] memory tokens = new address[](2);
+        // tokens[0] = Constants.WSTETH;
+        // tokens[1] = Constants.WETH;
+        // data[0] = IChainlinkOracle.AggregatorData({
+        //     aggregatorV3: address(0xdAB433AF133DEFCC13676419E709Fbab463A2c95),
+        //     maxAge: 0
+        // });
+        // data[1] = IChainlinkOracle.AggregatorData({
+        //     aggregatorV3: address(0x04E0cD22Df68ce13c882FA4b670CcA91f4D0D529),
+        //     maxAge: 0
+        // });
+        // oracle.setBaseToken(vault_, Constants.WETH);
+        // oracle.setChainlinkOracles(
+        //     vault_,
+        //     tokens,
+        //     data
+        // );
+
+        // vm.stopBroadcast();
+
+        // vm.startPrank(0xf2d8A1fc85DbaE3A24196ed27F021B2c4E439a7F);
+
+        // uint256 amountIn = 1e10;
+        // (
+        //     bool isDepositPossible,
+        //     bool isDepositorWhitelisted,
+        //     bool isWhitelistedToken,
+        //     uint256 lpAmount, // in weis (1e18)
+        //     uint256 depositValueUSDC // in USD weis 1e8 (due to chainlink decimals)
+        // ) = Collector(0x79066fd1A55fdB803769C76bcae549eA95AEb7a7)
+        //         .fetchDepositWrapperParams(
+        //             vault_,
+        //             address(depositWrapper),
+        //             Constants.WETH,
+        //             amountIn
+        //         );
+        // // address to,
+        // // address token,
+        // // uint256 amount,
+        // // uint256 minLpAmount,
+        // // uint256 deadline
+
+        // depositWrapper.deposit(
+        //     vault_,
+        //     Constants.WETH,
+        //     amountIn,
+        //     lpAmount - 1 wei,
+        //     block.timestamp + 100000
+        // );
+
+        // DefaultBondStrategy(0x8aEe3A603ACCC3AB950cA929ef6C3e2c264AeA20)
+        //     .processAllWithdrawals();
         // collector = new Collector(
         //     Constants.WSTETH,
         //     Constants.WETH,
