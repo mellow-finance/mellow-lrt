@@ -69,10 +69,14 @@ contract Collector {
 
     constructor(
         address wsteth_,
+        address weth_,
+        address steth_,
         IAggregatorV3 _wstethOracle,
         IAggregatorV3 _wethToUSDOracle
     ) {
         wsteth = wsteth_;
+        weth = weth_;
+        steth = steth_;
         wstethOracle = _wstethOracle;
         wethOracle = _wethToUSDOracle;
     }

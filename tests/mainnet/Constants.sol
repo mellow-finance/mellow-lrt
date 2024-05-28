@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -37,6 +38,8 @@ import "../../src/interfaces/external/lido/IWSteth.sol";
 import "../../src/interfaces/external/lido/IStakingRouter.sol";
 import "../../src/interfaces/external/lido/IDepositContract.sol";
 import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
+
+import "../../src/security/AdminProxy.sol";
 
 import "./mocks/VaultMock.sol";
 import "./mocks/DefaultBondMock.sol";

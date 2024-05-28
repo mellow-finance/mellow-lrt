@@ -4,10 +4,10 @@ pragma solidity 0.8.25;
 import "../interfaces/security/IAdminProxy.sol";
 
 contract AdminProxy is IAdminProxy {
-    using EnumerableSet for EnumerableSet.AddressSet;
-
     /// @inheritdoc IAdminProxy
     ITransparentUpgradeableProxy public immutable proxy;
+    /// @inheritdoc IAdminProxy
+    ProxyAdmin public immutable proxyAdmin;
     /// @inheritdoc IAdminProxy
     address public proposer;
     /// @inheritdoc IAdminProxy
@@ -23,21 +23,24 @@ contract AdminProxy is IAdminProxy {
 
     constructor(
         address proxy_,
-        address proposer_,
+        address proxyAdmin_,
         address acceptor_,
-        address baseImplementation_
+        address proposer_,
+        address emergencyOperator_,
+        Proposal memory baseImplementation_
     ) {
         proxy = ITransparentUpgradeableProxy(proxy_);
-        proposer = proposer_;
+        proxyAdmin = ProxyAdmin(proxyAdmin_);
         acceptor = acceptor_;
-        _baseImplementation = Proposal({
-            implementation: baseImplementation_,
-            callData: new bytes(0)
-        });
+        proposer = proposer_;
+        emergencyOperator = emergencyOperator_;
+        if (baseImplementation_.implementation == address(0))
+            revert Forbidden();
+        _baseImplementation = baseImplementation_;
     }
 
     modifier requireProposerOrAcceptor() {
-        if (msg.sender != proposer || msg.sender == acceptor)
+        if (msg.sender != proposer && msg.sender != acceptor)
             revert Forbidden();
         _;
     }
@@ -101,6 +104,7 @@ contract AdminProxy is IAdminProxy {
         address implementation,
         bytes calldata callData
     ) external requireProposerOrAcceptor {
+        if (implementation == address(0)) revert Forbidden();
         _proposedBaseImplementation = Proposal({
             implementation: implementation,
             callData: callData
@@ -113,6 +117,7 @@ contract AdminProxy is IAdminProxy {
         address implementation,
         bytes calldata callData
     ) external requireProposerOrAcceptor {
+        if (implementation == address(0)) revert Forbidden();
         _proposals.push(
             Proposal({implementation: implementation, callData: callData})
         );
@@ -128,13 +133,14 @@ contract AdminProxy is IAdminProxy {
 
     /// @inheritdoc IAdminProxy
     function acceptProposal(uint256 index) external onlyAcceptor {
-        if (
-            index == 0 ||
-            index <= latestAcceptedNonce ||
-            _proposals.length < index
-        ) revert Forbidden();
+        if (index <= latestAcceptedNonce || _proposals.length < index)
+            revert Forbidden();
         Proposal memory proposal = _proposals[index - 1];
-        proxy.upgradeToAndCall(proposal.implementation, proposal.callData);
+        proxyAdmin.upgradeAndCall(
+            proxy,
+            proposal.implementation,
+            proposal.callData
+        );
         latestAcceptedNonce = index;
         emit ProposalAccepted(index, tx.origin);
     }
@@ -147,7 +153,8 @@ contract AdminProxy is IAdminProxy {
 
     /// @inheritdoc IAdminProxy
     function resetToBaseImplementation() external onlyEmergencyOperator {
-        proxy.upgradeToAndCall(
+        proxyAdmin.upgradeAndCall(
+            proxy,
             _baseImplementation.implementation,
             _baseImplementation.callData
         );

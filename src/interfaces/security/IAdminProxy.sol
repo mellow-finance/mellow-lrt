@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 /**
  * @title IAdminProxy Interface
@@ -30,6 +29,12 @@ interface IAdminProxy {
      * @return The proxy contract address.
      */
     function proxy() external view returns (ITransparentUpgradeableProxy);
+
+    /**
+     * @dev Returns the address of the proxy admin contract.
+     * @return The proxy admin contract address.
+     */
+    function proxyAdmin() external view returns (ProxyAdmin);
 
     /**
      * @dev Returns the current base implementation.
