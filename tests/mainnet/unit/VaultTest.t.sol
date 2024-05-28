@@ -2,15 +2,10 @@
 pragma solidity 0.8.25;
 
 import "../Constants.sol";
+import "../unit/VaultTestCommon.t.sol";
 
-contract Unit is Test {
+contract VaultTestUnit is VaultTestCommon {
     using SafeERC20 for IERC20;
-
-    address public immutable admin =
-        address(bytes20(keccak256("mellow-vault-admin")));
-
-    address public immutable operator =
-        address(bytes20(keccak256("mellow-vault-operator")));
 
     function testConstructor() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
@@ -1102,88 +1097,6 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
-    function _setUp(Vault vault) private {
-        ERC20TvlModule erc20TvlModule = new ERC20TvlModule();
-        vault.addTvlModule(address(erc20TvlModule));
-
-        vault.addToken(Constants.WSTETH);
-        vault.addToken(Constants.RETH);
-        vault.addToken(Constants.WETH);
-        VaultConfigurator configurator = VaultConfigurator(
-            address(vault.configurator())
-        );
-
-        // oracles setup
-        {
-            ManagedRatiosOracle ratiosOracle = new ManagedRatiosOracle();
-
-            uint128[] memory ratiosX96 = new uint128[](3);
-            ratiosX96[0] = 2 ** 96;
-            ratiosOracle.updateRatios(address(vault), true, ratiosX96);
-            ratiosOracle.updateRatios(address(vault), false, ratiosX96);
-
-            configurator.stageRatiosOracle(address(ratiosOracle));
-            configurator.commitRatiosOracle();
-
-            ChainlinkOracle chainlinkOracle = new ChainlinkOracle();
-            chainlinkOracle.setBaseToken(address(vault), Constants.WSTETH);
-            address[] memory tokens = new address[](3);
-            tokens[0] = Constants.WSTETH;
-            tokens[1] = Constants.RETH;
-            tokens[2] = Constants.WETH;
-
-            IChainlinkOracle.AggregatorData[]
-                memory data = new IChainlinkOracle.AggregatorData[](3);
-            data[0] = IChainlinkOracle.AggregatorData({
-                aggregatorV3: address(
-                    new WStethRatiosAggregatorV3(Constants.WSTETH)
-                ),
-                maxAge: 30 days
-            });
-            data[1] = IChainlinkOracle.AggregatorData({
-                aggregatorV3: Constants.RETH_CHAINLINK_ORACLE,
-                maxAge: 30 days
-            });
-            data[2] = IChainlinkOracle.AggregatorData({
-                aggregatorV3: address(new ConstantAggregatorV3(1 ether)),
-                maxAge: 30 days
-            });
-            chainlinkOracle.setChainlinkOracles(address(vault), tokens, data);
-
-            configurator.stagePriceOracle(address(chainlinkOracle));
-            configurator.commitPriceOracle();
-        }
-
-        configurator.stageMaximalTotalSupply(1000 ether);
-        configurator.commitMaximalTotalSupply();
-    }
-
-    function _initialDeposit(Vault vault) private {
-        vm.startPrank(admin);
-        _setupDepositPermissions(vault);
-        vm.stopPrank();
-
-        vm.startPrank(operator);
-        deal(Constants.WSTETH, operator, 10 gwei);
-        deal(Constants.RETH, operator, 0 ether);
-        deal(Constants.WETH, operator, 0 ether);
-        IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), 10 gwei);
-        // IERC20(Constants.RETH).safeIncreaseAllowance(address(vault), 0);
-        // IERC20(Constants.WETH).safeIncreaseAllowance(address(vault), 0);
-
-        uint256[] memory amounts = new uint256[](3);
-        amounts[0] = 10 gwei;
-        vault.deposit(address(vault), amounts, 10 gwei, type(uint256).max);
-
-        assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 10 gwei);
-        assertEq(IERC20(Constants.RETH).balanceOf(address(vault)), 0);
-        assertEq(IERC20(Constants.WETH).balanceOf(address(vault)), 0);
-        assertEq(vault.balanceOf(address(vault)), 10 gwei);
-        assertEq(vault.balanceOf(operator), 0);
-
-        vm.stopPrank();
-    }
-
     function testDepositInitial() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
@@ -1220,27 +1133,6 @@ contract Unit is Test {
         vault.deposit(address(this), amounts, 10 gwei, type(uint256).max);
 
         vm.stopPrank();
-    }
-
-    function _setupDepositPermissions(IVault vault) private {
-        VaultConfigurator configurator = VaultConfigurator(
-            address(vault.configurator())
-        );
-        uint8 depositRole = 14;
-        IManagedValidator validator = IManagedValidator(
-            configurator.validator()
-        );
-        if (address(validator) == address(0)) {
-            validator = new ManagedValidator(admin);
-            configurator.stageValidator(address(validator));
-            configurator.commitValidator();
-        }
-        validator.grantPublicRole(depositRole);
-        validator.grantContractSignatureRole(
-            address(vault),
-            IVault.deposit.selector,
-            depositRole
-        );
     }
 
     function testDepositInitialFailsWithValueZero() external {
@@ -1296,6 +1188,76 @@ contract Unit is Test {
         assertEq(IERC20(Constants.WETH).balanceOf(address(vault)), 0);
         assertEq(vault.balanceOf(address(vault)), 10 gwei);
         assertEq(vault.balanceOf(depositor), 10 ether);
+        vm.stopPrank();
+    }
+
+    function testDepositRegularInsufficientAllowance() external {
+        Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        address depositor = address(bytes20(keccak256("depositor")));
+
+        vm.startPrank(depositor);
+
+        deal(Constants.WSTETH, depositor, 10 ether);
+        IERC20(Constants.WSTETH).safeIncreaseAllowance(
+            address(vault),
+            9 ether
+        );
+
+        uint256[] memory amounts = new uint256[](3);
+        amounts[0] = 10 ether;
+
+        vm.expectRevert("ERC20: transfer amount exceeds allowance");
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        assertEq(
+            IERC20(Constants.WSTETH).balanceOf(address(vault)),
+            10 gwei
+        );
+        assertEq(IERC20(Constants.RETH).balanceOf(address(vault)), 0);
+        assertEq(IERC20(Constants.WETH).balanceOf(address(vault)), 0);
+        assertEq(IERC20(Constants.WSTETH).balanceOf(depositor), 10 ether);
+        assertEq(vault.balanceOf(address(vault)), 10 gwei);
+        vm.stopPrank();
+    }
+
+    function testDepositToAnotherRegular() external {
+        Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        address depositor = address(bytes20(keccak256("depositor")));
+        address depositorAntother = address(bytes20(keccak256("another depositor")));
+
+        vm.startPrank(depositor);
+
+        deal(Constants.WSTETH, depositor, 10 ether);
+        IERC20(Constants.WSTETH).safeIncreaseAllowance(
+            address(vault),
+            10 ether
+        );
+
+        uint256[] memory amounts = new uint256[](3);
+        amounts[0] = 10 ether;
+
+        vault.deposit(depositorAntother, amounts, 10 ether, type(uint256).max);
+        assertEq(
+            IERC20(Constants.WSTETH).balanceOf(address(vault)),
+            10 ether + 10 gwei
+        );
+        assertEq(IERC20(Constants.RETH).balanceOf(address(vault)), 0);
+        assertEq(IERC20(Constants.WETH).balanceOf(address(vault)), 0);
+        assertEq(vault.balanceOf(address(vault)), 10 gwei);
+        assertEq(vault.balanceOf(depositorAntother), 10 ether);
         vm.stopPrank();
     }
 
@@ -2075,6 +2037,65 @@ contract Unit is Test {
         }
     }
 
+    function testProcessWithdrawalsToAnother() external {
+        Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        address depositor = address(bytes20(keccak256("depositor")));
+        address depositorAntother = address(bytes20(keccak256("another depositor")));
+
+        vm.startPrank(depositor);
+        deal(Constants.WSTETH, depositor, 10 ether);
+        IERC20(Constants.WSTETH).safeIncreaseAllowance(
+            address(vault),
+            10 ether
+        );
+        uint256[] memory amounts = new uint256[](3);
+        amounts[0] = 10 ether;
+        uint256[] memory minAmounts = amounts;
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.registerWithdrawal(
+            depositorAntother,
+            10 ether,
+            minAmounts,
+            type(uint256).max,
+            type(uint256).max,
+            false
+        );
+        vm.stopPrank();
+
+        (bool isProcessingPossible, bool isWithdrawalPossible, ) = vault
+            .analyzeRequest(
+                vault.calculateStack(),
+                vault.withdrawalRequest(depositor)
+            );
+        assertTrue(isProcessingPossible);
+        assertTrue(isWithdrawalPossible);
+
+        {
+            address[] memory withdrawers = vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 1);
+            assertEq(withdrawers[0], depositor);
+        }
+        vm.startPrank(operator);
+        address[] memory users = new address[](1);
+        users[0] = depositor;
+        vault.processWithdrawals(users);
+        {
+            address[] memory withdrawers = vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+        }
+        assertEq(IERC20(Constants.RETH).balanceOf(depositorAntother), 0);
+        assertEq(IERC20(Constants.WETH).balanceOf(depositorAntother), 0);
+        assertEq(IERC20(Constants.WSTETH).balanceOf(depositorAntother), 10 ether);
+        assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 10 gwei);
+    }
+
     function testProcessWithdrawalsWithWithdrawalCallback() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
@@ -2335,6 +2356,54 @@ contract Unit is Test {
 
         assertEq(vault.balanceOf(address(vault)), 10 gwei);
         assertEq(vault.balanceOf(address(depositor)), 0);
+        vm.stopPrank();
+    }
+
+    function testEmergencyWithdrawToAnother() external {
+        Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        address depositor = address(bytes20(keccak256("depositor")));
+        address depositorAntother = address(bytes20(keccak256("another depositor")));
+        vm.startPrank(depositor);
+        deal(Constants.WSTETH, depositor, 10 ether);
+        IERC20(Constants.WSTETH).safeIncreaseAllowance(
+            address(vault),
+            10 ether
+        );
+        uint256[] memory amounts = new uint256[](3);
+        amounts[0] = 10 ether;
+        uint256[] memory minAmounts = new uint256[](3);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.registerWithdrawal(
+            depositorAntother,
+            10 ether,
+            minAmounts,
+            type(uint256).max,
+            type(uint256).max,
+            false
+        );
+
+        vault.emergencyWithdraw(new uint256[](3), type(uint256).max);
+
+        IVault.WithdrawalRequest memory request = vault.withdrawalRequest(
+            depositor
+        );
+        assertEq(request.lpAmount, 0);
+
+        assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 10 gwei);
+        assertEq(
+            IERC20(Constants.WSTETH).balanceOf(address(depositorAntother)),
+            10 ether
+        );
+
+        assertEq(vault.balanceOf(address(vault)), 10 gwei);
+        assertEq(vault.balanceOf(address(depositorAntother)), 0);
         vm.stopPrank();
     }
 
