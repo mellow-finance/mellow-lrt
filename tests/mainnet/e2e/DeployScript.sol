@@ -9,27 +9,42 @@ contract DeployScript is Test {
     ) internal returns (DeployLibrary.DeploySetup memory s) {
         vm.startPrank(deployParams.deployer);
         {
-            s.initialImplementation = new Vault(
+            s.initializer = new Initializer();
+
+            TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+                address(s.initializer),
+                address(deployParams.deployer),
+                new bytes(0)
+            );
+
+            Initializer(address(proxy)).initialize(
                 deployParams.lpTokenName,
                 deployParams.lpTokenSymbol,
                 deployParams.deployer
-            );
-
-            s.defaultProxyImplementation = new DefaultProxyImplementation(
-                deployParams.lpTokenName,
-                deployParams.lpTokenSymbol
-            );
-
-            TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-                address(s.initialImplementation),
-                address(deployParams.deployer),
-                new bytes(0)
             );
 
             address immutableProxyAdmin = address(
                 uint160(
                     uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT))
                 )
+            );
+
+            // insignificant logic here
+            s.initialImplementation = new Vault(
+                "123",
+                "456",
+                immutableProxyAdmin
+            );
+
+            ProxyAdmin(immutableProxyAdmin).upgradeAndCall(
+                ITransparentUpgradeableProxy(address(proxy)),
+                address(s.initialImplementation),
+                new bytes(0)
+            );
+
+            s.defaultProxyImplementation = new DefaultProxyImplementation(
+                deployParams.lpTokenName,
+                deployParams.lpTokenSymbol
             );
 
             s.adminProxy = new AdminProxy(
@@ -48,6 +63,11 @@ contract DeployScript is Test {
                 address(s.adminProxy)
             );
             s.vault = Vault(payable(proxy));
+
+            console2.log(s.vault.symbol(), s.vault.name());
+            assertEq(s.vault.symbol(), deployParams.lpTokenSymbol);
+            assertEq(s.vault.name(), deployParams.lpTokenName);
+            assertNotEq(address(s.vault.configurator()), address(0));
         }
 
         s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);

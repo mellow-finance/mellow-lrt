@@ -41,6 +41,7 @@ import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 
 import "../../src/security/AdminProxy.sol";
 import "../../src/security/DefaultProxyImplementation.sol";
+import "../../src/security/Initializer.sol";
 
 import "../../src/utils/RestrictingKeeper.sol";
 

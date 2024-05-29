@@ -28,6 +28,7 @@ library DeployLibrary {
     }
 
     struct DeploySetup {
+        Initializer initializer;
         Vault vault;
         Vault initialImplementation;
         IVaultConfigurator configurator;
