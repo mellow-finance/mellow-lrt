@@ -38,6 +38,6 @@ contract SimpleDepositWithdrawE2ETest is DeployScript {
                 lpTokenSymbol: "MLRT"
             });
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);
-        // ValidationLibrary.validateParameters(deployParams, setup);
+        ValidationLibrary.validateParameters(deployParams, setup);
     }
 }

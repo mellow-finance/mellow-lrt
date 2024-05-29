@@ -150,6 +150,10 @@ contract DeployScript is Test {
             s.defaultBondStrategy.ADMIN_ROLE(),
             deployParams.vaultAdmin
         );
+        s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.ADMIN_ROLE(),
+            deployParams.vaultCurator
+        );
 
         {
             s.configurator.stageDepositCallback(address(s.defaultBondStrategy));
@@ -168,6 +172,10 @@ contract DeployScript is Test {
         s.validator = new ManagedValidator(deployParams.deployer);
         s.validator.grantRole(
             deployParams.vaultAdmin,
+            DeployLibrary.ADMIN_ROLE // ADMIN_ROLE_MASK = (1 << 255)
+        );
+        s.validator.grantRole(
+            deployParams.vaultCurator,
             DeployLibrary.ADMIN_ROLE // ADMIN_ROLE_MASK = (1 << 255)
         );
         {

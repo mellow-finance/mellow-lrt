@@ -8,28 +8,87 @@ library ValidationLibrary {
         DeployLibrary.DeployParameters memory deployParams,
         DeployLibrary.DeploySetup memory setup
     ) external view {
-        require(
-            setup.vault.getRoleMemberCount(setup.vault.ADMIN_DELEGATE_ROLE()) ==
-                1
-        );
-        require(setup.vault.getRoleMemberCount(setup.vault.ADMIN_ROLE()) == 1);
-        require(
-            setup.vault.hasRole(
-                setup.vault.ADMIN_ROLE(),
-                deployParams.vaultAdmin
-            )
-        );
-        require(
-            setup.vault.hasRole(
-                setup.vault.ADMIN_DELEGATE_ROLE(),
-                address(setup.restrictingKeeper)
-            )
-        );
-        require(
-            !setup.vault.hasRole(
-                setup.vault.ADMIN_DELEGATE_ROLE(),
-                deployParams.deployer
-            )
-        );
+        // vault permissions
+
+        bytes32 ADMIN_ROLE = keccak256("admin");
+        bytes32 ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+        bytes32 OPERATOR_ROLE = keccak256("operator");
+
+        uint256 ADMIN_ROLE_MASK = 1 << 255;
+        uint256 DEPOSITOR_ROLE_MASK = 1 << 0;
+        uint256 DEFAULT_BOND_STRATEGY_ROLE_MASK = 1 << 1;
+        uint256 DEFAULT_BOND_MODULE_ROLE_MASK = 1 << 2;
+
+        {
+            Vault vault = setup.vault;
+            require(vault.getRoleMemberCount(ADMIN_ROLE) == 1);
+            require(vault.hasRole(ADMIN_ROLE, deployParams.vaultAdmin));
+            require(vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 2);
+            require(
+                vault.hasRole(
+                    ADMIN_DELEGATE_ROLE,
+                    address(setup.restrictingKeeper)
+                )
+            );
+            require(
+                vault.hasRole(
+                    ADMIN_DELEGATE_ROLE,
+                    address(deployParams.vaultCurator)
+                )
+            );
+            require(vault.getRoleMemberCount(OPERATOR_ROLE) == 1);
+            require(
+                vault.hasRole(OPERATOR_ROLE, address(setup.defaultBondStrategy))
+            );
+        }
+
+        // DefaultBondStrategy permissions
+        {
+            DefaultBondStrategy strategy = setup.defaultBondStrategy;
+            require(strategy.getRoleMemberCount(ADMIN_ROLE) == 2);
+            require(strategy.hasRole(ADMIN_ROLE, deployParams.vaultAdmin));
+            require(strategy.hasRole(ADMIN_ROLE, deployParams.vaultCurator));
+            require(strategy.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0);
+            require(strategy.getRoleMemberCount(OPERATOR_ROLE) == 0);
+        }
+
+        // Managed validator permissions
+        {
+            ManagedValidator validator = setup.validator;
+            require(validator.publicRoles() == DEPOSITOR_ROLE_MASK);
+
+            require(validator.userRoles(deployParams.deployer) == 0);
+            require(
+                validator.userRoles(deployParams.vaultAdmin) == ADMIN_ROLE_MASK
+            );
+            require(
+                validator.userRoles(deployParams.vaultCurator) ==
+                    ADMIN_ROLE_MASK
+            );
+
+            require(
+                validator.userRoles(address(setup.defaultBondStrategy)) ==
+                    DEFAULT_BOND_STRATEGY_ROLE_MASK
+            );
+            require(
+                validator.userRoles(address(setup.vault)) ==
+                    DEFAULT_BOND_MODULE_ROLE_MASK
+            );
+
+            require(
+                validator.allowAllSignaturesRoles(
+                    address(setup.defaultBondStrategy)
+                ) == 0
+            );
+            require(
+                validator.allowAllSignaturesRoles(address(setup.vault)) ==
+                    DEFAULT_BOND_STRATEGY_ROLE_MASK
+            );
+            require(
+                validator.allowAllSignaturesRoles(
+                    address(setup.defaultBondModule)
+                ) == DEFAULT_BOND_MODULE_ROLE_MASK
+            );
+        }
     }
 }
