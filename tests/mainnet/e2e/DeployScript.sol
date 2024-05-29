@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import "./DeployLibrary.sol";
 
 contract DeployScript is Test {
+    using SafeERC20 for IERC20;
+
     function deploy(
         DeployLibrary.DeployParameters memory deployParams
     ) internal returns (DeployLibrary.DeploySetup memory s) {
@@ -251,6 +253,46 @@ contract DeployScript is Test {
 
             s.configurator.stageEmergencyWithdrawalDelay(90 days);
             s.configurator.commitEmergencyWithdrawalDelay();
+        }
+
+        // initial deposit
+        {
+            assertTrue(
+                deployParams.initialDepositETH > 0,
+                "Invalid deploy params. Initial deposit value is 0"
+            );
+            assertTrue(
+                deployParams.deployer.balance >= deployParams.initialDepositETH,
+                "Insufficient ETH amount for deposit"
+            );
+            // eth -> steth -> wsteth
+            ISteth(deployParams.steth).submit{
+                value: deployParams.initialDepositETH
+            }(address(0));
+            IERC20(deployParams.steth).safeIncreaseAllowance(
+                deployParams.wsteth,
+                deployParams.initialDepositETH
+            );
+            IWSteth(deployParams.wsteth).wrap(deployParams.initialDepositETH);
+            uint256 wstethAmount = IERC20(deployParams.wsteth).balanceOf(
+                deployParams.deployer
+            );
+            IERC20(deployParams.wsteth).safeIncreaseAllowance(
+                address(s.vault),
+                wstethAmount
+            );
+            assertTrue(wstethAmount > 0, "No wsteth received");
+            address[] memory tokens = new address[](1);
+            tokens[0] = deployParams.wsteth;
+            uint256[] memory amounts = new uint256[](1);
+            amounts[0] = wstethAmount;
+            s.vault.deposit(
+                address(s.vault),
+                amounts,
+                deployParams.initialDepositETH, // 1 lp == 1 eth on start
+                type(uint256).max // deadline
+            );
+            s.wstethAmountDeposited = wstethAmount;
         }
 
         s.vault.renounceRole(s.vault.ADMIN_ROLE(), deployParams.deployer);

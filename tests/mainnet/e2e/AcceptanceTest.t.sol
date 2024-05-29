@@ -23,6 +23,7 @@ contract SimpleDepositWithdrawE2ETest is DeployScript {
     function testDeployWithValidation() external {
         string memory lpTokenName = "0123456789012345678901234567890";
         string memory lpTokenSymbol = "MLRT";
+        deal(deployer, 10 gwei);
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: deployer,
@@ -37,7 +38,8 @@ contract SimpleDepositWithdrawE2ETest is DeployScript {
                 weth: weth,
                 maximalTotalSupply: 10_000 ether,
                 lpTokenName: lpTokenName, // 31 symbol
-                lpTokenSymbol: lpTokenSymbol
+                lpTokenSymbol: lpTokenSymbol,
+                initialDepositETH: 10 gwei
             });
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);
         ValidationLibrary.validateParameters(deployParams, setup);

@@ -25,6 +25,7 @@ library DeployLibrary {
         uint256 maximalTotalSupply;
         string lpTokenName;
         string lpTokenSymbol;
+        uint256 initialDepositETH;
     }
 
     struct DeploySetup {
@@ -45,5 +46,6 @@ library DeployLibrary {
         RestrictingKeeper restrictingKeeper;
         IAggregatorV3 wethAggregatorV3;
         IAggregatorV3 wstethAggregatorV3;
+        uint256 wstethAmountDeposited;
     }
 }

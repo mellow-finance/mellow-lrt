@@ -89,6 +89,32 @@ library ValidationLibrary {
                     address(setup.defaultBondModule)
                 ) == DEFAULT_BOND_MODULE_ROLE_MASK
             );
+            require(
+                validator.allowSignatureRoles(
+                    address(setup.vault),
+                    IVault.deposit.selector
+                ) == DEPOSITOR_ROLE_MASK
+            );
+        }
+
+        // vault balances
+        {
+            require(setup.vault.balanceOf(deployParams.deployer) == 0);
+            require(
+                setup.vault.balanceOf(address(setup.vault)) ==
+                    deployParams.initialDepositETH
+            );
+            require(
+                IERC20(deployParams.wsteth).balanceOf(address(setup.vault)) == 0
+            );
+            uint256 bondBalance = IERC20(deployParams.wstethDefaultBond)
+                .balanceOf(address(setup.vault));
+            require(bondBalance == setup.wstethAmountDeposited);
+
+            require(
+                setup.wstethAmountDeposited ==
+                    IWSteth(deployParams.wsteth).getStETHByWstETH(bondBalance)
+            );
         }
     }
 }
