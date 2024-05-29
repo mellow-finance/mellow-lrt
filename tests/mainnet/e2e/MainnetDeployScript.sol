@@ -7,6 +7,13 @@ import "../unit/VaultTestCommon.t.sol";
 contract DeployScript is Test {
     uint256 public constant Q96 = 2 ** 96;
 
+    uint8 public constant DEPOSITOR_ROLE = 0;
+    uint8 public constant DEFAULT_BOND_STRATEGY_ROLE = 1;
+    uint8 public constant DEFAULT_BOND_MODULE_ROLE = 2;
+
+    address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+
     struct DeployParameters {
         address deployer;
         address vaultAdmin;
@@ -83,8 +90,11 @@ contract DeployScript is Test {
             s.vault = Vault(payable(proxy));
         }
 
-        s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), Constants.VAULT_ADMIN);
-        s.vault.grantRole(s.vault.OPERATOR(), Constants.VAULT_ADMIN);
+        s.vault.grantRole(
+            s.vault.ADMIN_DELEGATE_ROLE(),
+            deployParams.vaultAdmin
+        );
+        s.vault.grantRole(s.vault.OPERATOR(), deployParams.vaultAdmin);
 
         s.configurator = s.vault.configurator();
 
@@ -94,7 +104,7 @@ contract DeployScript is Test {
         s.vault.addTvlModule(address(s.erc20TvlModule));
         s.vault.addTvlModule(address(s.defaultBondTvlModule));
 
-        s.vault.addToken(Constants.WSTETH);
+        s.vault.addToken(WSTETH);
         // oracles setup
         {
             s.ratiosOracle = new ManagedRatiosOracle();
@@ -108,7 +118,15 @@ contract DeployScript is Test {
             s.configurator.commitRatiosOracle();
 
             s.priceOracle = new ChainlinkOracle();
-            s.priceOracle.setBaseToken(address(s.vault), Constants.WSTETH);
+
+            // address[] memory tokens = new address[](2);
+            // tokens[0] = WETH;
+            // tokens[1] = WSTETH;
+            // IAggregatorV3[] memory aggregatorsV3 = new IAggregatorV3[](2);
+            // aggregatorsV3[0] = address(0);
+            // aggregatorsV3[1] = WSTETH;
+
+            s.priceOracle.setBaseToken(address(s.vault), WETH);
             s.configurator.stagePriceOracle(address(s.priceOracle));
             s.configurator.commitPriceOracle();
         }
@@ -161,35 +179,32 @@ contract DeployScript is Test {
                 memory data = new IDefaultBondStrategy.Data[](1);
             data[0].bond = s.wstethDefaultBond;
             data[0].ratioX96 = Q96;
-            s.defaultBondStrategy.setData(Constants.WSTETH, data);
+            s.defaultBondStrategy.setData(WSTETH, data);
         }
 
         // validators setup
-        s.validator = new ManagedValidator(Constants.VAULT_ADMIN);
+        s.validator = new ManagedValidator(deployParams.vaultAdmin);
         {
             s.validator.grantRole(
                 address(s.defaultBondStrategy),
-                Constants.DEFAULT_BOND_STRATEGY_ROLE
+                DEFAULT_BOND_STRATEGY_ROLE
             );
             s.validator.grantContractRole(
                 address(s.vault),
-                Constants.DEFAULT_BOND_STRATEGY_ROLE
+                DEFAULT_BOND_STRATEGY_ROLE
             );
 
-            s.validator.grantRole(
-                address(s.vault),
-                Constants.DEFAULT_BOND_MODULE_ROLE
-            );
+            s.validator.grantRole(address(s.vault), DEFAULT_BOND_MODULE_ROLE);
             s.validator.grantContractRole(
                 address(s.defaultBondModule),
-                Constants.DEFAULT_BOND_MODULE_ROLE
+                DEFAULT_BOND_MODULE_ROLE
             );
 
-            s.validator.grantPublicRole(Constants.DEPOSITOR_ROLE);
+            s.validator.grantPublicRole(DEPOSITOR_ROLE);
             s.validator.grantContractSignatureRole(
                 address(s.vault),
                 IVault.deposit.selector,
-                Constants.DEPOSITOR_ROLE
+                DEPOSITOR_ROLE
             );
 
             s.configurator.stageValidator(address(s.validator));
