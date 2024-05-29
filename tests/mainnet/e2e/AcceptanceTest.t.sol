@@ -20,7 +20,7 @@ contract SimpleDepositWithdrawE2ETest is DeployScript {
     address public immutable wstethDefaultBond =
         address(new DefaultBondMock(wsteth));
 
-    function testDepsitWithdrawE2E() external {
+    function testDeployWithValidation() external {
         string memory lpTokenName = "0123456789012345678901234567890";
         string memory lpTokenSymbol = "MLRT";
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
