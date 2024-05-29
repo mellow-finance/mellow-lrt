@@ -167,7 +167,7 @@ contract DeployScript is Test {
             IDefaultBondStrategy.Data[]
                 memory data = new IDefaultBondStrategy.Data[](1);
             data[0].bond = deployParams.wstethDefaultBond;
-            data[0].ratioX96 = DeployLibrary.Q96;
+            data[0].ratioX96 = DeployConstants.Q96;
             s.defaultBondStrategy.setData(deployParams.wsteth, data);
         }
 
@@ -175,36 +175,36 @@ contract DeployScript is Test {
         s.validator = new ManagedValidator(deployParams.deployer);
         s.validator.grantRole(
             deployParams.admin,
-            DeployLibrary.ADMIN_ROLE // ADMIN_ROLE_MASK = (1 << 255)
+            DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
         );
         s.validator.grantRole(
             deployParams.curator,
-            DeployLibrary.ADMIN_ROLE // ADMIN_ROLE_MASK = (1 << 255)
+            DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
         );
         {
             s.validator.grantRole(
                 address(s.defaultBondStrategy),
-                DeployLibrary.DEFAULT_BOND_STRATEGY_ROLE
+                DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
             );
             s.validator.grantContractRole(
                 address(s.vault),
-                DeployLibrary.DEFAULT_BOND_STRATEGY_ROLE
+                DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
             );
 
             s.validator.grantRole(
                 address(s.vault),
-                DeployLibrary.DEFAULT_BOND_MODULE_ROLE
+                DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
             );
             s.validator.grantContractRole(
                 address(s.defaultBondModule),
-                DeployLibrary.DEFAULT_BOND_MODULE_ROLE
+                DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
             );
 
-            s.validator.grantPublicRole(DeployLibrary.DEPOSITOR_ROLE);
+            s.validator.grantPublicRole(DeployConstants.DEPOSITOR_ROLE_BIT);
             s.validator.grantContractSignatureRole(
                 address(s.vault),
                 IVault.deposit.selector,
-                DeployLibrary.DEPOSITOR_ROLE
+                DeployConstants.DEPOSITOR_ROLE_BIT
             );
 
             s.configurator.stageValidator(address(s.validator));
@@ -318,7 +318,10 @@ contract DeployScript is Test {
             s.defaultBondStrategy.OPERATOR(),
             deployParams.deployer
         );
-        s.validator.revokeRole(deployParams.deployer, DeployLibrary.ADMIN_ROLE);
+        s.validator.revokeRole(
+            deployParams.deployer,
+            DeployConstants.ADMIN_ROLE_BIT
+        );
 
         vm.stopPrank();
     }

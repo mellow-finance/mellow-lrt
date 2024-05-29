@@ -148,6 +148,132 @@ library ValidationLibrary {
                     keccak256(bytes(deployParams.lpTokenSymbol))
             );
             require(setup.vault.decimals() == 18);
+
+            require(
+                address(setup.vault.configurator()) ==
+                    address(setup.configurator)
+            );
+            address[] memory underlyingTokens = setup.vault.underlyingTokens();
+            require(underlyingTokens.length == 1);
+            require(underlyingTokens[0] == deployParams.wsteth);
+            {
+                address[] memory tvlModules = setup.vault.tvlModules();
+                require(tvlModules.length == 2);
+                require(tvlModules[0] == address(setup.erc20TvlModule));
+                require(tvlModules[1] == address(setup.defaultBondTvlModule));
+            }
+
+            require(
+                setup.vault.withdrawalRequest(deployParams.deployer).lpAmount ==
+                    0
+            );
+            {
+                address[] memory pendingWithdrawers = setup
+                    .vault
+                    .pendingWithdrawers();
+                require(pendingWithdrawers.length == 0);
+            }
+            {
+                (
+                    address[] memory underlyingTvlTokens,
+                    uint256[] memory underlyingTvlValues
+                ) = setup.vault.underlyingTvl();
+                require(underlyingTvlTokens.length == 1);
+                require(underlyingTvlTokens[0] == deployParams.wsteth);
+
+                require(underlyingTvlValues.length == 1);
+                uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
+                    .getStETHByWstETH(underlyingTvlValues[0]);
+                // valid only for tests or right after deployment
+                // after that getStETHByWstETH will return different ratios due to rebase logic
+                require(
+                    deployParams.initialDepositETH - 2 wei <=
+                        expectedStethAmount &&
+                        expectedStethAmount <= deployParams.initialDepositETH
+                );
+            }
+
+            {
+                (
+                    address[] memory baseTvlTokens,
+                    uint256[] memory baseTvlValues
+                ) = setup.vault.baseTvl();
+                require(baseTvlTokens.length == 2);
+                require(baseTvlValues.length == 2);
+
+                uint256 wstethIndex = deployParams.wsteth <
+                    deployParams.wstethDefaultBond
+                    ? 0
+                    : 1;
+
+                require(baseTvlTokens[wstethIndex] == deployParams.wsteth);
+                require(
+                    baseTvlTokens[wstethIndex ^ 1] ==
+                        deployParams.wstethDefaultBond
+                );
+
+                require(baseTvlValues[wstethIndex] == 0);
+                uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
+                    .getStETHByWstETH(baseTvlValues[wstethIndex ^ 1]);
+                // valid only for tests or right after deployment
+                // after that getStETHByWstETH will return different ratios due to rebase logic
+                require(
+                    deployParams.initialDepositETH - 2 wei <=
+                        expectedStethAmount &&
+                        expectedStethAmount <= deployParams.initialDepositETH
+                );
+            }
+
+            {
+                require(
+                    setup.vault.totalSupply() == deployParams.initialDepositETH
+                );
+                require(setup.vault.balanceOf(deployParams.deployer) == 0);
+                require(
+                    setup.vault.balanceOf(address(setup.vault)) ==
+                        deployParams.initialDepositETH
+                );
+
+                IVault.ProcessWithdrawalsStack memory stack = setup
+                    .vault
+                    .calculateStack();
+
+                address[] memory expectedTokens = new address[](1);
+                expectedTokens[0] = deployParams.wsteth;
+                require(
+                    stack.tokensHash == keccak256(abi.encode(stack.tokens))
+                );
+                require(
+                    stack.tokensHash == keccak256(abi.encode(expectedTokens))
+                );
+
+                require(stack.totalSupply == deployParams.initialDepositETH);
+                require(
+                    deployParams.initialDepositETH - 2 wei <=
+                        stack.totalValue &&
+                        stack.totalValue <= deployParams.initialDepositETH
+                );
+
+                require(stack.ratiosX96.length == 1);
+                require(stack.ratiosX96[0] == DeployConstants.Q96);
+
+                require(stack.erc20Balances.length == 1);
+                require(stack.erc20Balances[0] == 0);
+
+                uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
+                    .getStETHByWstETH(DeployConstants.Q96);
+                require(
+                    stack.ratiosX96Value > 0 &&
+                        stack.ratiosX96Value <= expectedStethAmount
+                );
+                assert(
+                    (expectedStethAmount - stack.ratiosX96Value) <
+                        stack.ratiosX96Value / 1e10
+                );
+
+                require(stack.timestamp == block.timestamp);
+                require(stack.feeD9 == 0);
+            }
         }
 
         // VaultConfigurator values
@@ -192,6 +318,32 @@ library ValidationLibrary {
             require(setup.configurator.vault() == address(setup.vault));
         }
 
-        {}
+        // DefaultBondStrategy values
+        {
+            require(
+                address(setup.defaultBondStrategy.bondModule()) ==
+                    address(setup.defaultBondModule)
+            );
+            require(
+                address(setup.defaultBondStrategy.erc20TvlModule()) ==
+                    address(setup.erc20TvlModule)
+            );
+            require(
+                address(setup.defaultBondStrategy.vault()) ==
+                    address(setup.vault)
+            );
+
+            bytes memory tokenToDataBytes = setup
+                .defaultBondStrategy
+                .tokenToData(deployParams.wsteth);
+            require(tokenToDataBytes.length != 0);
+            IDefaultBondStrategy.Data[] memory data = abi.decode(
+                tokenToDataBytes,
+                (IDefaultBondStrategy.Data[])
+            );
+            require(data.length == 1);
+            require(data[0].bond == deployParams.wstethDefaultBond);
+            require(data[0].ratioX96 == DeployConstants.Q96);
+        }
     }
 }

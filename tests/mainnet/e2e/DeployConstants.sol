@@ -4,6 +4,15 @@ pragma solidity 0.8.25;
 library DeployConstants {
     // according to https://www.notion.so/mellowprotocol/Contracts-deployment-process-4cd6b91d9aef416291eb510d898f3841?pvs=4#07a01b7b0b7649c28bccd6daea2bcfb9
 
+    // Common constants:
+
+    uint256 public constant Q96 = 2 ** 96;
+
+    uint8 public constant DEPOSITOR_ROLE_BIT = 0;
+    uint8 public constant DEFAULT_BOND_STRATEGY_ROLE_BIT = 1;
+    uint8 public constant DEFAULT_BOND_MODULE_ROLE_BIT = 2;
+    uint8 public constant ADMIN_ROLE_BIT = 255;
+
     // ---------- Ethereum Mainnet ----------
 
     // Steakhouse:
