@@ -22,7 +22,7 @@ library ValidationLibrary {
         {
             Vault vault = setup.vault;
             require(vault.getRoleMemberCount(ADMIN_ROLE) == 1);
-            require(vault.hasRole(ADMIN_ROLE, deployParams.vaultAdmin));
+            require(vault.hasRole(ADMIN_ROLE, deployParams.admin));
             require(vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 2);
             require(
                 vault.hasRole(
@@ -33,7 +33,7 @@ library ValidationLibrary {
             require(
                 vault.hasRole(
                     ADMIN_DELEGATE_ROLE,
-                    address(deployParams.vaultCurator)
+                    address(deployParams.curator)
                 )
             );
             require(vault.getRoleMemberCount(OPERATOR_ROLE) == 1);
@@ -46,8 +46,8 @@ library ValidationLibrary {
         {
             DefaultBondStrategy strategy = setup.defaultBondStrategy;
             require(strategy.getRoleMemberCount(ADMIN_ROLE) == 2);
-            require(strategy.hasRole(ADMIN_ROLE, deployParams.vaultAdmin));
-            require(strategy.hasRole(ADMIN_ROLE, deployParams.vaultCurator));
+            require(strategy.hasRole(ADMIN_ROLE, deployParams.admin));
+            require(strategy.hasRole(ADMIN_ROLE, deployParams.curator));
             require(strategy.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0);
             require(strategy.getRoleMemberCount(OPERATOR_ROLE) == 0);
         }
@@ -58,12 +58,9 @@ library ValidationLibrary {
             require(validator.publicRoles() == DEPOSITOR_ROLE_MASK);
 
             require(validator.userRoles(deployParams.deployer) == 0);
+            require(validator.userRoles(deployParams.admin) == ADMIN_ROLE_MASK);
             require(
-                validator.userRoles(deployParams.vaultAdmin) == ADMIN_ROLE_MASK
-            );
-            require(
-                validator.userRoles(deployParams.vaultCurator) ==
-                    ADMIN_ROLE_MASK
+                validator.userRoles(deployParams.curator) == ADMIN_ROLE_MASK
             );
 
             require(
@@ -105,15 +102,26 @@ library ValidationLibrary {
                     deployParams.initialDepositETH
             );
             require(
+                setup.vault.totalSupply() == deployParams.initialDepositETH
+            );
+            require(
                 IERC20(deployParams.wsteth).balanceOf(address(setup.vault)) == 0
             );
             uint256 bondBalance = IERC20(deployParams.wstethDefaultBond)
                 .balanceOf(address(setup.vault));
             require(bondBalance == setup.wstethAmountDeposited);
-
             require(
-                setup.wstethAmountDeposited ==
-                    IWSteth(deployParams.wsteth).getStETHByWstETH(bondBalance)
+                IERC20(deployParams.wsteth).balanceOf(
+                    deployParams.wstethDefaultBond
+                ) == bondBalance
+            );
+            uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
+                .getStETHByWstETH(bondBalance);
+            // at most 2 weis loss due to eth->steth && steth->wsteth conversions
+            require(
+                deployParams.initialDepositETH - 2 wei <= expectedStethAmount &&
+                    expectedStethAmount <=
+                    deployParams.initialDepositETH - 2 wei
             );
         }
     }

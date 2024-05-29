@@ -66,11 +66,8 @@ contract DeployScript is Test {
             s.vault.ADMIN_DELEGATE_ROLE(),
             address(s.restrictingKeeper)
         );
-        s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.vaultAdmin);
-        s.vault.grantRole(
-            s.vault.ADMIN_DELEGATE_ROLE(),
-            deployParams.vaultCurator
-        );
+        s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
+        s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.curator);
 
         s.configurator = s.vault.configurator();
 
@@ -150,11 +147,11 @@ contract DeployScript is Test {
 
         s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.ADMIN_ROLE(),
-            deployParams.vaultAdmin
+            deployParams.admin
         );
         s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.ADMIN_ROLE(),
-            deployParams.vaultCurator
+            deployParams.curator
         );
 
         {
@@ -173,11 +170,11 @@ contract DeployScript is Test {
         // validators setup
         s.validator = new ManagedValidator(deployParams.deployer);
         s.validator.grantRole(
-            deployParams.vaultAdmin,
+            deployParams.admin,
             DeployLibrary.ADMIN_ROLE // ADMIN_ROLE_MASK = (1 << 255)
         );
         s.validator.grantRole(
-            deployParams.vaultCurator,
+            deployParams.curator,
             DeployLibrary.ADMIN_ROLE // ADMIN_ROLE_MASK = (1 << 255)
         );
         {
@@ -236,7 +233,7 @@ contract DeployScript is Test {
             s.configurator.stageDepositsLockedDelay(1 hours);
             s.configurator.commitDepositsLockedDelay();
 
-            s.configurator.stageTransfersLockedDelay(90 days);
+            s.configurator.stageTransfersLockedDelay(365 days);
             s.configurator.commitTransfersLockedDelay();
 
             s.configurator.stageDelegateModuleApprovalDelay(1 days);
@@ -253,6 +250,9 @@ contract DeployScript is Test {
 
             s.configurator.stageEmergencyWithdrawalDelay(90 days);
             s.configurator.commitEmergencyWithdrawalDelay();
+
+            s.configurator.stageBaseDelay(30 days);
+            s.configurator.commitBaseDelay();
         }
 
         // initial deposit
@@ -289,8 +289,8 @@ contract DeployScript is Test {
             s.vault.deposit(
                 address(s.vault),
                 amounts,
-                deployParams.initialDepositETH, // 1 lp == 1 eth on start
-                type(uint256).max // deadline
+                deployParams.initialDepositETH,
+                type(uint256).max
             );
             s.wstethAmountDeposited = wstethAmount;
         }

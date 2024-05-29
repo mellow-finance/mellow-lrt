@@ -26,8 +26,9 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: deployer,
-                vaultAdmin: vaultAdmin,
-                vaultCurator: vaultCurator,
+                admin: vaultAdmin,
+                curator: vaultCurator,
+                operator: vaultCurator,
                 proposer: proposer,
                 acceptor: acceptor,
                 emergencyOperator: emergencyOperator,
@@ -37,7 +38,8 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
                 weth: weth,
                 maximalTotalSupply: 10_000 ether,
                 lpTokenName: lpTokenName, // 31 symbol
-                lpTokenSymbol: lpTokenSymbol
+                lpTokenSymbol: lpTokenSymbol,
+                initialDepositETH: 0
             });
 
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);
@@ -51,8 +53,9 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: deployer,
-                vaultAdmin: vaultAdmin,
-                vaultCurator: vaultCurator,
+                admin: vaultAdmin,
+                curator: vaultCurator,
+                operator: vaultCurator,
                 proposer: proposer,
                 acceptor: acceptor,
                 emergencyOperator: emergencyOperator,
@@ -62,7 +65,8 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
                 weth: weth,
                 maximalTotalSupply: 10_000 ether,
                 lpTokenName: lpTokenName, // 31 symbol
-                lpTokenSymbol: lpTokenSymbol
+                lpTokenSymbol: lpTokenSymbol,
+                initialDepositETH: 0
             });
 
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);

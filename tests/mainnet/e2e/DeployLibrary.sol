@@ -13,8 +13,9 @@ library DeployLibrary {
 
     struct DeployParameters {
         address deployer;
-        address vaultAdmin;
-        address vaultCurator;
+        address admin;
+        address curator;
+        address operator;
         address proposer;
         address acceptor;
         address emergencyOperator;
