@@ -345,5 +345,113 @@ library ValidationLibrary {
             require(data[0].bond == deployParams.wstethDefaultBond);
             require(data[0].ratioX96 == DeployConstants.Q96);
         }
+
+        // ConstantsAggregatorV3 values:
+        {
+            require(
+                ConstantAggregatorV3(address(setup.wethAggregatorV3))
+                    .decimals() == 18
+            );
+            require(
+                ConstantAggregatorV3(address(setup.wethAggregatorV3))
+                    .answer() == 1 ether
+            );
+
+            (
+                uint80 roundId,
+                int256 answer,
+                uint256 startedAt,
+                uint256 updatedAt,
+                uint80 answeredInRound
+            ) = ConstantAggregatorV3(address(setup.wethAggregatorV3))
+                    .latestRoundData();
+            require(roundId == 0);
+            require(answer == 1 ether);
+            require(startedAt == block.timestamp);
+            require(updatedAt == block.timestamp);
+            require(answeredInRound == 0);
+        }
+
+        // WStethRatiosAggregatorV3 values:
+        {
+            require(
+                WStethRatiosAggregatorV3(address(setup.wstethAggregatorV3))
+                    .decimals() == 18
+            );
+
+            require(
+                WStethRatiosAggregatorV3(address(setup.wstethAggregatorV3))
+                    .wsteth() == deployParams.wsteth
+            );
+
+            (
+                uint80 roundId,
+                int256 answer,
+                uint256 startedAt,
+                uint256 updatedAt,
+                uint80 answeredInRound
+            ) = WStethRatiosAggregatorV3(address(setup.wstethAggregatorV3))
+                    .latestRoundData();
+            require(roundId == 0);
+            require(
+                answer ==
+                    int256(
+                        IWSteth(deployParams.wsteth).getStETHByWstETH(1 ether)
+                    )
+            );
+            require(startedAt == block.timestamp);
+            require(updatedAt == block.timestamp);
+            require(answeredInRound == 0);
+        }
+
+        // ChainlinkOracle values:
+        {
+            require(
+                setup.priceOracle.baseTokens(address(setup.vault)) ==
+                    deployParams.weth
+            );
+
+            require(
+                setup
+                    .priceOracle
+                    .aggregatorsData(address(setup.vault), deployParams.weth)
+                    .aggregatorV3 == address(setup.wethAggregatorV3)
+            );
+            require(
+                setup
+                    .priceOracle
+                    .aggregatorsData(address(setup.vault), deployParams.weth)
+                    .maxAge == 0
+            );
+            require(
+                setup
+                    .priceOracle
+                    .aggregatorsData(address(setup.vault), deployParams.wsteth)
+                    .aggregatorV3 == address(setup.wstethAggregatorV3)
+            );
+            require(
+                setup
+                    .priceOracle
+                    .aggregatorsData(address(setup.vault), deployParams.wsteth)
+                    .maxAge == 0
+            );
+
+            require(
+                setup.priceOracle.priceX96(
+                    address(setup.vault),
+                    deployParams.weth
+                ) == DeployConstants.Q96
+            );
+
+            require(
+                setup.priceOracle.priceX96(
+                    address(setup.vault),
+                    deployParams.wsteth
+                ) ==
+                    (IWSteth(deployParams.wsteth).getStETHByWstETH(1 ether) *
+                        DeployConstants.Q96) /
+                        1 ether
+            );
+        }
     }
 }
