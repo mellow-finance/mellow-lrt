@@ -17,7 +17,7 @@ contract AcceptanceTest is DeployScript {
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: DeployConstants.MAINNET_DEPLOYER,
-                admin: DeployConstants.STEAKHOUSE_LIDO_MELLOW_MULTISIG,
+                admin: DeployConstants.STEAKHOUSE_CURATOR_BOARD_MULTISIG,
                 curator: DeployConstants.STEAKHOUSE_CURATOR_BOARD_MULTISIG,
                 operator: DeployConstants.STEAKHOUSE_CURATOR_MANAGER,
                 proposer: DeployConstants.STEAKHOUSE_MELLOW_MULTISIG,

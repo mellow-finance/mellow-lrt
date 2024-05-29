@@ -22,20 +22,31 @@ library ValidationLibrary {
         // Vault permissions
         {
             Vault vault = setup.vault;
-            require(vault.getRoleMemberCount(ADMIN_ROLE) == 1);
-            require(vault.hasRole(ADMIN_ROLE, deployParams.admin));
-            require(vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 2);
+            require(
+                vault.getRoleMemberCount(ADMIN_ROLE) == 1,
+                "Wrong admin count"
+            );
+            require(
+                vault.hasRole(ADMIN_ROLE, deployParams.admin),
+                "Admin not set"
+            );
+            require(
+                vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 2,
+                "Wrong admin delegate count"
+            );
             require(
                 vault.hasRole(
                     ADMIN_DELEGATE_ROLE,
                     address(setup.restrictingKeeper)
-                )
+                ),
+                "RestrictingKeeper not set"
             );
             require(
                 vault.hasRole(
                     ADMIN_DELEGATE_ROLE,
                     address(deployParams.curator)
-                )
+                ),
+                "Curator not set"
             );
             require(vault.getRoleMemberCount(OPERATOR_ROLE) == 1);
             require(
@@ -46,8 +57,7 @@ library ValidationLibrary {
         // DefaultBondStrategy permissions
         {
             DefaultBondStrategy strategy = setup.defaultBondStrategy;
-            require(strategy.getRoleMemberCount(ADMIN_ROLE) == 2);
-            require(strategy.hasRole(ADMIN_ROLE, deployParams.admin));
+            require(strategy.getRoleMemberCount(ADMIN_ROLE) == 1);
             require(strategy.hasRole(ADMIN_ROLE, deployParams.curator));
             require(strategy.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0);
             require(strategy.getRoleMemberCount(OPERATOR_ROLE) == 1);
@@ -178,6 +188,10 @@ library ValidationLibrary {
                     address(setup.defaultBondModule)
                 ) == true
             );
+
+            require(setup.configurator.vault() == address(setup.vault));
         }
+
+        {}
     }
 }

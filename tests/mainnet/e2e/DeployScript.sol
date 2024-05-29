@@ -146,10 +146,6 @@ contract DeployScript is Test {
         );
 
         s.defaultBondStrategy.grantRole(
-            s.defaultBondStrategy.ADMIN_ROLE(),
-            deployParams.admin
-        );
-        s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
             deployParams.deployer
         );
