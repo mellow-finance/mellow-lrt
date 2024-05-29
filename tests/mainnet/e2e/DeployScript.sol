@@ -6,7 +6,7 @@ import "./DeployLibrary.sol";
 contract DeployScript is Test {
     function deploy(
         DeployLibrary.DeployParameters memory deployParams
-    ) external returns (DeployLibrary.DeploySetup memory s) {
+    ) internal returns (DeployLibrary.DeploySetup memory s) {
         vm.startPrank(deployParams.deployer);
         {
             s.initialImplementation = new Vault(

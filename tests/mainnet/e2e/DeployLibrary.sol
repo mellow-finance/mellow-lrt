@@ -18,7 +18,6 @@ library DeployLibrary {
         address proposer;
         address acceptor;
         address emergencyOperator;
-        address baseImplementation;
         address wstethDefaultBond;
         address wsteth;
         address steth;
