@@ -21,6 +21,8 @@ contract SimpleDepositWithdrawE2ETest is DeployScript {
         address(new DefaultBondMock(wsteth));
 
     function testDepsitWithdrawE2E() external {
+        string memory lpTokenName = "0123456789012345678901234567890";
+        string memory lpTokenSymbol = "MLRT";
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: deployer,
@@ -34,8 +36,8 @@ contract SimpleDepositWithdrawE2ETest is DeployScript {
                 steth: steth,
                 weth: weth,
                 maximalTotalSupply: 10_000 ether,
-                lpTokenName: "0123456789012345678901234567890", // 31 symbol
-                lpTokenSymbol: "MLRT"
+                lpTokenName: lpTokenName, // 31 symbol
+                lpTokenSymbol: lpTokenSymbol
             });
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);
         ValidationLibrary.validateParameters(deployParams, setup);
