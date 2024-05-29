@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./IDeploy.sol";
+import "./DeployLibrary.sol";
 
 contract AcceptanceTest {
     function validateParameters(
-        IDeploy.DeployParameters memory deployParams,
-        IDeploy.DeploySetup memory setup
+        DeployLibrary.DeployParameters memory deployParams,
+        DeployLibrary.DeploySetup memory setup
     ) external view {}
 }

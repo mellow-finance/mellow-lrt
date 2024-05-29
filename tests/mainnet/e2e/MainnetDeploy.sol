@@ -1,23 +1,12 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./IDeploy.sol";
+import "./DeployLibrary.sol";
 
 contract DeployScript is Test {
-    uint256 public constant Q96 = 2 ** 96;
-
-    uint8 public constant DEPOSITOR_ROLE = 0;
-    uint8 public constant DEFAULT_BOND_STRATEGY_ROLE = 1;
-    uint8 public constant DEFAULT_BOND_MODULE_ROLE = 2;
-    uint8 public constant ADMIN_ROLE = 255;
-
-    address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
-    address public constant STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
-    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-
     function deploy(
-        IDeploy.DeployParameters memory deployParams
-    ) external returns (IDeploy.DeploySetup memory s) {
+        DeployLibrary.DeployParameters memory deployParams
+    ) external returns (DeployLibrary.DeploySetup memory s) {
         vm.startPrank(deployParams.deployer);
         {
             s.initialImplementation = new Vault(
@@ -80,7 +69,7 @@ contract DeployScript is Test {
         s.vault.addTvlModule(address(s.erc20TvlModule));
         s.vault.addTvlModule(address(s.defaultBondTvlModule));
 
-        s.vault.addToken(WSTETH);
+        s.vault.addToken(deployParams.wsteth);
         // oracles setup
         {
             s.ratiosOracle = new ManagedRatiosOracle();
@@ -96,11 +85,13 @@ contract DeployScript is Test {
             s.priceOracle = new ChainlinkOracle();
 
             s.wethAggregatorV3 = new ConstantAggregatorV3(1 ether);
-            s.wstethAggregatorV3 = new WStethRatiosAggregatorV3(WSTETH);
+            s.wstethAggregatorV3 = new WStethRatiosAggregatorV3(
+                deployParams.wsteth
+            );
 
             address[] memory tokens = new address[](2);
-            tokens[0] = WETH;
-            tokens[1] = WSTETH;
+            tokens[0] = deployParams.weth;
+            tokens[1] = deployParams.wsteth;
             IChainlinkOracle.AggregatorData[]
                 memory data = new IChainlinkOracle.AggregatorData[](2);
             data[0].aggregatorV3 = address(s.wethAggregatorV3);
@@ -108,7 +99,7 @@ contract DeployScript is Test {
             data[1].aggregatorV3 = address(s.wstethAggregatorV3);
             data[1].maxAge = 0;
 
-            s.priceOracle.setBaseToken(address(s.vault), WETH);
+            s.priceOracle.setBaseToken(address(s.vault), deployParams.weth);
             s.priceOracle.setChainlinkOracles(address(s.vault), tokens, data);
 
             s.configurator.stagePriceOracle(address(s.priceOracle));
@@ -160,37 +151,40 @@ contract DeployScript is Test {
             IDefaultBondStrategy.Data[]
                 memory data = new IDefaultBondStrategy.Data[](1);
             data[0].bond = deployParams.wstethDefaultBond;
-            data[0].ratioX96 = Q96;
-            s.defaultBondStrategy.setData(WSTETH, data);
+            data[0].ratioX96 = DeployLibrary.Q96;
+            s.defaultBondStrategy.setData(deployParams.wsteth, data);
         }
 
         // validators setup
         s.validator = new ManagedValidator(deployParams.deployer);
         s.validator.grantRole(
             deployParams.vaultAdmin,
-            ADMIN_ROLE // ADMIN_ROLE_MASK = (1 << 255)
+            DeployLibrary.ADMIN_ROLE // ADMIN_ROLE_MASK = (1 << 255)
         );
         {
             s.validator.grantRole(
                 address(s.defaultBondStrategy),
-                DEFAULT_BOND_STRATEGY_ROLE
+                DeployLibrary.DEFAULT_BOND_STRATEGY_ROLE
             );
             s.validator.grantContractRole(
                 address(s.vault),
-                DEFAULT_BOND_STRATEGY_ROLE
+                DeployLibrary.DEFAULT_BOND_STRATEGY_ROLE
             );
 
-            s.validator.grantRole(address(s.vault), DEFAULT_BOND_MODULE_ROLE);
+            s.validator.grantRole(
+                address(s.vault),
+                DeployLibrary.DEFAULT_BOND_MODULE_ROLE
+            );
             s.validator.grantContractRole(
                 address(s.defaultBondModule),
-                DEFAULT_BOND_MODULE_ROLE
+                DeployLibrary.DEFAULT_BOND_MODULE_ROLE
             );
 
-            s.validator.grantPublicRole(DEPOSITOR_ROLE);
+            s.validator.grantPublicRole(DeployLibrary.DEPOSITOR_ROLE);
             s.validator.grantContractSignatureRole(
                 address(s.vault),
                 IVault.deposit.selector,
-                DEPOSITOR_ROLE
+                DeployLibrary.DEPOSITOR_ROLE
             );
 
             s.configurator.stageValidator(address(s.validator));
@@ -199,7 +193,12 @@ contract DeployScript is Test {
 
         s.vault.grantRole(s.vault.OPERATOR(), address(s.defaultBondStrategy));
 
-        s.depositWrapper = new DepositWrapper(s.vault, WETH, STETH, WSTETH);
+        s.depositWrapper = new DepositWrapper(
+            s.vault,
+            deployParams.weth,
+            deployParams.steth,
+            deployParams.wsteth
+        );
 
         // setting all configurator
         {
@@ -221,7 +220,7 @@ contract DeployScript is Test {
             s.defaultBondStrategy.OPERATOR(),
             deployParams.deployer
         );
-        s.validator.revokeRole(deployParams.deployer, ADMIN_ROLE);
+        s.validator.revokeRole(deployParams.deployer, DeployLibrary.ADMIN_ROLE);
 
         vm.stopPrank();
     }
