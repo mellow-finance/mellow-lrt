@@ -20,7 +20,7 @@ contract DeployScript is Test {
     ) external returns (IDeploy.DeploySetup memory s) {
         vm.startPrank(deployParams.deployer);
         {
-            Vault singleton = new Vault(
+            s.initialImplementation = new Vault(
                 deployParams.lpTokenName,
                 deployParams.lpTokenSymbol,
                 deployParams.deployer
@@ -32,7 +32,7 @@ contract DeployScript is Test {
             );
 
             TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-                address(singleton),
+                address(s.initialImplementation),
                 address(deployParams.deployer),
                 new bytes(0)
             );
@@ -62,6 +62,10 @@ contract DeployScript is Test {
         }
 
         s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
+        s.vault.grantRole(
+            s.vault.ADMIN_DELEGATE_ROLE(),
+            address(s.restrictingKeeper)
+        );
         s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.vaultAdmin);
         s.vault.grantRole(
             s.vault.ADMIN_DELEGATE_ROLE(),
@@ -196,6 +200,11 @@ contract DeployScript is Test {
         s.vault.grantRole(s.vault.OPERATOR(), address(s.defaultBondStrategy));
 
         s.depositWrapper = new DepositWrapper(s.vault, WETH, STETH, WSTETH);
+
+        // setting all configurator
+        {
+
+        }
 
         s.vault.renounceRole(s.vault.ADMIN_ROLE(), deployParams.deployer);
         s.vault.renounceRole(

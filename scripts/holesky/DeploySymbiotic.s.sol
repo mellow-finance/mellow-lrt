@@ -60,7 +60,7 @@ contract Deploy is Script {
         // creating default bond factory and default bond contract for wsteth
         {
             // symbiotic contracts
-            DefaultCollateralFactory defaultCollateralFactory = DefaultCollateralFactory(
+            IDefaultCollateralFactory defaultCollateralFactory = IDefaultCollateralFactory(
                     Constants.DEFAULT_COLLATERAL_FACTORY
                 );
             wstethDefaultBond = defaultCollateralFactory.create(
@@ -238,7 +238,6 @@ contract Deploy is Script {
             uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
         );
         deployVault();
-        deployCollector();
         vm.stopBroadcast();
     }
 }

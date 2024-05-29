@@ -7,7 +7,5 @@ contract AcceptanceTest {
     function validateParameters(
         IDeploy.DeployParameters memory deployParams,
         IDeploy.DeploySetup memory setup
-    ) external view {
-        // TODO: add full validation
-    }
+    ) external view {}
 }

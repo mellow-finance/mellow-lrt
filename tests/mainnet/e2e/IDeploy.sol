@@ -20,6 +20,7 @@ interface IDeploy {
 
     struct DeploySetup {
         Vault vault;
+        Vault initialImplementation;
         IVaultConfigurator configurator;
         ERC20TvlModule erc20TvlModule;
         DefaultBondTvlModule defaultBondTvlModule;
@@ -31,6 +32,7 @@ interface IDeploy {
         DepositWrapper depositWrapper;
         DefaultProxyImplementation defaultProxyImplementation;
         AdminProxy adminProxy;
+        RestrictingKeeper restrictingKeeper;
         IAggregatorV3 wethAggregatorV3;
         IAggregatorV3 wstethAggregatorV3;
     }
