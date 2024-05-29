@@ -1205,20 +1205,14 @@ contract VaultTestUnit is VaultTestCommon {
         vm.startPrank(depositor);
 
         deal(Constants.WSTETH, depositor, 10 ether);
-        IERC20(Constants.WSTETH).safeIncreaseAllowance(
-            address(vault),
-            9 ether
-        );
+        IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), 9 ether);
 
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
 
         vm.expectRevert("ERC20: transfer amount exceeds allowance");
         vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
-        assertEq(
-            IERC20(Constants.WSTETH).balanceOf(address(vault)),
-            10 gwei
-        );
+        assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 10 gwei);
         assertEq(IERC20(Constants.RETH).balanceOf(address(vault)), 0);
         assertEq(IERC20(Constants.WETH).balanceOf(address(vault)), 0);
         assertEq(IERC20(Constants.WSTETH).balanceOf(depositor), 10 ether);
@@ -1236,7 +1230,9 @@ contract VaultTestUnit is VaultTestCommon {
         _initialDeposit(vault);
 
         address depositor = address(bytes20(keccak256("depositor")));
-        address depositorAntother = address(bytes20(keccak256("another depositor")));
+        address depositorAntother = address(
+            bytes20(keccak256("another depositor"))
+        );
 
         vm.startPrank(depositor);
 
@@ -2047,7 +2043,9 @@ contract VaultTestUnit is VaultTestCommon {
         _initialDeposit(vault);
 
         address depositor = address(bytes20(keccak256("depositor")));
-        address depositorAntother = address(bytes20(keccak256("another depositor")));
+        address depositorAntother = address(
+            bytes20(keccak256("another depositor"))
+        );
 
         vm.startPrank(depositor);
         deal(Constants.WSTETH, depositor, 10 ether);
@@ -2092,7 +2090,10 @@ contract VaultTestUnit is VaultTestCommon {
         }
         assertEq(IERC20(Constants.RETH).balanceOf(depositorAntother), 0);
         assertEq(IERC20(Constants.WETH).balanceOf(depositorAntother), 0);
-        assertEq(IERC20(Constants.WSTETH).balanceOf(depositorAntother), 10 ether);
+        assertEq(
+            IERC20(Constants.WSTETH).balanceOf(depositorAntother),
+            10 ether
+        );
         assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 10 gwei);
     }
 
@@ -2369,7 +2370,9 @@ contract VaultTestUnit is VaultTestCommon {
         _initialDeposit(vault);
 
         address depositor = address(bytes20(keccak256("depositor")));
-        address depositorAntother = address(bytes20(keccak256("another depositor")));
+        address depositorAntother = address(
+            bytes20(keccak256("another depositor"))
+        );
         vm.startPrank(depositor);
         deal(Constants.WSTETH, depositor, 10 ether);
         IERC20(Constants.WSTETH).safeIncreaseAllowance(

@@ -5,12 +5,12 @@ import "../Constants.sol";
 import "../unit/VaultTestCommon.t.sol";
 
 /*
-*/
-contract VaultTestE2E is VaultTestCommon  {
+ */
+contract VaultTestE2E is VaultTestCommon {
     using SafeERC20 for IERC20;
 
     /// @dev test full cycle deposit then withdraw in regular way
-    /// @notice test checks balances at all stages and 
+    /// @notice test checks balances at all stages and
     /// checks revert when depositor trying to withdraw having zero remaining balance
     function testDepositAndWithdrawRegular() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
@@ -130,7 +130,7 @@ contract VaultTestE2E is VaultTestCommon  {
             IERC20(Constants.WSTETH).balanceOf(address(vault)),
             10 ether + 10 gwei
         );
-        
+
         assertEq(IERC20(Constants.RETH).balanceOf(address(vault)), 0);
         assertEq(IERC20(Constants.WETH).balanceOf(address(vault)), 0);
         assertEq(vault.balanceOf(address(vault)), 10 gwei);
