@@ -19,7 +19,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     uint256 public constant D9 = 1e9;
 
     /// @inheritdoc IVault
-    IVaultConfigurator public immutable configurator;
+    IVaultConfigurator public configurator;
 
     mapping(address => WithdrawalRequest) private _withdrawalRequest;
     EnumerableSet.AddressSet private _pendingWithdrawers;
