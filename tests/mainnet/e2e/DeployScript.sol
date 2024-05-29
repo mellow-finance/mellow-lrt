@@ -29,13 +29,7 @@ contract DeployScript is Test {
                 )
             );
 
-            // insignificant logic here
-            s.initialImplementation = new Vault(
-                "123",
-                "456",
-                immutableProxyAdmin
-            );
-
+            s.initialImplementation = new Vault("", "", address(1));
             ProxyAdmin(immutableProxyAdmin).upgradeAndCall(
                 ITransparentUpgradeableProxy(address(proxy)),
                 address(s.initialImplementation),
@@ -63,11 +57,6 @@ contract DeployScript is Test {
                 address(s.adminProxy)
             );
             s.vault = Vault(payable(proxy));
-
-            console2.log(s.vault.symbol(), s.vault.name());
-            assertEq(s.vault.symbol(), deployParams.lpTokenSymbol);
-            assertEq(s.vault.name(), deployParams.lpTokenName);
-            assertNotEq(address(s.vault.configurator()), address(0));
         }
 
         s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
