@@ -19,6 +19,7 @@ library ValidationLibrary {
         uint256 DEFAULT_BOND_STRATEGY_ROLE_MASK = 1 << 1;
         uint256 DEFAULT_BOND_MODULE_ROLE_MASK = 1 << 2;
 
+        // Vault permissions
         {
             Vault vault = setup.vault;
             require(vault.getRoleMemberCount(ADMIN_ROLE) == 1);
@@ -49,7 +50,8 @@ library ValidationLibrary {
             require(strategy.hasRole(ADMIN_ROLE, deployParams.admin));
             require(strategy.hasRole(ADMIN_ROLE, deployParams.curator));
             require(strategy.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0);
-            require(strategy.getRoleMemberCount(OPERATOR_ROLE) == 0);
+            require(strategy.getRoleMemberCount(OPERATOR_ROLE) == 1);
+            require(strategy.hasRole(OPERATOR_ROLE, deployParams.operator));
         }
 
         // Managed validator permissions
@@ -94,7 +96,7 @@ library ValidationLibrary {
             );
         }
 
-        // vault balances
+        // Vault balances
         {
             require(setup.vault.balanceOf(deployParams.deployer) == 0);
             require(
@@ -122,6 +124,59 @@ library ValidationLibrary {
                 deployParams.initialDepositETH - 2 wei <= expectedStethAmount &&
                     expectedStethAmount <=
                     deployParams.initialDepositETH - 2 wei
+            );
+        }
+
+        // Vault values
+        {
+            require(
+                keccak256(bytes(setup.vault.name())) ==
+                    keccak256(bytes(deployParams.lpTokenName))
+            );
+            require(
+                keccak256(bytes(setup.vault.symbol())) ==
+                    keccak256(bytes(deployParams.lpTokenSymbol))
+            );
+            require(setup.vault.decimals() == 18);
+        }
+
+        // VaultConfigurator values
+        {
+            require(setup.configurator.baseDelay() == 30 days);
+            require(setup.configurator.depositCallbackDelay() == 1 days);
+            require(setup.configurator.withdrawalCallbackDelay() == 1 days);
+            require(setup.configurator.withdrawalFeeD9Delay() == 30 days);
+            require(setup.configurator.maximalTotalSupplyDelay() == 1 days);
+            require(setup.configurator.isDepositLockedDelay() == 1 hours);
+            require(setup.configurator.areTransfersLockedDelay() == 365 days);
+            require(setup.configurator.delegateModuleApprovalDelay() == 1 days);
+            require(setup.configurator.ratiosOracleDelay() == 30 days);
+            require(setup.configurator.priceOracleDelay() == 30 days);
+            require(setup.configurator.validatorDelay() == 30 days);
+            require(setup.configurator.emergencyWithdrawalDelay() == 90 days);
+            require(
+                setup.configurator.depositCallback() ==
+                    address(setup.defaultBondStrategy)
+            );
+            require(setup.configurator.withdrawalCallback() == address(0));
+            require(setup.configurator.withdrawalFeeD9() == 0);
+            require(
+                setup.configurator.maximalTotalSupply() ==
+                    deployParams.maximalTotalSupply
+            );
+            require(setup.configurator.isDepositLocked() == false);
+            require(setup.configurator.areTransfersLocked() == false);
+            require(
+                setup.configurator.ratiosOracle() == address(setup.ratiosOracle)
+            );
+            require(
+                setup.configurator.priceOracle() == address(setup.priceOracle)
+            );
+            require(setup.configurator.validator() == address(setup.validator));
+            require(
+                setup.configurator.isDelegateModuleApproved(
+                    address(setup.defaultBondModule)
+                ) == true
             );
         }
     }

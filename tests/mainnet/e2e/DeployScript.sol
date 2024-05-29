@@ -150,6 +150,14 @@ contract DeployScript is Test {
             deployParams.admin
         );
         s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
+            deployParams.deployer
+        );
+        s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.OPERATOR(),
+            deployParams.operator
+        );
+        s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.ADMIN_ROLE(),
             deployParams.curator
         );
@@ -304,6 +312,10 @@ contract DeployScript is Test {
 
         s.defaultBondStrategy.renounceRole(
             s.defaultBondStrategy.ADMIN_ROLE(),
+            deployParams.deployer
+        );
+        s.defaultBondStrategy.renounceRole(
+            s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
             deployParams.deployer
         );
         s.defaultBondStrategy.renounceRole(
