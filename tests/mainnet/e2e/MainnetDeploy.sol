@@ -202,7 +202,38 @@ contract DeployScript is Test {
 
         // setting all configurator
         {
+            s.configurator.stageDepositCallbackDelay(1 days);
+            s.configurator.commitDepositCallbackDelay();
 
+            s.configurator.stageWithdrawalCallbackDelay(1 days);
+            s.configurator.commitWithdrawalCallbackDelay();
+
+            s.configurator.stageWithdrawalFeeD9Delay(30 days);
+            s.configurator.commitWithdrawalFeeD9Delay();
+
+            s.configurator.stageMaximalTotalSupplyDelay(1 days);
+            s.configurator.commitMaximalTotalSupplyDelay();
+
+            s.configurator.stageDepositsLockedDelay(1 hours);
+            s.configurator.commitDepositsLockedDelay();
+
+            s.configurator.stageTransfersLockedDelay(90 days);
+            s.configurator.commitTransfersLockedDelay();
+
+            s.configurator.stageDelegateModuleApprovalDelay(1 days);
+            s.configurator.commitDelegateModuleApprovalDelay();
+
+            s.configurator.stageRatiosOracleDelay(30 days);
+            s.configurator.commitRatiosOracleDelay();
+
+            s.configurator.stagePriceOracleDelay(30 days);
+            s.configurator.commitPriceOracleDelay();
+
+            s.configurator.stageValidatorDelay(30 days);
+            s.configurator.commitValidatorDelay();
+
+            s.configurator.stageEmergencyWithdrawalDelay(90 days);
+            s.configurator.commitEmergencyWithdrawalDelay();
         }
 
         s.vault.renounceRole(s.vault.ADMIN_ROLE(), deployParams.deployer);
