@@ -9,9 +9,6 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import "@symbiotic/defaultCollateral/DefaultCollateral.sol";
-import "@symbiotic/defaultCollateral/DefaultCollateralFactory.sol";
-
 import "../../src/Vault.sol";
 import "../../src/VaultConfigurator.sol";
 import "../../src/validators/AllowAllValidator.sol";
@@ -44,6 +41,8 @@ import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 
 import "../../src/security/AdminProxy.sol";
 import "../../src/security/DefaultProxyImplementation.sol";
+
+import "../../src/utils/RestrictingKeeper.sol";
 
 import "./mocks/VaultMock.sol";
 import "./mocks/DefaultBondMock.sol";

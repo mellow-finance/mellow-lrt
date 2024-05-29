@@ -9,9 +9,6 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import "@symbiotic/defaultCollateral/DefaultCollateral.sol";
-import "@symbiotic/defaultCollateral/DefaultCollateralFactory.sol";
-
 import "../../src/Vault.sol";
 import "../../src/VaultConfigurator.sol";
 import "../../src/validators/AllowAllValidator.sol";
@@ -44,6 +41,8 @@ import "../../src/oracles/WStethRatiosAggregatorV3.sol";
 import "../../src/oracles/ConstantAggregatorV3.sol";
 
 import "./Collector.sol";
+
+import "./interfaces/IDefaultCollateralFactory.sol";
 
 library Constants {
     address public constant VAULT_ADMIN =
