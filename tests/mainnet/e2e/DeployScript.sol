@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import "./DeployLibrary.sol";
 
 contract DeployScript is Test {
+    using SafeERC20 for IERC20;
+
     function deploy(
         DeployLibrary.DeployParameters memory deployParams
     ) internal returns (DeployLibrary.DeploySetup memory s) {
@@ -64,11 +66,8 @@ contract DeployScript is Test {
             s.vault.ADMIN_DELEGATE_ROLE(),
             address(s.restrictingKeeper)
         );
-        s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.vaultAdmin);
-        s.vault.grantRole(
-            s.vault.ADMIN_DELEGATE_ROLE(),
-            deployParams.vaultCurator
-        );
+        s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
+        s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.curator);
 
         s.configurator = s.vault.configurator();
 
@@ -147,8 +146,16 @@ contract DeployScript is Test {
         );
 
         s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
+            deployParams.deployer
+        );
+        s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.OPERATOR(),
+            deployParams.operator
+        );
+        s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.ADMIN_ROLE(),
-            deployParams.vaultAdmin
+            deployParams.curator
         );
 
         {
@@ -160,40 +167,44 @@ contract DeployScript is Test {
             IDefaultBondStrategy.Data[]
                 memory data = new IDefaultBondStrategy.Data[](1);
             data[0].bond = deployParams.wstethDefaultBond;
-            data[0].ratioX96 = DeployLibrary.Q96;
+            data[0].ratioX96 = DeployConstants.Q96;
             s.defaultBondStrategy.setData(deployParams.wsteth, data);
         }
 
         // validators setup
         s.validator = new ManagedValidator(deployParams.deployer);
         s.validator.grantRole(
-            deployParams.vaultAdmin,
-            DeployLibrary.ADMIN_ROLE // ADMIN_ROLE_MASK = (1 << 255)
+            deployParams.admin,
+            DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
+        );
+        s.validator.grantRole(
+            deployParams.curator,
+            DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
         );
         {
             s.validator.grantRole(
                 address(s.defaultBondStrategy),
-                DeployLibrary.DEFAULT_BOND_STRATEGY_ROLE
+                DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
             );
             s.validator.grantContractRole(
                 address(s.vault),
-                DeployLibrary.DEFAULT_BOND_STRATEGY_ROLE
+                DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
             );
 
             s.validator.grantRole(
                 address(s.vault),
-                DeployLibrary.DEFAULT_BOND_MODULE_ROLE
+                DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
             );
             s.validator.grantContractRole(
                 address(s.defaultBondModule),
-                DeployLibrary.DEFAULT_BOND_MODULE_ROLE
+                DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
             );
 
-            s.validator.grantPublicRole(DeployLibrary.DEPOSITOR_ROLE);
+            s.validator.grantPublicRole(DeployConstants.DEPOSITOR_ROLE_BIT);
             s.validator.grantContractSignatureRole(
                 address(s.vault),
                 IVault.deposit.selector,
-                DeployLibrary.DEPOSITOR_ROLE
+                DeployConstants.DEPOSITOR_ROLE_BIT
             );
 
             s.configurator.stageValidator(address(s.validator));
@@ -226,7 +237,7 @@ contract DeployScript is Test {
             s.configurator.stageDepositsLockedDelay(1 hours);
             s.configurator.commitDepositsLockedDelay();
 
-            s.configurator.stageTransfersLockedDelay(90 days);
+            s.configurator.stageTransfersLockedDelay(365 days);
             s.configurator.commitTransfersLockedDelay();
 
             s.configurator.stageDelegateModuleApprovalDelay(1 days);
@@ -243,6 +254,49 @@ contract DeployScript is Test {
 
             s.configurator.stageEmergencyWithdrawalDelay(90 days);
             s.configurator.commitEmergencyWithdrawalDelay();
+
+            s.configurator.stageBaseDelay(30 days);
+            s.configurator.commitBaseDelay();
+        }
+
+        // initial deposit
+        {
+            assertTrue(
+                deployParams.initialDepositETH > 0,
+                "Invalid deploy params. Initial deposit value is 0"
+            );
+            assertTrue(
+                deployParams.deployer.balance >= deployParams.initialDepositETH,
+                "Insufficient ETH amount for deposit"
+            );
+            // eth -> steth -> wsteth
+            ISteth(deployParams.steth).submit{
+                value: deployParams.initialDepositETH
+            }(address(0));
+            IERC20(deployParams.steth).safeIncreaseAllowance(
+                deployParams.wsteth,
+                deployParams.initialDepositETH
+            );
+            IWSteth(deployParams.wsteth).wrap(deployParams.initialDepositETH);
+            uint256 wstethAmount = IERC20(deployParams.wsteth).balanceOf(
+                deployParams.deployer
+            );
+            IERC20(deployParams.wsteth).safeIncreaseAllowance(
+                address(s.vault),
+                wstethAmount
+            );
+            assertTrue(wstethAmount > 0, "No wsteth received");
+            address[] memory tokens = new address[](1);
+            tokens[0] = deployParams.wsteth;
+            uint256[] memory amounts = new uint256[](1);
+            amounts[0] = wstethAmount;
+            s.vault.deposit(
+                address(s.vault),
+                amounts,
+                deployParams.initialDepositETH,
+                type(uint256).max
+            );
+            s.wstethAmountDeposited = wstethAmount;
         }
 
         s.vault.renounceRole(s.vault.ADMIN_ROLE(), deployParams.deployer);
@@ -257,10 +311,17 @@ contract DeployScript is Test {
             deployParams.deployer
         );
         s.defaultBondStrategy.renounceRole(
+            s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
+            deployParams.deployer
+        );
+        s.defaultBondStrategy.renounceRole(
             s.defaultBondStrategy.OPERATOR(),
             deployParams.deployer
         );
-        s.validator.revokeRole(deployParams.deployer, DeployLibrary.ADMIN_ROLE);
+        s.validator.revokeRole(
+            deployParams.deployer,
+            DeployConstants.ADMIN_ROLE_BIT
+        );
 
         vm.stopPrank();
     }
