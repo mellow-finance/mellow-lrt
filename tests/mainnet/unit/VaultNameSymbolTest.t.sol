@@ -23,7 +23,7 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
     function testCheckName() external {
         string memory lpTokenName = "0123456789012345678901234567890";
         string memory lpTokenSymbol = "symbol";
-        deal(Constants.MAINNET_DEPLOYER, 1 gwei);
+        deal(deployer, 1 gwei);
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: deployer,
@@ -51,7 +51,7 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
     function testCheckSymbol() external {
         string memory lpTokenName = "name";
         string memory lpTokenSymbol = "0123456789012345678901234567890";
-        deal(Constants.MAINNET_DEPLOYER, 1 gwei);
+        deal(deployer, 1 gwei);
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: deployer,

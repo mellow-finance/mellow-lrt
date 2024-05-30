@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import "./DeployLibrary.sol";
 
 library ValidationLibrary {
+    function test() external pure {}
+
     function validateParameters(
         DeployLibrary.DeployParameters memory deployParams,
         DeployLibrary.DeploySetup memory setup

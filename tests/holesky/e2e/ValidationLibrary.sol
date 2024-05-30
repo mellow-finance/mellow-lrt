@@ -4,27 +4,7 @@ pragma solidity 0.8.25;
 import "./DeployLibrary.sol";
 
 library ValidationLibrary {
-    function getOnchainEthToWStethPrice(
-        uint256 wethAmount
-    ) public view returns (uint256) {
-        (bool success, bytes memory response) = DeployConstants
-            .STETH
-            .staticcall(
-                abi.encodeWithSignature(
-                    "getSharesByPooledEth(uint256)",
-                    wethAmount
-                )
-            );
-        require(success);
-        uint256 stethAmount = abi.decode(response, (uint256));
-        // ???
-        if (true) return stethAmount;
-        (success, response) = DeployConstants.WSTETH.staticcall(
-            abi.encodeWithSignature("getStETHByWstETH(uint256)", wethAmount)
-        );
-        require(success);
-        return abi.decode(response, (uint256));
-    }
+    function test() external pure {}
 
     function validateParameters(
         DeployLibrary.DeployParameters memory deployParams,

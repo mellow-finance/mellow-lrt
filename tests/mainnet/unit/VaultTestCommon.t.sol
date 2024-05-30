@@ -6,6 +6,8 @@ import "../Constants.sol";
 contract VaultTestCommon is Test {
     using SafeERC20 for IERC20;
 
+    function test() external pure {}
+
     address public immutable admin =
         address(bytes20(keccak256("mellow-vault-admin")));
 

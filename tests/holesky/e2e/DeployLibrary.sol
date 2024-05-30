@@ -43,4 +43,6 @@ library DeployLibrary {
         IAggregatorV3 wstethAggregatorV3;
         uint256 wstethAmountDeposited;
     }
+
+    function test() external pure {}
 }

@@ -6,6 +6,8 @@ import "./DeployLibrary.sol";
 contract DeployScript is Test {
     using SafeERC20 for IERC20;
 
+    function test() external pure {}
+
     function deploy(
         DeployLibrary.DeployParameters memory deployParams
     ) internal returns (DeployLibrary.DeploySetup memory s) {
