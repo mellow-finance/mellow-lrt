@@ -23,6 +23,7 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
     function testCheckName() external {
         string memory lpTokenName = "0123456789012345678901234567890";
         string memory lpTokenSymbol = "symbol";
+        deal(deployer, 1 gwei);
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: deployer,
@@ -39,7 +40,7 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
                 maximalTotalSupply: 10_000 ether,
                 lpTokenName: lpTokenName, // 31 symbol
                 lpTokenSymbol: lpTokenSymbol,
-                initialDepositETH: 0
+                initialDepositETH: 1 gwei
             });
 
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);
@@ -50,6 +51,7 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
     function testCheckSymbol() external {
         string memory lpTokenName = "name";
         string memory lpTokenSymbol = "0123456789012345678901234567890";
+        deal(deployer, 1 gwei);
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: deployer,
@@ -66,7 +68,7 @@ contract VaultNameAndSymbloTestUnit is DeployScript {
                 maximalTotalSupply: 10_000 ether,
                 lpTokenName: lpTokenName, // 31 symbol
                 lpTokenSymbol: lpTokenSymbol,
-                initialDepositETH: 0
+                initialDepositETH: 1 gwei
             });
 
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);

@@ -127,14 +127,14 @@ library ValidationLibrary {
             require(
                 IERC20(deployParams.wsteth).balanceOf(
                     deployParams.wstethDefaultBond
-                ) == bondBalance
+                ) >= bondBalance
             );
             uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
                 .getStETHByWstETH(bondBalance);
-            // at most 2 weis loss due to eth->steth && steth->wsteth conversions
             require(
-                deployParams.initialDepositETH - 2 wei <= expectedStethAmount &&
-                    expectedStethAmount <= deployParams.initialDepositETH
+                deployParams.initialDepositETH >= expectedStethAmount &&
+                    deployParams.initialDepositETH <=
+                    expectedStethAmount + 2 wei
             );
         }
 

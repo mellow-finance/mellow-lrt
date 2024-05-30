@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../Constants.sol";
+import "../Imports.sol";
 import "./DeployConstants.sol";
 
 library DeployLibrary {

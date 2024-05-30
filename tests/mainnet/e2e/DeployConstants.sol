@@ -13,6 +13,9 @@ library DeployConstants {
     uint8 public constant DEFAULT_BOND_MODULE_ROLE_BIT = 2;
     uint8 public constant ADMIN_ROLE_BIT = 255;
 
+    uint256 public constant INITIAL_DEPOSIT_VALUE = 10 ** 10;
+    uint256 public constant MAXIMAL_TOTAL_SUPPLY = 10_000 * 10 ** 18;
+
     // ---------- Ethereum Mainnet ----------
 
     // Steakhouse:
@@ -24,8 +27,9 @@ library DeployConstants {
         0xD8996bb6e74b82Ca4DA473A7e4DD4A1974AFE3be;
     address public constant STEAKHOUSE_CURATOR_MANAGER =
         0xD8996bb6e74b82Ca4DA473A7e4DD4A1974AFE3be;
-    uint256 public constant STEAKHOUSE_INITIAL_DEPOSIT_VALUE = 10 ** 10;
-    uint256 public constant STEAKHOUSE_MAXIMAL_TOTAL_SUPPLY = 10_000 * 10 ** 18;
+    string public constant STEAKHOUSE_VAULT_NAME =
+        "Steakhouse Financial Mellow LRT";
+    string public constant STEAKHOUSE_VAULT_SYMBOL = "StMLRT";
 
     // Re7:
     address public constant RE7_LIDO_MELLOW_MULTISIG =
@@ -36,8 +40,8 @@ library DeployConstants {
         0xf364d670F152b8764C8b7ab0d8d1531803FF3D83;
     address public constant RE7_CURATOR_MANAGER =
         0xf364d670F152b8764C8b7ab0d8d1531803FF3D83;
-    uint256 public constant RE7_INITIAL_DEPOSIT_VALUE = 10 ** 10;
-    uint256 public constant RE7_MAXIMAL_TOTAL_SUPPLY = 10_000 * 10 ** 18;
+    string public constant RE7_VAULT_NAME = "Re7 Labs Mellow LRT";
+    string public constant RE7_VAULT_SYMBOL = "Re7MLRT";
 
     // P2P:
     address public constant P2P_LIDO_MELLOW_MULTISIG =
@@ -48,8 +52,8 @@ library DeployConstants {
         0xAbCD790dAFdCD934bCf4C065C9FCe3b82429acD3;
     address public constant P2P_CURATOR_MANAGER =
         0xAbCD790dAFdCD934bCf4C065C9FCe3b82429acD3;
-    uint256 public constant P2P_INITIAL_DEPOSIT_VALUE = 10 ** 10;
-    uint256 public constant P2P_MAXIMAL_TOTAL_SUPPLY = 10_000 * 10 ** 18;
+    string public constant P2P_VAULT_NAME = "P2P.org Mellow LRT";
+    string public constant P2P_VAULT_SYMBOL = "P2PMLRT";
 
     // Common Mainnet Constants:
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
@@ -68,6 +72,4 @@ library DeployConstants {
         0x3998Ae90aA1C6ca0f073e60D38502FA5029008a2;
     address public constant HOLESKY_CURATOR_MANAGER =
         0x3998Ae90aA1C6ca0f073e60D38502FA5029008a2;
-    uint256 public constant HOLESKY_INITIAL_DEPOSIT_VALUE = 10 ** 10;
-    uint256 public constant HOLESKY_MAXIMAL_TOTAL_SUPPLY = 10_000 * 10 ** 18;
 }
