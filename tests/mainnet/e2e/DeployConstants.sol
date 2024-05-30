@@ -27,6 +27,9 @@ library DeployConstants {
         0xD8996bb6e74b82Ca4DA473A7e4DD4A1974AFE3be;
     address public constant STEAKHOUSE_CURATOR_MANAGER =
         0xD8996bb6e74b82Ca4DA473A7e4DD4A1974AFE3be;
+    string public constant STEAKHOUSE_VAULT_NAME =
+        "Steakhouse Financial Mellow LRT";
+    string public constant STEAKHOUSE_VAULT_SYMBOL = "StMLRT";
 
     // Re7:
     address public constant RE7_LIDO_MELLOW_MULTISIG =
@@ -37,6 +40,8 @@ library DeployConstants {
         0xf364d670F152b8764C8b7ab0d8d1531803FF3D83;
     address public constant RE7_CURATOR_MANAGER =
         0xf364d670F152b8764C8b7ab0d8d1531803FF3D83;
+    string public constant RE7_VAULT_NAME = "Re7 Labs Mellow LRT";
+    string public constant RE7_VAULT_SYMBOL = "Re7MLRT";
 
     // P2P:
     address public constant P2P_LIDO_MELLOW_MULTISIG =
@@ -47,6 +52,8 @@ library DeployConstants {
         0xAbCD790dAFdCD934bCf4C065C9FCe3b82429acD3;
     address public constant P2P_CURATOR_MANAGER =
         0xAbCD790dAFdCD934bCf4C065C9FCe3b82429acD3;
+    string public constant P2P_VAULT_NAME = "P2P.org Mellow LRT";
+    string public constant P2P_VAULT_SYMBOL = "P2PMLRT";
 
     // Common Mainnet Constants:
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;

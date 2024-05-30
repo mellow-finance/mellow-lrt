@@ -277,15 +277,18 @@ contract DeployScript is Test {
                 deployParams.wsteth,
                 deployParams.initialDepositETH
             );
+            uint256 wstethAmountBefore = IERC20(deployParams.wsteth).balanceOf(
+                deployParams.deployer
+            );
             IWSteth(deployParams.wsteth).wrap(deployParams.initialDepositETH);
             uint256 wstethAmount = IERC20(deployParams.wsteth).balanceOf(
                 deployParams.deployer
-            );
+            ) - wstethAmountBefore;
             IERC20(deployParams.wsteth).safeIncreaseAllowance(
                 address(s.vault),
                 wstethAmount
             );
-            assertTrue(wstethAmount > 0, "No wsteth received");
+            assertTrue(wstethAmount > 0);
             address[] memory tokens = new address[](1);
             tokens[0] = deployParams.wsteth;
             uint256[] memory amounts = new uint256[](1);
@@ -327,19 +330,14 @@ contract DeployScript is Test {
     }
 
     function validateChainId() internal view {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
-        if (chainId != 1) {
-            revert(
-                string(
-                    abi.encodePacked(
-                        "Wrong chain id. Expected chain id: 1, actual: %d",
-                        Strings.toString(chainId)
-                    )
+        if (block.chainid == 17000) return;
+        revert(
+            string(
+                abi.encodePacked(
+                    "Wrong chain id. Expected chain id: 17000, actual: ",
+                    Strings.toString(block.chainid)
                 )
-            );
-        }
+            )
+        );
     }
 }

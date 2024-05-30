@@ -11,9 +11,10 @@ contract AcceptanceTest is DeployScript {
         address(new DefaultBondMock(DeployConstants.WSTETH));
 
     function testDeployWithValidationSteakhouseFinancial() external {
-        string memory lpTokenName = "Steakhouse Financial Mellow LRT";
-        string memory lpTokenSymbol = "StMLRT";
-        deal(DeployConstants.MAINNET_DEPLOYER, 10 gwei);
+        deal(
+            DeployConstants.MAINNET_DEPLOYER,
+            DeployConstants.INITIAL_DEPOSIT_VALUE
+        );
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: DeployConstants.MAINNET_DEPLOYER,
@@ -28,8 +29,8 @@ contract AcceptanceTest is DeployScript {
                 steth: DeployConstants.STETH,
                 weth: DeployConstants.WETH,
                 maximalTotalSupply: DeployConstants.MAXIMAL_TOTAL_SUPPLY,
-                lpTokenName: lpTokenName,
-                lpTokenSymbol: lpTokenSymbol,
+                lpTokenName: DeployConstants.STEAKHOUSE_VAULT_NAME,
+                lpTokenSymbol: DeployConstants.STEAKHOUSE_VAULT_SYMBOL,
                 initialDepositETH: DeployConstants.INITIAL_DEPOSIT_VALUE
             });
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);
@@ -37,9 +38,10 @@ contract AcceptanceTest is DeployScript {
     }
 
     function testDeployWithValidationRe7Labs() external {
-        string memory lpTokenName = "Re7 Labs Mellow LRT";
-        string memory lpTokenSymbol = "Re7MLRT";
-        deal(DeployConstants.MAINNET_DEPLOYER, 10 gwei);
+        deal(
+            DeployConstants.MAINNET_DEPLOYER,
+            DeployConstants.INITIAL_DEPOSIT_VALUE
+        );
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: DeployConstants.MAINNET_DEPLOYER,
@@ -54,8 +56,8 @@ contract AcceptanceTest is DeployScript {
                 steth: DeployConstants.STETH,
                 weth: DeployConstants.WETH,
                 maximalTotalSupply: DeployConstants.MAXIMAL_TOTAL_SUPPLY,
-                lpTokenName: lpTokenName,
-                lpTokenSymbol: lpTokenSymbol,
+                lpTokenName: DeployConstants.RE7_VAULT_NAME,
+                lpTokenSymbol: DeployConstants.RE7_VAULT_SYMBOL,
                 initialDepositETH: DeployConstants.INITIAL_DEPOSIT_VALUE
             });
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);
@@ -63,9 +65,10 @@ contract AcceptanceTest is DeployScript {
     }
 
     function testDeployWithValidationP2P() external {
-        string memory lpTokenName = "P2P.org Mellow LRT";
-        string memory lpTokenSymbol = "P2PMLRT";
-        deal(DeployConstants.MAINNET_DEPLOYER, 10 gwei);
+        deal(
+            DeployConstants.MAINNET_DEPLOYER,
+            DeployConstants.INITIAL_DEPOSIT_VALUE
+        );
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: DeployConstants.MAINNET_DEPLOYER,
@@ -80,8 +83,8 @@ contract AcceptanceTest is DeployScript {
                 steth: DeployConstants.STETH,
                 weth: DeployConstants.WETH,
                 maximalTotalSupply: DeployConstants.MAXIMAL_TOTAL_SUPPLY,
-                lpTokenName: lpTokenName,
-                lpTokenSymbol: lpTokenSymbol,
+                lpTokenName: DeployConstants.P2P_VAULT_NAME,
+                lpTokenSymbol: DeployConstants.P2P_VAULT_SYMBOL,
                 initialDepositETH: DeployConstants.INITIAL_DEPOSIT_VALUE
             });
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);
