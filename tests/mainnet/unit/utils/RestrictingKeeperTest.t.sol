@@ -17,7 +17,6 @@ contract RestrictingKeeperTestUnit is Test, DeployScript {
         0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public immutable weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public immutable steth = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
-    address public immutable vaultAdmin = vm.createWallet("vaultAdmin").addr;
     address public immutable vaultCurator =
         vm.createWallet("vaultCurator").addr;
     address public immutable wstethDefaultBond =
@@ -66,32 +65,31 @@ contract RestrictingKeeperTestUnit is Test, DeployScript {
     }
 
     function testProcessConfiguratorsSuccess() external {
-        return;
+        RestrictingKeeper keeper = new RestrictingKeeper(admin);
+
         deal(deployer, 1 gwei);
         DeployLibrary.DeployParameters memory deployParams = DeployLibrary
             .DeployParameters({
                 deployer: deployer,
-                admin: vaultAdmin,
+                admin: address(keeper),
                 curator: vaultCurator,
                 operator: vaultCurator,
                 proposer: proposer,
                 acceptor: acceptor,
                 emergencyOperator: emergencyOperator,
-                wstethDefaultBond: wstethDefaultBond, // deploy
+                wstethDefaultBond: wstethDefaultBond,
                 wsteth: wsteth,
                 steth: steth,
                 weth: weth,
                 maximalTotalSupply: 10_000 ether,
-                lpTokenName: "name", // 31 symbol
+                lpTokenName: "name",
                 lpTokenSymbol: "symbol",
                 initialDepositETH: 1 gwei
             });
 
         DeployLibrary.DeploySetup memory setup = deploy(deployParams);
 
-        RestrictingKeeper keeper = new RestrictingKeeper(admin);
-
-        VaultConfigurator[] memory configurators = new VaultConfigurator[](2);
+        VaultConfigurator[] memory configurators = new VaultConfigurator[](1);
 
         VaultConfigurator configurator = VaultConfigurator(
             address(setup.configurator)
@@ -99,6 +97,7 @@ contract RestrictingKeeperTestUnit is Test, DeployScript {
         configurators[0] = configurator;
 
         vm.startPrank(admin);
+
         keeper.processConfigurators(configurators);
 
         vm.stopPrank();
