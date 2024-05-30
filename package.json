@@ -20,6 +20,7 @@
     "size": "forge build --sizes --force",
     "deploy:holesky": "forge script --use 0.8.25 scripts/holesky/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
     "deploy:holesky:symbiotic": "forge script --use 0.8.25 scripts/holesky/DeploySymbiotic.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
+    "deploy:mainnet:steakhouse": "forge script --use 0.8.25 scripts/mainnet/MainnetDeploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast -vv",
     "compile": "forge build",
     "audit_scope": "tree -f -i -I '*interfaces*' -I '*libraries*' | grep '^./src.*sol' | xargs ls -d 2>/dev/null | xargs wc -l > audit_scope.txt && cat audit_scope.txt",
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir libraries --exclude-dir interfaces --by-file --format wide > scc-report.txt",
