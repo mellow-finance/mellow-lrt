@@ -16,6 +16,7 @@ contract DefaultAccessControl is
     /// @param admin Admin of the contract
     constructor(address admin) {
         if (admin == address(0)) revert AddressZero();
+
         _grantRole(OPERATOR, admin);
         _grantRole(ADMIN_ROLE, admin);
 
