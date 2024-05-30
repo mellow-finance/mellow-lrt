@@ -4,8 +4,27 @@ pragma solidity 0.8.25;
 import "../Constants.sol";
 import "../unit/VaultTestCommon.t.sol";
 
+contract VaultTest is Vault {
+    constructor(
+        string memory name,
+        string memory symbol,
+        address admin
+    ) Vault(name, symbol, admin) {}
+
+    function update(address from, address to, uint256 value) public {
+        _update(from, to, value);
+    }
+
+    function mint(address account, uint256 value) public {
+        _mint(account, value);
+    }
+}
+
 contract VaultTestUnit is VaultTestCommon {
     using SafeERC20 for IERC20;
+
+    address user1 = address(bytes20(keccak256("user1")));
+    address user2 = address(bytes20(keccak256("user2")));
 
     function testConstructor() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
@@ -2680,6 +2699,148 @@ contract VaultTestUnit is VaultTestCommon {
         assertEq(vault.pendingWithdrawersCount(), 2);
         assertEq(vault.pendingWithdrawers(2, 0)[0], depositor);
         assertEq(vault.pendingWithdrawers(2, 0)[1], depositor2);
+        vm.stopPrank();
+    }
+
+    function testTransferLockedUserToUserFail() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+        vault.mint(user1, 10 wei);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
+        vault.update(user1, user2, 1 wei);
+        assertEq(vault.balanceOf(user1), 10 wei);
+        assertEq(vault.balanceOf(user2), 0 wei);
+
+        vm.stopPrank();
+    }
+
+    function testTransferLockedVaultToUserSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+        vault.mint(user1, 10 wei);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(address(vault), user2, 1 wei);
+        assertEq(vault.balanceOf(address(vault)), 10 gwei - 1 wei);
+        assertEq(vault.balanceOf(user2), 1 wei);
+
+        vm.stopPrank();
+    }
+
+    function testTransferLockedUserToVaultSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+        vault.mint(user1, 10 wei);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(user1, address(vault), 1 wei);
+        assertEq(vault.balanceOf(user1), 9 wei);
+        assertEq(vault.balanceOf(address(vault)), 10 gwei + 1 wei);
+
+        vm.stopPrank();
+    }
+
+    function testTransferLockedUserToZeroSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+        vault.mint(user1, 10 wei);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(user1, address(0), 1 wei);
+        assertEq(vault.balanceOf(user1), 9 wei);
+        assertEq(vault.balanceOf(address(0)), 0 wei);
+
+        vm.stopPrank();
+    }
+
+    function testTransferLockedZeroToUserSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(address(0), user1, 1 wei);
+        assertEq(vault.balanceOf(address(0)), 0 wei);
+        assertEq(vault.balanceOf(user1), 1 wei);
+
+        vm.stopPrank();
+    }
+
+    function testTransferLockedZeroToZeroSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(address(0), address(0), 1 wei);
+        assertEq(vault.balanceOf(address(0)), 0 wei);
+
         vm.stopPrank();
     }
 }
