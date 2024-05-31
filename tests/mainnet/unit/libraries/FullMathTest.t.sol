@@ -108,6 +108,8 @@ contract Unit is Test {
         for (uint256 bit = 0; bit < 255; bit++) {
             validateResults(type(uint256).max - (1 << bit));
             validateResults(type(uint256).max >> bit);
+            validateResults((type(uint256).max >> bit) << bit);
+            validateResults(1 << bit);
         }
     }
 }
