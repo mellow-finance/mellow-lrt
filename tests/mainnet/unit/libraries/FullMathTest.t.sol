@@ -93,4 +93,21 @@ contract Unit is Test {
             }
         }
     }
+
+    function validateResults(uint256 denominator) public pure {
+        unchecked {
+            uint256 mellowResult = uint256(-int256(denominator)) & denominator;
+            uint256 ozResult = (0 - denominator) & denominator;
+            assert(mellowResult == ozResult);
+        }
+    }
+
+    function testValidateCorrectness() external pure {
+        validateResults(0);
+        validateResults(type(uint256).max);
+        for (uint256 bit = 0; bit < 255; bit++) {
+            validateResults(type(uint256).max - (1 << bit));
+            validateResults(type(uint256).max >> bit);
+        }
+    }
 }
