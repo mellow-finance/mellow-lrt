@@ -24,4 +24,8 @@ interface IDepositSecurityModule {
     function setMinDepositBlockDistance(uint256 newValue) external;
 
     function getGuardianIndex(address) external view returns (int256);
+
+    function STAKING_ROUTER() external view returns (address);
+
+    function getMaxDeposits() external view returns (uint256);
 }

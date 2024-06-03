@@ -2,12 +2,14 @@
 pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../external/lido/IWeth.sol";
 import "../../external/lido/ISteth.sol";
 import "../../external/lido/IWSteth.sol";
 import "../../external/lido/IWithdrawalQueue.sol";
 import "../../external/lido/IDepositSecurityModule.sol";
+import "../../external/lido/IStakingRouter.sol";
 
 /**
  * @title IStakingModule
@@ -20,6 +22,7 @@ interface IStakingModule {
     /// @dev Custom errors:
     error NotEnoughWeth();
     error InvalidWithdrawalQueueState();
+    error InvalidAmount();
 
     /**
      * @return Address of the WETH token.

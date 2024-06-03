@@ -87,7 +87,8 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             address(0), // eth
             1 ether,
             1 ether - 3 wei, // > min lp amount
-            type(uint256).max
+            type(uint256).max,
+            0
         );
         updateSystemState();
         assertTrue(lpAmount >= 1 ether - 3 wei); // rounding errors
@@ -239,7 +240,8 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             DeployConstants.WETH,
             1 ether,
             1 ether - 3 wei, // > min lp amount
-            type(uint256).max
+            type(uint256).max,
+            0
         );
         updateSystemState();
         assertTrue(lpAmount >= 1 ether - 3 wei); // rounding errors
@@ -391,7 +393,8 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             DeployConstants.STETH,
             1 ether,
             1 ether - 3 wei, // > min lp amount
-            type(uint256).max
+            type(uint256).max,
+            0
         );
         updateSystemState();
         assertTrue(lpAmount >= 1 ether - 3 wei); // rounding errors
@@ -551,7 +554,8 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             DeployConstants.WSTETH,
             depositAmount,
             1 ether - 3 wei, // > min lp amount
-            type(uint256).max
+            type(uint256).max,
+            0
         );
         updateSystemState();
         assertTrue(lpAmount >= 1 ether - 3 wei); // rounding errors
@@ -719,7 +723,8 @@ contract RegularDepositWithdrawalScenario is DeployScript {
                 depositor1,
                 amounts,
                 1 ether - 3 wei, // > min lp amount
-                type(uint256).max
+                type(uint256).max,
+                0
             );
         }
         updateSystemState();

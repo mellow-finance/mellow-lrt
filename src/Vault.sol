@@ -286,7 +286,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         address to,
         uint256[] memory amounts,
         uint256 minLpAmount,
-        uint256 deadline
+        uint256 deadline,
+        uint256 referralCode
     )
         external
         nonReentrant
@@ -318,25 +319,30 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 depositValue = 0;
         uint256 totalValue = 0;
         actualAmounts = new uint256[](tokens.length);
-        IPriceOracle priceOracle = IPriceOracle(configurator.priceOracle());
-        for (uint256 i = 0; i < tokens.length; i++) {
-            uint256 priceX96 = priceOracle.priceX96(address(this), tokens[i]);
-            totalValue += totalAmounts[i] == 0
-                ? 0
-                : FullMath.mulDivRoundingUp(totalAmounts[i], priceX96, Q96);
-            if (ratiosX96[i] == 0) continue;
-            uint256 amount = FullMath.mulDiv(ratioX96, ratiosX96[i], Q96);
-            IERC20(tokens[i]).safeTransferFrom(
-                msg.sender,
-                address(this),
-                amount
-            );
-            actualAmounts[i] = amount;
-            depositValue += FullMath.mulDiv(amount, priceX96, Q96);
+        {
+            IPriceOracle priceOracle = IPriceOracle(configurator.priceOracle());
+            for (uint256 i = 0; i < tokens.length; i++) {
+                uint256 priceX96 = priceOracle.priceX96(
+                    address(this),
+                    tokens[i]
+                );
+                totalValue += totalAmounts[i] == 0
+                    ? 0
+                    : FullMath.mulDivRoundingUp(totalAmounts[i], priceX96, Q96);
+                if (ratiosX96[i] == 0) continue;
+                uint256 amount = FullMath.mulDiv(ratioX96, ratiosX96[i], Q96);
+                IERC20(tokens[i]).safeTransferFrom(
+                    msg.sender,
+                    address(this),
+                    amount
+                );
+                actualAmounts[i] = amount;
+                depositValue += FullMath.mulDiv(amount, priceX96, Q96);
+            }
         }
 
         lpAmount = _processLpAmount(to, depositValue, totalValue, minLpAmount);
-        emit Deposit(to, actualAmounts, lpAmount);
+        emit Deposit(to, actualAmounts, lpAmount, referralCode);
         address callback = configurator.depositCallback();
         if (callback == address(0)) return (actualAmounts, lpAmount);
         IDepositCallback(callback).depositCallback(actualAmounts, lpAmount);

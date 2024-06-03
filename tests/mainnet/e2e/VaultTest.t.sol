@@ -34,7 +34,7 @@ contract VaultTestE2E is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
 
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         assertEq(
             IERC20(Constants.WSTETH).balanceOf(address(vault)),
             10 ether + 10 gwei
@@ -125,7 +125,7 @@ contract VaultTestE2E is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = amounts;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         assertEq(
             IERC20(Constants.WSTETH).balanceOf(address(vault)),
             10 ether + 10 gwei

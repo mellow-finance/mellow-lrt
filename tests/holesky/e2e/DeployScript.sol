@@ -299,7 +299,8 @@ contract DeployScript is Test {
                 address(s.vault),
                 amounts,
                 deployParams.initialDepositETH,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
             s.wstethAmountDeposited = wstethAmount;
         }

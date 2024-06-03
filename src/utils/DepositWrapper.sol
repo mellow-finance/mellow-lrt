@@ -44,7 +44,8 @@ contract DepositWrapper is IDepositWrapper {
         address token,
         uint256 amount,
         uint256 minLpAmount,
-        uint256 deadline
+        uint256 deadline,
+        uint256 referralCode
     ) external payable returns (uint256 lpAmount) {
         address wrapper = address(this);
         address sender = msg.sender;
@@ -68,7 +69,13 @@ contract DepositWrapper is IDepositWrapper {
         IERC20(wsteth).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
-        (, lpAmount) = vault.deposit(to, amounts, minLpAmount, deadline);
+        (, lpAmount) = vault.deposit(
+            to,
+            amounts,
+            minLpAmount,
+            deadline,
+            referralCode
+        );
         uint256 balance = IERC20(wsteth).balanceOf(wrapper);
         if (balance > 0) IERC20(wsteth).safeTransfer(sender, balance);
         emit DepositWrapperDeposit(sender, token, amount, lpAmount, deadline);
