@@ -36,7 +36,11 @@ import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
 import "../../src/oracles/WStethRatiosAggregatorV3.sol";
 import "../../src/oracles/ConstantAggregatorV3.sol";
 
-contract Collector {
+import "./IDefiCollector.sol";
+
+contract Collector is DefaultAccessControl {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     struct Response {
         address vault;
         uint256 balance; // Vault.balanceOf(user)
@@ -54,6 +58,7 @@ contract Collector {
         uint256 lpPriceD18; // LP price in USDC weis 1e8 (due to chainlink decimals)
         bool shouldCloseWithdrawalRequest; // if the withdrawal request should be closed
         IVault.WithdrawalRequest withdrawalRequest; // withdrawal request
+        bool isDefi; // if the vault address is an address of some DeFi pool
     }
 
     uint256 public constant Q96 = 2 ** 96;
@@ -67,13 +72,16 @@ contract Collector {
     IAggregatorV3 public immutable wstethOracle;
     IAggregatorV3 public immutable wethOracle;
 
+    EnumerableSet.AddressSet private collectors_;
+
     constructor(
         address wsteth_,
         address weth_,
         address steth_,
         IAggregatorV3 _wstethOracle,
-        IAggregatorV3 _wethToUSDOracle
-    ) {
+        IAggregatorV3 _wethToUSDOracle,
+        address admin_
+    ) DefaultAccessControl(admin_) {
         wsteth = wsteth_;
         weth = weth_;
         steth = steth_;
@@ -165,6 +173,8 @@ contract Collector {
             responses[i].shouldCloseWithdrawalRequest = !isProcessingPossible;
             responses[i].withdrawalRequest = vault.withdrawalRequest(user);
         }
+
+        return mergeWithDefiCollectors(user, vaults, responses);
     }
 
     function fetchWithdrawalAmounts(
@@ -360,6 +370,134 @@ contract Collector {
                 );
             }
         }
+    }
+
+    function addCollectors(address collector_) external {
+        _requireAdmin();
+        collectors_.add(collector_);
+    }
+
+    function removeCollector() external {
+        _requireAdmin();
+        collectors_.remove(msg.sender);
+    }
+
+    function isOneOf(address x, address[] memory a) public pure returns (bool) {
+        for (uint256 i = 0; i < a.length; i++) if (a[i] == x) return true;
+        return false;
+    }
+
+    function haveCommon(
+        address[] memory a,
+        address[] memory b
+    ) public pure returns (bool) {
+        for (uint256 i = 0; i < a.length; i++)
+            if (isOneOf(a[i], b)) return true;
+        return false;
+    }
+
+    function mergeWithDefiCollectors(
+        address user,
+        address[] memory vaults,
+        Response[] memory responses
+    ) public view returns (Response[] memory fullResponses) {
+        address[] memory collectors = collectors_.values();
+        fullResponses = new Response[](1 << 10);
+        uint256 itr = 0;
+        while (itr < responses.length) {
+            fullResponses[itr] = responses[itr];
+            itr++;
+        }
+        address[] memory users = new address[](1);
+        users[0] = user;
+        for (uint256 i = 0; i < collectors.length; i++) {
+            IDefiCollector.Data[] memory data = IDefiCollector(collectors[i])
+                .collect(users);
+
+            for (uint256 j = 0; j < data.length; j++) {
+                IERC20[] memory tokens = data[j].tokens;
+                address[] memory tokens_ = new address[](tokens.length);
+                for (uint256 k = 0; k < tokens.length; k++) {
+                    tokens_[k] = address(tokens[k]);
+                }
+                if (!haveCommon(tokens_, vaults)) continue;
+                IDefiCollector.UserData memory userData = data[j].users[0];
+
+                Response memory response;
+                response.balance = userData.lpAmount;
+                response.vault = data[j].pool;
+                response.isDefi = true;
+                response.underlyingTokens = tokens_;
+                response.underlyingAmounts = data[j].balances;
+                response.underlyingTokenDecimals = new uint8[](tokens.length);
+                for (uint256 k = 0; k < tokens.length; k++) {
+                    response.underlyingTokenDecimals[k] = IERC20Metadata(
+                        tokens_[k]
+                    ).decimals();
+                }
+                response.totalSupply = data[j].totalSupply;
+                response.pricesX96 = new uint256[](tokens.length);
+
+                for (uint256 k = 0; k < tokens.length; k++) {
+                    response.pricesX96[k] = convertTokenIntoEth(
+                        responses,
+                        tokens_[k],
+                        Q96
+                    );
+                    response.totalValueETH += FullMath.mulDiv(
+                        response.pricesX96[k],
+                        response.underlyingAmounts[k],
+                        Q96
+                    );
+                }
+
+                response.totalValueUSDC = convertWethToUSDC(
+                    response.totalValueETH
+                );
+                response.userBalanceETH = FullMath.mulDiv(
+                    response.totalValueETH,
+                    response.balance,
+                    response.totalSupply
+                );
+                response.userBalanceUSDC = convertWethToUSDC(
+                    response.userBalanceETH
+                );
+                response.lpPriceD18 = FullMath.mulDiv(
+                    response.totalValueUSDC,
+                    D18,
+                    response.totalSupply
+                );
+                fullResponses[itr++] = response;
+            }
+        }
+
+        assembly {
+            mstore(fullResponses, itr)
+        }
+    }
+
+    function getVaultResponse(
+        Response[] memory responses,
+        address vault
+    ) public pure returns (Response memory r) {
+        for (uint256 i = 0; i < responses.length; i++) {
+            Response memory response = responses[i];
+            if (response.vault == vault) return response;
+        }
+    }
+
+    function convertTokenIntoEth(
+        Response[] memory responses,
+        address token,
+        uint256 amount
+    ) public view returns (uint256 ethAmount) {
+        Response memory r = getVaultResponse(responses, token);
+        if (r.vault != address(0))
+            return FullMath.mulDiv(amount, r.totalValueETH, r.totalSupply);
+        if (token == weth || token == steth) return amount;
+        if (token == wsteth) return IWSteth(wsteth).getStETHByWstETH(amount);
+        // by default == 1
+        return amount;
     }
 
     function test() external pure {}

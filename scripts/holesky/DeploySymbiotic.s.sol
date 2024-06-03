@@ -160,7 +160,7 @@ contract Deploy is Script {
         IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), amount);
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
-        vault.deposit(address(vault), amounts, amount, type(uint256).max);
+        vault.deposit(address(vault), amounts, amount, type(uint256).max, 0);
     }
 
     function regularDeposit(uint256 amount) public {
@@ -169,7 +169,8 @@ contract Deploy is Script {
             address(0), // eth
             amount,
             (amount * 80) / 100,
-            type(uint256).max
+            type(uint256).max,
+            0
         );
     }
 
