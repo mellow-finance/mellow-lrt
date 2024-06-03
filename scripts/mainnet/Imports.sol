@@ -48,4 +48,6 @@ import "../../src/security/Initializer.sol";
 
 import "../../src/utils/RestrictingKeeper.sol";
 
+import "./interfaces/IDefaultCollateralFactory.sol";
+
 interface Imports {}

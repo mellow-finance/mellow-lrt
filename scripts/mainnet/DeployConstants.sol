@@ -12,9 +12,9 @@ library DeployConstants {
     uint8 public constant DEFAULT_BOND_MODULE_ROLE_BIT = 2;
     uint8 public constant ADMIN_ROLE_BIT = 255;
 
-    uint256 public constant INITIAL_DEPOSIT_VALUE = 10 gwei;
+    uint256 public constant INITIAL_DEPOSIT_ETH = 10 gwei;
     uint256 public constant FIRST_DEPOSIT_VALUE = 1 ether;
-    uint256 public constant MAXIMAL_TOTAL_SUPPLY = 10 ether;
+    uint256 public constant MAXIMAL_TOTAL_SUPPLY = 10_000 ether;
 
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -22,15 +22,22 @@ library DeployConstants {
 
     address public constant WSTETH_DEFAULT_BOND_FACTORY =
         0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
-    address public constant MAINNET_DEPLOYER =
+    address public constant WSTETH_DEFAULT_BOND =
+        0xC329400492c6ff2438472D4651Ad17389fCb843a;
+    address public constant MAINNET_TEST_DEPLOYER =
         0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 
-    uint256 public constant TIMELOCK_DELAY = 1 days;
+    uint256 public constant TIMELOCK_PROD_DELAY = 1 days;
+    uint256 public constant TIMELOCK_TEST_DELAY = 60 seconds;
 
     address public constant MELLOW_LIDO_TEST_MULTISIG =
         0x4573ed3B7bFc6c28a5c7C5dF0E292148e3448Fd6;
+    address public constant MELLOW_LIDO_TEST_PROXY_MULTISIG =
+        0xD8996bb6e74b82Ca4DA473A7e4DD4A1974AFE3be;
     address public constant MELLOW_LIDO_PROD_MULTISIG =
         0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
+    address public constant MELLOW_LIDO_PROD_PROXY_MULTISIG =
+        0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
 
     address public constant STEAKHOUSE_MULTISIG =
         0x2E93913A796a6C6b2bB76F41690E78a2E206Be54;
@@ -43,7 +50,7 @@ library DeployConstants {
 
     // Steakhouse:
     string public constant STEAKHOUSE_VAULT_TEST_NAME =
-        "Steakhouse Resteaking Vault (test)";
+        "Steakhouse Resteaking VaultTest";
     string public constant STEAKHOUSE_VAULT_TEST_SYMBOL = "steakLRT (test)";
 
     // Re7

@@ -10,6 +10,7 @@ library DeployLibrary {
         address proxyAdmin;
         address admin;
         address curator;
+        address wstethDefaultBondFactory;
         address wstethDefaultBond;
         address wsteth;
         address steth;

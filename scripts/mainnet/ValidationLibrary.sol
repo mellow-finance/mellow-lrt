@@ -21,6 +21,29 @@ library ValidationLibrary {
         uint256 DEFAULT_BOND_STRATEGY_ROLE_MASK = 1 << 1;
         uint256 DEFAULT_BOND_MODULE_ROLE_MASK = 1 << 2;
 
+        // TimelockController
+        {
+            TimelockController timelock = setup.timeLockedCurator;
+            require(
+                timelock.hasRole(
+                    timelock.DEFAULT_ADMIN_ROLE(),
+                    deployParams.admin
+                )
+            );
+            require(
+                timelock.hasRole(timelock.PROPOSER_ROLE(), deployParams.curator)
+            );
+            require(
+                timelock.hasRole(
+                    timelock.CANCELLER_ROLE(),
+                    deployParams.curator
+                )
+            );
+            require(
+                timelock.hasRole(timelock.EXECUTOR_ROLE(), deployParams.curator)
+            );
+        }
+
         // Vault permissions
         {
             Vault vault = setup.vault;
@@ -33,20 +56,20 @@ library ValidationLibrary {
                 "Admin not set"
             );
             require(
-                vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 2,
+                vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 1,
                 "Wrong admin delegate count"
             );
             require(
-                vault.hasRole(
+                !vault.hasRole(
                     ADMIN_DELEGATE_ROLE,
-                    address(setup.restrictingKeeper)
+                    address(deployParams.curator)
                 ),
-                "RestrictingKeeper not set"
+                "Wrong curator"
             );
             require(
                 vault.hasRole(
                     ADMIN_DELEGATE_ROLE,
-                    address(deployParams.curator)
+                    address(setup.timeLockedCurator)
                 ),
                 "Curator not set"
             );
@@ -59,11 +82,14 @@ library ValidationLibrary {
         // DefaultBondStrategy permissions
         {
             DefaultBondStrategy strategy = setup.defaultBondStrategy;
-            require(strategy.getRoleMemberCount(ADMIN_ROLE) == 1);
-            require(strategy.hasRole(ADMIN_ROLE, deployParams.curator));
+            require(
+                strategy.getRoleMemberCount(ADMIN_ROLE) == 1,
+                "Admin not set"
+            );
+            require(strategy.hasRole(ADMIN_ROLE, deployParams.admin));
             require(strategy.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0);
             require(strategy.getRoleMemberCount(OPERATOR_ROLE) == 1);
-            require(strategy.hasRole(OPERATOR_ROLE, deployParams.operator));
+            require(strategy.hasRole(OPERATOR_ROLE, deployParams.curator));
         }
 
         // Managed validator permissions
@@ -71,11 +97,24 @@ library ValidationLibrary {
             ManagedValidator validator = setup.validator;
             require(validator.publicRoles() == DEPOSITOR_ROLE_MASK);
 
-            require(validator.userRoles(deployParams.deployer) == 0);
-            require(validator.userRoles(deployParams.admin) == ADMIN_ROLE_MASK);
             require(
-                validator.userRoles(deployParams.curator) == ADMIN_ROLE_MASK
+                validator.userRoles(deployParams.deployer) == 0,
+                "Deployer has roles"
             );
+            require(
+                validator.userRoles(deployParams.admin) == ADMIN_ROLE_MASK,
+                "Admin has no roles"
+            );
+            require(
+                validator.userRoles(address(setup.timeLockedCurator)) == 0,
+                "Time locked curator has roles"
+            );
+            if (deployParams.curator != deployParams.admin) {
+                require(
+                    validator.userRoles(deployParams.curator) == 0,
+                    "Curator has roles"
+                );
+            }
 
             require(
                 validator.userRoles(address(setup.defaultBondStrategy)) ==
@@ -97,7 +136,7 @@ library ValidationLibrary {
             );
             require(
                 validator.allowAllSignaturesRoles(
-                    address(setup.defaultBondModule)
+                    address(deployParams.defaultBondModule)
                 ) == DEFAULT_BOND_MODULE_ROLE_MASK
             );
             require(
@@ -113,28 +152,37 @@ library ValidationLibrary {
             require(setup.vault.balanceOf(deployParams.deployer) == 0);
             require(
                 setup.vault.balanceOf(address(setup.vault)) ==
-                    deployParams.initialDepositETH
+                    deployParams.initialDepositETH,
+                "Invalid vault balance"
             );
             require(
-                setup.vault.totalSupply() == deployParams.initialDepositETH
+                setup.vault.totalSupply() == deployParams.initialDepositETH,
+                "Invalid total supply"
             );
             require(
-                IERC20(deployParams.wsteth).balanceOf(address(setup.vault)) == 0
+                IERC20(deployParams.wsteth).balanceOf(address(setup.vault)) ==
+                    0,
+                "Invalid wsteth balance of vault"
             );
             uint256 bondBalance = IERC20(deployParams.wstethDefaultBond)
                 .balanceOf(address(setup.vault));
-            require(bondBalance == setup.wstethAmountDeposited);
+            require(
+                bondBalance == setup.wstethAmountDeposited,
+                "Invalid bond balance"
+            );
             require(
                 IERC20(deployParams.wsteth).balanceOf(
                     deployParams.wstethDefaultBond
-                ) == bondBalance
+                ) >= bondBalance,
+                "Invalid wsteth balance of bond"
             );
             uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
                 .getStETHByWstETH(bondBalance);
             // at most 2 weis loss due to eth->steth && steth->wsteth conversions
             require(
                 deployParams.initialDepositETH - 2 wei <= expectedStethAmount &&
-                    expectedStethAmount <= deployParams.initialDepositETH
+                    expectedStethAmount <= deployParams.initialDepositETH,
+                "Invalid steth amount"
             );
         }
 
@@ -160,8 +208,10 @@ library ValidationLibrary {
             {
                 address[] memory tvlModules = setup.vault.tvlModules();
                 require(tvlModules.length == 2);
-                require(tvlModules[0] == address(setup.erc20TvlModule));
-                require(tvlModules[1] == address(setup.defaultBondTvlModule));
+                require(tvlModules[0] == address(deployParams.erc20TvlModule));
+                require(
+                    tvlModules[1] == address(deployParams.defaultBondTvlModule)
+                );
             }
 
             require(
@@ -304,15 +354,17 @@ library ValidationLibrary {
             require(setup.configurator.isDepositLocked() == false);
             require(setup.configurator.areTransfersLocked() == false);
             require(
-                setup.configurator.ratiosOracle() == address(setup.ratiosOracle)
+                setup.configurator.ratiosOracle() ==
+                    address(deployParams.ratiosOracle)
             );
             require(
-                setup.configurator.priceOracle() == address(setup.priceOracle)
+                setup.configurator.priceOracle() ==
+                    address(deployParams.priceOracle)
             );
             require(setup.configurator.validator() == address(setup.validator));
             require(
                 setup.configurator.isDelegateModuleApproved(
-                    address(setup.defaultBondModule)
+                    address(deployParams.defaultBondModule)
                 ) == true
             );
 
@@ -323,11 +375,11 @@ library ValidationLibrary {
         {
             require(
                 address(setup.defaultBondStrategy.bondModule()) ==
-                    address(setup.defaultBondModule)
+                    address(deployParams.defaultBondModule)
             );
             require(
                 address(setup.defaultBondStrategy.erc20TvlModule()) ==
-                    address(setup.erc20TvlModule)
+                    address(deployParams.erc20TvlModule)
             );
             require(
                 address(setup.defaultBondStrategy.vault()) ==
@@ -345,16 +397,20 @@ library ValidationLibrary {
             require(data.length == 1);
             require(data[0].bond == deployParams.wstethDefaultBond);
             require(data[0].ratioX96 == DeployConstants.Q96);
+            require(
+                IDefaultCollateralFactory(deployParams.wstethDefaultBondFactory)
+                    .isEntity(data[0].bond)
+            );
         }
 
         // ConstantsAggregatorV3 values:
         {
             require(
-                ConstantAggregatorV3(address(setup.wethAggregatorV3))
+                ConstantAggregatorV3(address(deployParams.wethAggregatorV3))
                     .decimals() == 18
             );
             require(
-                ConstantAggregatorV3(address(setup.wethAggregatorV3))
+                ConstantAggregatorV3(address(deployParams.wethAggregatorV3))
                     .answer() == 1 ether
             );
 
@@ -364,7 +420,7 @@ library ValidationLibrary {
                 uint256 startedAt,
                 uint256 updatedAt,
                 uint80 answeredInRound
-            ) = ConstantAggregatorV3(address(setup.wethAggregatorV3))
+            ) = ConstantAggregatorV3(address(deployParams.wethAggregatorV3))
                     .latestRoundData();
             require(roundId == 0);
             require(answer == 1 ether);
@@ -376,13 +432,15 @@ library ValidationLibrary {
         // WStethRatiosAggregatorV3 values:
         {
             require(
-                WStethRatiosAggregatorV3(address(setup.wstethAggregatorV3))
-                    .decimals() == 18
+                WStethRatiosAggregatorV3(
+                    address(deployParams.wstethAggregatorV3)
+                ).decimals() == 18
             );
 
             require(
-                WStethRatiosAggregatorV3(address(setup.wstethAggregatorV3))
-                    .wsteth() == deployParams.wsteth
+                WStethRatiosAggregatorV3(
+                    address(deployParams.wstethAggregatorV3)
+                ).wsteth() == deployParams.wsteth
             );
 
             (
@@ -391,8 +449,9 @@ library ValidationLibrary {
                 uint256 startedAt,
                 uint256 updatedAt,
                 uint80 answeredInRound
-            ) = WStethRatiosAggregatorV3(address(setup.wstethAggregatorV3))
-                    .latestRoundData();
+            ) = WStethRatiosAggregatorV3(
+                    address(deployParams.wstethAggregatorV3)
+                ).latestRoundData();
             require(roundId == 0);
             require(
                 answer ==
@@ -408,44 +467,44 @@ library ValidationLibrary {
         // ChainlinkOracle values:
         {
             require(
-                setup.priceOracle.baseTokens(address(setup.vault)) ==
+                deployParams.priceOracle.baseTokens(address(setup.vault)) ==
                     deployParams.weth
             );
 
             require(
-                setup
+                deployParams
                     .priceOracle
                     .aggregatorsData(address(setup.vault), deployParams.weth)
-                    .aggregatorV3 == address(setup.wethAggregatorV3)
+                    .aggregatorV3 == address(deployParams.wethAggregatorV3)
             );
             require(
-                setup
+                deployParams
                     .priceOracle
                     .aggregatorsData(address(setup.vault), deployParams.weth)
                     .maxAge == 0
             );
             require(
-                setup
+                deployParams
                     .priceOracle
                     .aggregatorsData(address(setup.vault), deployParams.wsteth)
-                    .aggregatorV3 == address(setup.wstethAggregatorV3)
+                    .aggregatorV3 == address(deployParams.wstethAggregatorV3)
             );
             require(
-                setup
+                deployParams
                     .priceOracle
                     .aggregatorsData(address(setup.vault), deployParams.wsteth)
                     .maxAge == 0
             );
 
             require(
-                setup.priceOracle.priceX96(
+                deployParams.priceOracle.priceX96(
                     address(setup.vault),
                     deployParams.weth
                 ) == DeployConstants.Q96
             );
 
             require(
-                setup.priceOracle.priceX96(
+                deployParams.priceOracle.priceX96(
                     address(setup.vault),
                     deployParams.wsteth
                 ) ==

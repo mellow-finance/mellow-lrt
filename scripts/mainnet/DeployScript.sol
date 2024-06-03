@@ -184,12 +184,16 @@ contract DeployScript is CommonBase {
         );
 
         s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.ADMIN_ROLE(),
+            deployParams.admin
+        );
+        s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
             deployParams.deployer
         );
         s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.OPERATOR(),
-            address(s.timeLockedCurator)
+            address(deployParams.curator)
         );
         {
             s.configurator.stageDepositCallback(address(s.defaultBondStrategy));
@@ -208,10 +212,6 @@ contract DeployScript is CommonBase {
         s.validator = new ManagedValidator(deployParams.deployer);
         s.validator.grantRole(
             deployParams.admin,
-            DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
-        );
-        s.validator.grantRole(
-            address(s.timeLockedCurator),
             DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
         );
         {
