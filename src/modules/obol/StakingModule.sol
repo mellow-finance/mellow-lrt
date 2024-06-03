@@ -67,7 +67,10 @@ contract StakingModule is IStakingModule, DefaultModule {
                 ),
             depositSecurityModule.getMaxDeposits()
         );
-        uint256 amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
+        uint256 amount = Math.min(
+            wethBalance,
+            ISteth(steth).DEPOSIT_SIZE() * maxDepositsCount
+        );
         if (amount == 0) revert InvalidAmount();
         _wethToWSteth(amount);
         depositSecurityModule.depositBufferedEther(
