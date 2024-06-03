@@ -295,6 +295,47 @@ contract Unit is Test {
         vm.stopPrank();
     }
 
+    function testConvertAndDepositFailsWithInvalidAmount() external {
+        StakingModule module = new StakingModule(
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH,
+            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
+            Constants.SIMPLE_DVT_MODULE_ID
+        );
+
+        uint256 blockNumber = block.number - 1;
+        Vm.Wallet memory guardian = vm.createWallet("guardian");
+
+        simplifyDepositSecurityModule(guardian);
+        (
+            bytes32 blockHash,
+            bytes32 depositRoot,
+            uint256 nonce,
+            bytes memory depositCalldata,
+            IDepositSecurityModule.Signature[] memory sortedGuardianSignatures
+        ) = getAllDepositParams(blockNumber, guardian);
+
+        deal(Constants.WETH, address(this), 0 ether);
+
+        (bool success, bytes memory response) = address(module).delegatecall(
+            abi.encodeWithSelector(
+                module.convertAndDeposit.selector,
+                blockNumber,
+                blockHash,
+                depositRoot,
+                nonce,
+                depositCalldata,
+                sortedGuardianSignatures
+            )
+        );
+
+        assertFalse(success);
+        assertEq(abi.encodeWithSignature("InvalidAmount()"), response);
+        vm.stopPrank();
+    }
+
     function testConvertAndDepositFailsWithInvalidWithdrawalQueueState()
         external
     {
