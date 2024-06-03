@@ -292,7 +292,7 @@ contract Unit is Test {
         VaultConfigurator configurator = vault.configurator();
 
         vault.setCoef(1e9);
-        vault.deposit(address(vault), new uint256[](0), 1 ether, 0);
+        vault.deposit(address(vault), new uint256[](0), 1 ether, 0, 0);
         validValue = 1000 ether;
         invalidValue = 0 ether;
         expectedError = abi.encodeWithSignature("InvalidTotalSupply()");

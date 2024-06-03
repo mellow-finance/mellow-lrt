@@ -52,6 +52,7 @@ interface IDepositWrapper {
      * @param amount The amount of tokens to deposit.
      * @param minLpAmount The minimum number of LP tokens expected from the deposit.
      * @param deadline The deadline timestamp for the deposit transaction.
+     * @param referralCode The referral code for the deposit.
      * @return lpAmount The amount of LP tokens obtained from the deposit.
      */
     function deposit(
@@ -59,7 +60,8 @@ interface IDepositWrapper {
         address token,
         uint256 amount,
         uint256 minLpAmount,
-        uint256 deadline
+        uint256 deadline,
+        uint256 referralCode
     ) external payable returns (uint256 lpAmount);
 
     /**

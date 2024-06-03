@@ -34,7 +34,6 @@ contract SimpleDVTStakingStrategy is
 
     /// @inheritdoc ISimpleDVTStakingStrategy
     function convertAndDeposit(
-        uint256 amount,
         uint256 blockNumber,
         bytes32 blockHash,
         bytes32 depositRoot,
@@ -46,7 +45,6 @@ contract SimpleDVTStakingStrategy is
             address(stakingModule),
             abi.encodeWithSelector(
                 IStakingModule.convertAndDeposit.selector,
-                amount,
                 blockNumber,
                 blockHash,
                 depositRoot,

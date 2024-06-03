@@ -232,7 +232,6 @@ contract Unit is Test {
         assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 0);
 
         bool success = strategy.convertAndDeposit(
-            amount,
             blockNumber,
             blockHash,
             depositRoot,
@@ -295,7 +294,6 @@ contract Unit is Test {
         uint256 amount = 1 ether;
         deal(Constants.WETH, address(vault), amount);
         strategy.convertAndDeposit(
-            amount,
             blockNumber,
             blockHash,
             depositRoot,
@@ -389,7 +387,13 @@ contract Unit is Test {
             );
             uint256[] memory amounts = new uint256[](2);
             amounts[1] = amount;
-            vault.deposit(address(vault), amounts, amount, type(uint256).max);
+            vault.deposit(
+                address(vault),
+                amounts,
+                amount,
+                type(uint256).max,
+                0
+            );
         }
 
         vm.stopPrank();
@@ -408,7 +412,8 @@ contract Unit is Test {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
 
             vault.registerWithdrawal(
@@ -548,7 +553,13 @@ contract Unit is Test {
             );
             uint256[] memory amounts = new uint256[](2);
             amounts[1] = amount;
-            vault.deposit(address(vault), amounts, amount, type(uint256).max);
+            vault.deposit(
+                address(vault),
+                amounts,
+                amount,
+                type(uint256).max,
+                0
+            );
         }
 
         vm.stopPrank();
@@ -567,7 +578,8 @@ contract Unit is Test {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
 
             vault.registerWithdrawal(
@@ -693,7 +705,13 @@ contract Unit is Test {
             );
             uint256[] memory amounts = new uint256[](2);
             amounts[1] = amount;
-            vault.deposit(address(vault), amounts, amount, type(uint256).max);
+            vault.deposit(
+                address(vault),
+                amounts,
+                amount,
+                type(uint256).max,
+                0
+            );
         }
 
         vm.stopPrank();
@@ -712,7 +730,8 @@ contract Unit is Test {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
 
             vault.registerWithdrawal(
@@ -830,7 +849,13 @@ contract Unit is Test {
             );
             uint256[] memory amounts = new uint256[](2);
             amounts[1] = amount;
-            vault.deposit(address(vault), amounts, amount, type(uint256).max);
+            vault.deposit(
+                address(vault),
+                amounts,
+                amount,
+                type(uint256).max,
+                0
+            );
         }
 
         vm.stopPrank();
@@ -849,7 +874,8 @@ contract Unit is Test {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
 
             vault.registerWithdrawal(

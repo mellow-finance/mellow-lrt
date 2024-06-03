@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./DeployLibrary.sol";
+import "../DeployLibrary.sol";
 
-contract DeployScript is Test {
+contract DeployScript is CommonBase {
     using SafeERC20 for IERC20;
 
     function test() external pure {}
@@ -11,7 +11,6 @@ contract DeployScript is Test {
     function deploy(
         DeployLibrary.DeployParameters memory deployParams
     ) internal returns (DeployLibrary.DeploySetup memory s) {
-        vm.startPrank(deployParams.deployer);
         {
             s.initializer = new Initializer();
 
@@ -40,34 +39,13 @@ contract DeployScript is Test {
                 new bytes(0)
             );
 
-            s.defaultProxyImplementation = new DefaultProxyImplementation(
-                deployParams.lpTokenName,
-                deployParams.lpTokenSymbol
-            );
-
-            s.adminProxy = new AdminProxy(
-                address(proxy),
-                immutableProxyAdmin,
-                deployParams.acceptor,
-                deployParams.proposer,
-                deployParams.emergencyOperator,
-                IAdminProxy.Proposal({
-                    implementation: address(s.defaultProxyImplementation),
-                    callData: new bytes(0)
-                })
-            );
-
             ProxyAdmin(immutableProxyAdmin).transferOwnership(
-                address(s.adminProxy)
+                address(deployParams.admin)
             );
             s.vault = Vault(payable(proxy));
         }
 
         s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
-        s.vault.grantRole(
-            s.vault.ADMIN_DELEGATE_ROLE(),
-            address(s.restrictingKeeper)
-        );
         s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
         s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.curator);
 
@@ -263,11 +241,11 @@ contract DeployScript is Test {
 
         // initial deposit
         {
-            assertTrue(
+            require(
                 deployParams.initialDepositETH > 0,
                 "Invalid deploy params. Initial deposit value is 0"
             );
-            assertTrue(
+            require(
                 deployParams.deployer.balance >= deployParams.initialDepositETH,
                 "Insufficient ETH amount for deposit"
             );
@@ -287,7 +265,7 @@ contract DeployScript is Test {
                 address(s.vault),
                 wstethAmount
             );
-            assertTrue(wstethAmount > 0, "No wsteth received");
+            require(wstethAmount > 0, "No wsteth received");
             address[] memory tokens = new address[](1);
             tokens[0] = deployParams.wsteth;
             uint256[] memory amounts = new uint256[](1);
@@ -325,20 +303,15 @@ contract DeployScript is Test {
             deployParams.deployer,
             DeployConstants.ADMIN_ROLE_BIT
         );
-
-        vm.stopPrank();
     }
 
     function validateChainId() internal view {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
-        if (chainId != 1) {
+        uint256 chainId = block.chainid;
+        if (chainId != 17000) {
             revert(
                 string(
                     abi.encodePacked(
-                        "Wrong chain id. Expected chain id: 1, actual: %d",
+                        "Wrong chain id. Expected chain id: 17000, actual: %d",
                         Strings.toString(chainId)
                     )
                 )

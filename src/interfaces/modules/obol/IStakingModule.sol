@@ -2,12 +2,14 @@
 pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../external/lido/IWeth.sol";
 import "../../external/lido/ISteth.sol";
 import "../../external/lido/IWSteth.sol";
 import "../../external/lido/IWithdrawalQueue.sol";
 import "../../external/lido/IDepositSecurityModule.sol";
+import "../../external/lido/IStakingRouter.sol";
 
 /**
  * @title IStakingModule
@@ -20,6 +22,7 @@ interface IStakingModule {
     /// @dev Custom errors:
     error NotEnoughWeth();
     error InvalidWithdrawalQueueState();
+    error InvalidAmount();
 
     /**
      * @return Address of the WETH token.
@@ -65,7 +68,6 @@ interface IStakingModule {
 
     /**
      * @notice Converts wETH to wstETH and securely deposits it into the staking contract according to the specified security protocols.
-     * @param amount The amount of wETH to convert and deposit.
      * @param blockNumber The block number at the time of the deposit operation, used for security verification.
      * @param blockHash The hash of the block at the time of the deposit, used for security verification.
      * @param depositRoot The merkle root of the deposit records, used for security verification.
@@ -78,7 +80,6 @@ interface IStakingModule {
      * | ATTEST_MESSAGE_PREFIX | blockNumber | blockHash | depositRoot | stakingModuleId | nonce |
      */
     function convertAndDeposit(
-        uint256 amount,
         uint256 blockNumber,
         bytes32 blockHash,
         bytes32 depositRoot,

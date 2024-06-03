@@ -42,11 +42,11 @@ contract Unit is Test {
         vault.setUnderlyingTokens(new address[](0));
 
         vm.expectRevert(abi.encodeWithSignature("InvalidTokenList()"));
-        wrapper.deposit(sender, Constants.WSTETH, amount, amount, 0);
+        wrapper.deposit(sender, Constants.WSTETH, amount, amount, 0, 0);
 
         vault.setUnderlyingTokens(new address[](1));
         vm.expectRevert(abi.encodeWithSignature("InvalidTokenList()"));
-        wrapper.deposit(sender, Constants.WSTETH, amount, amount, 0);
+        wrapper.deposit(sender, Constants.WSTETH, amount, amount, 0, 0);
 
         vm.stopPrank();
     }
@@ -69,7 +69,7 @@ contract Unit is Test {
         vm.startPrank(sender);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidAmount()"));
-        wrapper.deposit(sender, Constants.USDT, 0, 0, 0);
+        wrapper.deposit(sender, Constants.USDT, 0, 0, 0, 0);
 
         vm.stopPrank();
     }
@@ -92,7 +92,7 @@ contract Unit is Test {
         vm.startPrank(sender);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
-        wrapper.deposit(sender, Constants.USDT, 1, 1, 0);
+        wrapper.deposit(sender, Constants.USDT, 1, 1, 0, 0);
 
         vm.stopPrank();
     }
@@ -122,7 +122,7 @@ contract Unit is Test {
             amount
         );
 
-        wrapper.deposit(sender, Constants.WSTETH, amount, amount, 0);
+        wrapper.deposit(sender, Constants.WSTETH, amount, amount, 0, 0);
 
         assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), amount);
         assertEq(IERC20(Constants.WSTETH).balanceOf(address(wrapper)), 0);
@@ -157,7 +157,7 @@ contract Unit is Test {
         amount = IERC20(Constants.STETH).balanceOf(sender);
         IERC20(Constants.STETH).safeIncreaseAllowance(address(wrapper), amount);
 
-        wrapper.deposit(sender, Constants.STETH, amount, amount, 0);
+        wrapper.deposit(sender, Constants.STETH, amount, amount, 0, 0);
         assertEq(
             IERC20(Constants.WSTETH).balanceOf(address(vault)),
             1 ether - 2 wei
@@ -190,7 +190,7 @@ contract Unit is Test {
         deal(Constants.WETH, sender, amount);
         IERC20(Constants.WETH).safeIncreaseAllowance(address(wrapper), amount);
 
-        wrapper.deposit(sender, Constants.WETH, amount, amount, 0);
+        wrapper.deposit(sender, Constants.WETH, amount, amount, 0, 0);
         if (block.number == 19762100) {
             assertEq(
                 IERC20(Constants.WSTETH).balanceOf(address(vault)),
@@ -228,7 +228,14 @@ contract Unit is Test {
         uint256 amount = 1 ether;
         deal(sender, amount);
 
-        wrapper.deposit{value: amount}(sender, address(0), amount, amount, 0);
+        wrapper.deposit{value: amount}(
+            sender,
+            address(0),
+            amount,
+            amount,
+            0,
+            0
+        );
         if (block.number == 19762100) {
             assertEq(
                 IERC20(Constants.WSTETH).balanceOf(address(vault)),
@@ -272,6 +279,7 @@ contract Unit is Test {
             address(0),
             amount,
             amount,
+            0,
             0
         );
     }
@@ -370,7 +378,7 @@ contract Unit is Test {
             amount
         );
 
-        wrapper.deposit(sender, Constants.WSTETH, amount, amount, 0);
+        wrapper.deposit(sender, Constants.WSTETH, amount, amount, 0, 0);
 
         assertEq(
             IERC20(Constants.WSTETH).balanceOf(address(vault)),
@@ -445,7 +453,7 @@ contract Unit is Test {
         vm.startPrank(sender);
         deal(sender, 1 wei);
         vm.expectRevert(abi.encodeWithSignature("InvalidTokenList()"));
-        wrapper.deposit{value: 1 wei}(address(0), address(0), 0, 0, 0);
+        wrapper.deposit{value: 1 wei}(address(0), address(0), 0, 0, 0, 0);
         vm.stopPrank();
     }
 
@@ -493,7 +501,7 @@ contract Unit is Test {
         amount = IERC20(Constants.STETH).balanceOf(sender);
         IERC20(Constants.STETH).safeIncreaseAllowance(address(wrapper), amount);
 
-        wrapper.deposit(sender, Constants.STETH, amount, amount, 0);
+        wrapper.deposit(sender, Constants.STETH, amount, amount, 0, 0);
         assertEq(
             IERC20(Constants.WSTETH).balanceOf(address(vault)),
             1 ether - 2 wei - dust[0]
@@ -529,7 +537,7 @@ contract Unit is Test {
         deal(Constants.WETH, sender, amount);
         IERC20(Constants.WETH).safeIncreaseAllowance(address(wrapper), amount);
 
-        wrapper.deposit(sender, Constants.WETH, amount, amount, 0);
+        wrapper.deposit(sender, Constants.WETH, amount, amount, 0, 0);
         if (block.number == 19762100) {
             assertEq(
                 IERC20(Constants.WSTETH).balanceOf(address(vault)),
@@ -570,7 +578,14 @@ contract Unit is Test {
         uint256 amount = 1 ether;
         deal(sender, amount);
 
-        wrapper.deposit{value: amount}(sender, address(0), amount, amount, 0);
+        wrapper.deposit{value: amount}(
+            sender,
+            address(0),
+            amount,
+            amount,
+            0,
+            0
+        );
         if (block.number == 19762100) {
             assertEq(
                 IERC20(Constants.WSTETH).balanceOf(address(vault)),

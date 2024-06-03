@@ -4,8 +4,27 @@ pragma solidity 0.8.25;
 import "../Constants.sol";
 import "../unit/VaultTestCommon.t.sol";
 
+contract VaultTest is Vault {
+    constructor(
+        string memory name,
+        string memory symbol,
+        address admin
+    ) Vault(name, symbol, admin) {}
+
+    function update(address from, address to, uint256 value) public {
+        _update(from, to, value);
+    }
+
+    function mint(address account, uint256 value) public {
+        _mint(account, value);
+    }
+}
+
 contract VaultTestUnit is VaultTestCommon {
     using SafeERC20 for IERC20;
+
+    address user1 = address(bytes20(keccak256("user1")));
+    address user2 = address(bytes20(keccak256("user2")));
 
     function testConstructor() external {
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
@@ -1123,14 +1142,14 @@ contract VaultTestUnit is VaultTestCommon {
         IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), 10 gwei);
 
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
-        vault.deposit(address(vault), amounts, 10 gwei, type(uint256).max);
+        vault.deposit(address(vault), amounts, 10 gwei, type(uint256).max, 0);
 
         vm.startPrank(operator);
 
         deal(Constants.WSTETH, operator, 10 gwei);
         IERC20(Constants.WSTETH).safeIncreaseAllowance(address(vault), 10 gwei);
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
-        vault.deposit(address(this), amounts, 10 gwei, type(uint256).max);
+        vault.deposit(address(this), amounts, 10 gwei, type(uint256).max, 0);
 
         vm.stopPrank();
     }
@@ -1153,7 +1172,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 gwei;
         vm.expectRevert(abi.encodeWithSignature("ValueZero()"));
-        vault.deposit(address(vault), amounts, 0, type(uint256).max);
+        vault.deposit(address(vault), amounts, 0, type(uint256).max, 0);
         vm.stopPrank();
     }
 
@@ -1179,7 +1198,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
 
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         assertEq(
             IERC20(Constants.WSTETH).balanceOf(address(vault)),
             10 ether + 10 gwei
@@ -1211,7 +1230,7 @@ contract VaultTestUnit is VaultTestCommon {
         amounts[0] = 10 ether;
 
         vm.expectRevert("ERC20: transfer amount exceeds allowance");
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 10 gwei);
         assertEq(IERC20(Constants.RETH).balanceOf(address(vault)), 0);
         assertEq(IERC20(Constants.WETH).balanceOf(address(vault)), 0);
@@ -1245,7 +1264,13 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
 
-        vault.deposit(depositorAntother, amounts, 10 ether, type(uint256).max);
+        vault.deposit(
+            depositorAntother,
+            amounts,
+            10 ether,
+            type(uint256).max,
+            0
+        );
         assertEq(
             IERC20(Constants.WSTETH).balanceOf(address(vault)),
             10 ether + 10 gwei
@@ -1293,7 +1318,7 @@ contract VaultTestUnit is VaultTestCommon {
         amounts[0] = 10 ether;
 
         assertFalse(callback.flag());
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         assertEq(
             IERC20(Constants.WSTETH).balanceOf(address(vault)),
             10 ether + 10 gwei
@@ -1331,7 +1356,7 @@ contract VaultTestUnit is VaultTestCommon {
         amounts[0] = 10000 ether;
 
         vm.expectRevert(abi.encodeWithSignature("LimitOverflow()"));
-        vault.deposit(depositor, amounts, 10000 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10000 ether, type(uint256).max, 0);
         vm.stopPrank();
     }
 
@@ -1368,7 +1393,7 @@ contract VaultTestUnit is VaultTestCommon {
         amounts[0] = 10 ether;
 
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
 
         vm.stopPrank();
     }
@@ -1396,7 +1421,7 @@ contract VaultTestUnit is VaultTestCommon {
         amounts[0] = 0 wei;
 
         vm.expectRevert(abi.encodeWithSignature("ValueZero()"));
-        vault.deposit(depositor, amounts, 0 wei, type(uint256).max);
+        vault.deposit(depositor, amounts, 0 wei, type(uint256).max, 0);
 
         vm.stopPrank();
     }
@@ -1427,7 +1452,7 @@ contract VaultTestUnit is VaultTestCommon {
             uint256[] memory amounts = new uint256[](3);
             amounts[0] = 10 ether;
 
-            vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+            vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
             assertEq(
                 IERC20(Constants.WSTETH).balanceOf(address(vault)),
                 wstethBalance + 10 ether
@@ -1466,7 +1491,7 @@ contract VaultTestUnit is VaultTestCommon {
         amounts[0] = 10 ether;
 
         vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
-        vault.deposit(address(0), amounts, 10 ether, type(uint256).max);
+        vault.deposit(address(0), amounts, 10 ether, type(uint256).max, 0);
         vm.stopPrank();
     }
 
@@ -1497,7 +1522,8 @@ contract VaultTestUnit is VaultTestCommon {
             address(depositor),
             amounts,
             10000 ether,
-            type(uint256).max
+            type(uint256).max,
+            0
         );
         vm.stopPrank();
     }
@@ -1525,7 +1551,7 @@ contract VaultTestUnit is VaultTestCommon {
         amounts[0] = 10 ether;
 
         vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
 
         vm.stopPrank();
     }
@@ -1543,7 +1569,8 @@ contract VaultTestUnit is VaultTestCommon {
             address(this),
             new uint256[](3),
             10 gwei,
-            block.timestamp - 1
+            block.timestamp - 1,
+            0
         );
     }
 
@@ -1565,7 +1592,7 @@ contract VaultTestUnit is VaultTestCommon {
         );
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -1648,7 +1675,7 @@ contract VaultTestUnit is VaultTestCommon {
         );
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
 
         vm.expectRevert(abi.encodeWithSignature("Deadline()"));
         vault.registerWithdrawal(
@@ -1711,7 +1738,7 @@ contract VaultTestUnit is VaultTestCommon {
         );
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
 
         vault.registerWithdrawal(
             depositor,
@@ -1752,7 +1779,7 @@ contract VaultTestUnit is VaultTestCommon {
         );
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
 
         vm.expectRevert(abi.encodeWithSignature("ValueZero()"));
         vault.registerWithdrawal(
@@ -1784,7 +1811,7 @@ contract VaultTestUnit is VaultTestCommon {
         );
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
 
         vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
         vault.registerWithdrawal(
@@ -1816,7 +1843,7 @@ contract VaultTestUnit is VaultTestCommon {
         );
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vm.expectRevert(abi.encodeWithSignature("InvalidLength()"));
         vault.registerWithdrawal(
             depositor,
@@ -1847,7 +1874,7 @@ contract VaultTestUnit is VaultTestCommon {
         );
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -1904,7 +1931,7 @@ contract VaultTestUnit is VaultTestCommon {
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
         minAmounts[0] = type(uint256).max;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -1994,7 +2021,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = amounts;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -2056,7 +2083,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = amounts;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositorAntother,
             10 ether,
@@ -2116,7 +2143,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = amounts;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -2206,7 +2233,7 @@ contract VaultTestUnit is VaultTestCommon {
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
         minAmounts[0] = type(uint256).max;
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -2265,7 +2292,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -2332,7 +2359,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -2382,7 +2409,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositorAntother,
             10 ether,
@@ -2429,7 +2456,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -2484,7 +2511,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
 
         vm.expectRevert(abi.encodeWithSignature("InvalidState()"));
         vault.emergencyWithdraw(new uint256[](3), type(uint256).max);
@@ -2534,7 +2561,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -2568,7 +2595,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
         vault.registerWithdrawal(
             depositor,
             10 ether,
@@ -2616,7 +2643,7 @@ contract VaultTestUnit is VaultTestCommon {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 ether;
         uint256[] memory minAmounts = new uint256[](3);
-        vault.deposit(depositor, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor, amounts, 10 ether, type(uint256).max, 0);
 
         assertEq(vault.pendingWithdrawers().length, 0);
         assertEq(vault.pendingWithdrawers(0, 0).length, 0);
@@ -2650,7 +2677,7 @@ contract VaultTestUnit is VaultTestCommon {
             address(vault),
             10 ether
         );
-        vault.deposit(depositor2, amounts, 10 ether, type(uint256).max);
+        vault.deposit(depositor2, amounts, 10 ether, type(uint256).max, 0);
 
         assertEq(vault.pendingWithdrawers().length, 1);
         assertEq(vault.pendingWithdrawers(0, 0).length, 0);
@@ -2680,6 +2707,164 @@ contract VaultTestUnit is VaultTestCommon {
         assertEq(vault.pendingWithdrawersCount(), 2);
         assertEq(vault.pendingWithdrawers(2, 0)[0], depositor);
         assertEq(vault.pendingWithdrawers(2, 0)[1], depositor2);
+        vm.stopPrank();
+    }
+
+    function testTransferLockedUserToUserFail() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+
+        address[] memory users = new address[](6);
+        users[0] = address(vault);
+        users[1] = address(vault);
+        users[2] = user1;
+        users[3] = user2;
+
+        for (uint256 fromIndex = 0; fromIndex < users.length; fromIndex++) {
+            for (uint256 toIndex = 0; toIndex < users.length; toIndex++) {
+                address from = users[fromIndex];
+                address to = users[toIndex];
+                deal(address(vault), from, 1 wei);
+                if (
+                    from != address(vault) &&
+                    to != address(vault) &&
+                    from != address(0) &&
+                    to != address(0)
+                ) {
+                    vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
+                }
+                vault.update(from, to, 1 wei);
+            }
+        }
+        vm.stopPrank();
+    }
+
+    function testTransferLockedVaultToUserSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+        vault.mint(user1, 10 wei);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(address(vault), user2, 1 wei);
+        assertEq(vault.balanceOf(address(vault)), 10 gwei - 1 wei);
+        assertEq(vault.balanceOf(user2), 1 wei);
+
+        vm.stopPrank();
+    }
+
+    function testTransferLockedUserToVaultSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+        vault.mint(user1, 10 wei);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(user1, address(vault), 1 wei);
+        assertEq(vault.balanceOf(user1), 9 wei);
+        assertEq(vault.balanceOf(address(vault)), 10 gwei + 1 wei);
+
+        vm.stopPrank();
+    }
+
+    function testTransferLockedUserToZeroSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+        vault.mint(user1, 10 wei);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(user1, address(0), 1 wei);
+        assertEq(vault.balanceOf(user1), 9 wei);
+        assertEq(vault.balanceOf(address(0)), 0 wei);
+
+        vm.stopPrank();
+    }
+
+    function testTransferLockedZeroToUserSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(address(0), user1, 1 wei);
+        assertEq(vault.balanceOf(address(0)), 0 wei);
+        assertEq(vault.balanceOf(user1), 1 wei);
+
+        vm.stopPrank();
+    }
+
+    function testTransferLockedZeroToZeroSuccess() external {
+        VaultTest vault = new VaultTest("Mellow LRT Vault", "mLRT", admin);
+        vm.startPrank(admin);
+        vault.grantRole(vault.ADMIN_DELEGATE_ROLE(), admin);
+        vault.grantRole(vault.OPERATOR(), operator);
+        _setUp(vault);
+        vm.stopPrank();
+        _initialDeposit(vault);
+
+        vm.startPrank(admin);
+
+        VaultConfigurator configurator = VaultConfigurator(
+            address(vault.configurator())
+        );
+        configurator.stageTransfersLock(true);
+        configurator.commitTransfersLock();
+        vault.update(address(0), address(0), 1 wei);
+        assertEq(vault.balanceOf(address(0)), 0 wei);
+
         vm.stopPrank();
     }
 }
