@@ -41,6 +41,8 @@ import "../../src/oracles/WStethRatiosAggregatorV3.sol";
 import "../../src/oracles/ConstantAggregatorV3.sol";
 
 import "./Collector.sol";
+import "./CurvePoolMock.sol";
+import "./CurveCollector.sol";
 
 import "./interfaces/IDefaultCollateralFactory.sol";
 
@@ -55,6 +57,8 @@ library Constants {
     address public constant WSTETH = 0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
     address public constant WETH = 0x94373a4919B3240D86eA41593D5eBa789FEF3848;
 
+    address public constant HOLESKY_DEPLOYER =
+        0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
     address public constant DEFAULT_COLLATERAL_FACTORY =
         0x6c8509dbCf264fF1A8F2A9dEEeE5453391B1d2b7;
 
