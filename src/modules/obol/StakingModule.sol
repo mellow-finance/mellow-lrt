@@ -46,7 +46,6 @@ contract StakingModule is IStakingModule, DefaultModule {
 
     /// @inheritdoc IStakingModule
     function convertAndDeposit(
-        uint256,
         uint256 blockNumber,
         bytes32 blockHash,
         bytes32 depositRoot,
@@ -67,10 +66,7 @@ contract StakingModule is IStakingModule, DefaultModule {
                 ),
             depositSecurityModule.getMaxDeposits()
         );
-        uint256 amount = Math.min(
-            wethBalance,
-            ISteth(steth).DEPOSIT_SIZE() * maxDepositsCount
-        );
+        uint256 amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
         if (amount == 0) revert InvalidAmount();
         _wethToWSteth(amount);
         depositSecurityModule.depositBufferedEther(

@@ -232,7 +232,6 @@ contract Unit is Test {
         assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 0);
 
         bool success = strategy.convertAndDeposit(
-            amount,
             blockNumber,
             blockHash,
             depositRoot,
@@ -295,7 +294,6 @@ contract Unit is Test {
         uint256 amount = 1 ether;
         deal(Constants.WETH, address(vault), amount);
         strategy.convertAndDeposit(
-            amount,
             blockNumber,
             blockHash,
             depositRoot,
