@@ -13,7 +13,7 @@ library DeployConstants {
     uint8 public constant ADMIN_ROLE_BIT = 255;
 
     uint256 public constant INITIAL_DEPOSIT_ETH = 10 gwei;
-    uint256 public constant FIRST_DEPOSIT_VALUE = 1 ether;
+    uint256 public constant FIRST_DEPOSIT_ETH = 1 ether;
     uint256 public constant MAXIMAL_TOTAL_SUPPLY = 10_000 ether;
 
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
@@ -50,7 +50,7 @@ library DeployConstants {
 
     // Steakhouse:
     string public constant STEAKHOUSE_VAULT_TEST_NAME =
-        "Steakhouse Resteaking VaultTest";
+        "Steakhouse Vault (test)";
     string public constant STEAKHOUSE_VAULT_TEST_SYMBOL = "steakLRT (test)";
 
     // Re7

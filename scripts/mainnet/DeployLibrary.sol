@@ -19,6 +19,7 @@ library DeployLibrary {
         string lpTokenName;
         string lpTokenSymbol;
         uint256 initialDepositETH;
+        uint256 firstDepositETH;
         uint256 timeLockDelay;
         Initializer initializer;
         ERC20TvlModule erc20TvlModule;
