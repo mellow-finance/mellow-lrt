@@ -1,16 +1,22 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./DeployLibrary.sol";
+import "./DeployInterfaces.sol";
 
-contract DeployScript is CommonBase {
+abstract contract DeployScript is CommonBase {
     using SafeERC20 for IERC20;
 
     function commonContractsDeploy(
-        DeployLibrary.DeployParameters memory deployParams
-    ) public returns (DeployLibrary.DeployParameters memory) {
+        DeployInterfaces.DeployParameters memory deployParams
+    ) public returns (DeployInterfaces.DeployParameters memory) {
         if (address(deployParams.initializer) == address(0))
             deployParams.initializer = new Initializer();
+        if (address(deployParams.initialImplementation) == address(0))
+            deployParams.initialImplementation = new Vault(
+                "",
+                "",
+                address(this)
+            );
         if (address(deployParams.erc20TvlModule) == address(0))
             deployParams.erc20TvlModule = new ERC20TvlModule();
         if (address(deployParams.defaultBondModule) == address(0))
@@ -37,16 +43,14 @@ contract DeployScript is CommonBase {
     }
 
     function deploy(
-        DeployLibrary.DeployParameters memory deployParams
+        DeployInterfaces.DeployParameters memory deployParams
     )
         internal
         returns (
-            DeployLibrary.DeployParameters memory,
-            DeployLibrary.DeploySetup memory s
+            DeployInterfaces.DeployParameters memory,
+            DeployInterfaces.DeploySetup memory s
         )
     {
-        deployParams = commonContractsDeploy(deployParams);
-
         {
             TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
                 address(deployParams.initializer),
@@ -66,10 +70,9 @@ contract DeployScript is CommonBase {
                 )
             );
 
-            s.initialImplementation = new Vault("", "", address(1));
             ProxyAdmin(immutableProxyAdmin).upgradeAndCall(
                 ITransparentUpgradeableProxy(address(proxy)),
-                address(s.initialImplementation),
+                address(deployParams.initialImplementation),
                 new bytes(0)
             );
 
@@ -360,19 +363,5 @@ contract DeployScript is CommonBase {
         );
 
         return (deployParams, s);
-    }
-
-    function validateChainId() internal view {
-        uint256 chainId = block.chainid;
-        if (chainId != 1) {
-            revert(
-                string(
-                    abi.encodePacked(
-                        "Wrong chain id. Expected chain id: 1, actual: %d",
-                        Strings.toString(chainId)
-                    )
-                )
-            );
-        }
     }
 }

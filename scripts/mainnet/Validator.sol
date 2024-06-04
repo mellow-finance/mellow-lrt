@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./DeployLibrary.sol";
+import "./DeployInterfaces.sol";
 
-library ValidationLibrary {
+abstract contract Validator {
     function test() external pure {}
 
     function validateParameters(
-        DeployLibrary.DeployParameters memory deployParams,
-        DeployLibrary.DeploySetup memory setup
-    ) external view {
+        DeployInterfaces.DeployParameters memory deployParams,
+        DeployInterfaces.DeploySetup memory setup
+    ) internal view {
         // vault permissions
 
         bytes32 ADMIN_ROLE = keccak256("admin");

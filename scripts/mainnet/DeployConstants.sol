@@ -24,6 +24,11 @@ library DeployConstants {
         0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
     address public constant WSTETH_DEFAULT_BOND =
         0xC329400492c6ff2438472D4651Ad17389fCb843a;
+
+    address public constant WSTETH_DEFAULT_BOND_FACTORY_TEST =
+        0x3F95a719260ce6ec9622bC549c9adCff9edf16D9;
+    address public constant WSTETH_DEFAULT_BOND_TEST =
+        0xb56da788aa93ed50f50e0d38641519ffb3c3d1eb;
     address public constant MAINNET_TEST_DEPLOYER =
         0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 

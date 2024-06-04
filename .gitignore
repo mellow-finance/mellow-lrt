@@ -109,3 +109,6 @@ dist
 broadcast/
 cache/
 out/
+
+# foundry magic
+/src/tmp

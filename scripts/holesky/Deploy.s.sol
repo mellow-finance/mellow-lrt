@@ -69,7 +69,42 @@ contract Deploy is Script, DeployScript, Validator {
         DeployInterfaces.DeploySetup[]
             memory setups = new DeployInterfaces.DeploySetup[](n);
 
-        deployParams = commonContractsDeploy(deployParams);
+        if (true) {
+            deployParams.initializer = Initializer(
+                0xDA60A9DBAF70d0e3114117eCf6F1cCB570FBD6f8
+            );
+            deployParams.initialImplementation = Vault(
+                payable(0xE3CaF6904164621d5F30BE24B7f17A3B07F50C4E)
+            );
+            // deployParams.configurator = VaultConfigurator(0x7cC601500E990f6287E12074628E2577e7D1b6ca);
+            deployParams.erc20TvlModule = ERC20TvlModule(
+                0xF18111AD540712615494Ef056107a6C28aa33dcb
+            );
+            deployParams.defaultBondModule = DefaultBondModule(
+                0x634dBBf252938a0b4311DC9ba384dA250E078807
+            );
+            deployParams.defaultBondTvlModule = DefaultBondTvlModule(
+                0xB1A10B4021020D0963D3320071AdF2D874E97d34
+            );
+            deployParams.ratiosOracle = ManagedRatiosOracle(
+                0xdE2A9f40F989C34399BA5B3D1af3279629c6aCF5
+            );
+            deployParams.priceOracle = ChainlinkOracle(
+                0xA83B506542701557e048901e7AF8D65439Ed9C75
+            );
+            deployParams.wethAggregatorV3 = ConstantAggregatorV3(
+                0x76fD77549A6659888d9dd71267ea65a4235f4928
+            );
+            deployParams.wstethAggregatorV3 = WStethRatiosAggregatorV3(
+                0xA3B02E5620EeB6A42D119ea87961E053C2fD564E
+            );
+            deployParams
+                .defaultProxyImplementation = DefaultProxyImplementation(
+                0x3A328a73B48e70152215e6821A1a3d2733c94E40
+            );
+        } else {
+            deployParams = commonContractsDeploy(deployParams);
+        }
 
         n = 1;
         for (uint256 i = 0; i < n; i++) {
