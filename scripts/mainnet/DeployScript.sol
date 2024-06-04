@@ -84,10 +84,12 @@ abstract contract DeployScript is CommonBase {
 
         // setup timelocked controller
         {
-            address[] memory proposers = new address[](1);
+            address[] memory proposers = new address[](2);
             proposers[0] = deployParams.curator;
-            address[] memory executors = new address[](1);
+            proposers[1] = deployParams.admin;
+            address[] memory executors = new address[](2);
             executors[0] = deployParams.curator;
+            executors[1] = deployParams.admin;
             s.timeLockedCurator = new TimelockController(
                 deployParams.timeLockDelay,
                 proposers,

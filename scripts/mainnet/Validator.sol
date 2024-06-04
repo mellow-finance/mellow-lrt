@@ -42,6 +42,16 @@ contract Validator {
             require(
                 timelock.hasRole(timelock.EXECUTOR_ROLE(), deployParams.curator)
             );
+            // TODO: add
+            // require(
+            //     timelock.hasRole(timelock.PROPOSER_ROLE(), deployParams.admin)
+            // );
+            // require(
+            //     timelock.hasRole(timelock.CANCELLER_ROLE(), deployParams.admin)
+            // );
+            // require(
+            //     timelock.hasRole(timelock.EXECUTOR_ROLE(), deployParams.admin)
+            // );
         }
 
         // Vault permissions
@@ -511,6 +521,42 @@ contract Validator {
                     (IWSteth(deployParams.wsteth).getStETHByWstETH(1 ether) *
                         DeployConstants.Q96) /
                         1 ether
+            );
+        }
+
+        // DepositWrapper values
+        {
+            require(
+                address(setup.depositWrapper.vault()) == address(setup.vault),
+                "Invalid vault"
+            );
+            require(
+                setup.depositWrapper.weth() == deployParams.weth,
+                "Invalid weth"
+            );
+            require(
+                setup.depositWrapper.wsteth() == deployParams.wsteth,
+                "Invalid wsteth"
+            );
+            require(
+                setup.depositWrapper.steth() == deployParams.steth,
+                "Invalid steth"
+            );
+        }
+
+        // DefaultAccessControl admins
+        {
+            require(
+                setup.vault.getRoleAdmin(setup.vault.ADMIN_ROLE()) ==
+                    setup.vault.ADMIN_ROLE()
+            );
+            require(
+                setup.vault.getRoleAdmin(setup.vault.ADMIN_DELEGATE_ROLE()) ==
+                    setup.vault.ADMIN_ROLE()
+            );
+            require(
+                setup.vault.getRoleAdmin(setup.vault.OPERATOR()) ==
+                    setup.vault.ADMIN_DELEGATE_ROLE()
             );
         }
     }
