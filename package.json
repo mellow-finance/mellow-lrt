@@ -15,6 +15,7 @@
     "prettier:check": "prettier --check ./src/** && prettier --check ./tests/**",
     "prettier:changed": "prettier --write $(git status | grep '\\.sol' | grep -e 'modified:' -e 'new file:' | cut -d ' ' -f 4,5)",
     "test": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./tests/mainnet/\\*",
+    "test:prod": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017345 --match-path ./tests/mainnet/e2e/AcceptanceTestProd.t.sol",
     "test:acceptance": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./tests/mainnet/e2e/AcceptanceTest.t.sol",
     "test:holesky": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./tests/holesky/\\*",
     "size": "forge build --sizes --force",
