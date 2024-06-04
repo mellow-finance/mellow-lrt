@@ -41,15 +41,19 @@ contract Deploy is Script, DeployScript, Validator {
 
         // only for testing purposes
         if (test) {
-            TransparentUpgradeableProxy factory = new TransparentUpgradeableProxy(
-                    DeployConstants.WSTETH_DEFAULT_BOND_FACTORY,
-                    address(this),
-                    ""
-                );
-            deployParams.wstethDefaultBond = IDefaultCollateralFactory(
-                address(factory)
-            ).create(DeployConstants.WSTETH, type(uint256).max, address(0));
-            deployParams.wstethDefaultBondFactory = address(factory);
+            deployParams.wstethDefaultBond = DeployConstants
+                .WSTETH_DEFAULT_BOND_TEST;
+            deployParams.wstethDefaultBondFactory = DeployConstants
+                .WSTETH_DEFAULT_BOND_FACTORY_TEST;
+            // TransparentUpgradeableProxy factory = new TransparentUpgradeableProxy(
+            //         DeployConstants.WSTETH_DEFAULT_BOND_FACTORY,
+            //         address(this),
+            //         ""
+            //     );
+            // deployParams.wstethDefaultBond = IDefaultCollateralFactory(
+            //     address(factory)
+            // ).create(DeployConstants.WSTETH, type(uint256).max, address(0));
+            // deployParams.wstethDefaultBondFactory = address(factory);
         } else {
             deployParams.wstethDefaultBond = DeployConstants
                 .WSTETH_DEFAULT_BOND;
@@ -69,11 +73,39 @@ contract Deploy is Script, DeployScript, Validator {
         DeployInterfaces.DeploySetup[]
             memory setups = new DeployInterfaces.DeploySetup[](n);
 
-        if (false) {} else {
-            deployParams = commonContractsDeploy(deployParams);
-        }
+        deployParams.initializer = Initializer(
+            0x8f06BEB555D57F0D20dB817FF138671451084e24
+        );
+        deployParams.initialImplementation = Vault(
+            payable(0x0c3E4E9Ab10DfB52c52171F66eb5C7E05708F77F)
+        );
+        deployParams.erc20TvlModule = ERC20TvlModule(
+            0xCA60f449867c9101Ec80F8C611eaB39afE7bD638
+        );
+        deployParams.defaultBondModule = DefaultBondModule(
+            0x204043f4bda61F719Ad232b4196E1bc4131a3096
+        );
+        deployParams.defaultBondTvlModule = DefaultBondTvlModule(
+            0x48f758bd51555765EBeD4FD01c85554bD0B3c03B
+        );
+        deployParams.ratiosOracle = ManagedRatiosOracle(
+            0x1437DCcA4e1442f20285Fb7C11805E7a965681e2
+        );
+        deployParams.priceOracle = ChainlinkOracle(
+            0xA5046e9379B168AFA154504Cf16853B6a7728436
+        );
+        deployParams.wethAggregatorV3 = ConstantAggregatorV3(
+            0x3C1418499aa69A08DfBCed4243BBA7EB90dE3D09
+        );
+        deployParams.wstethAggregatorV3 = WStethRatiosAggregatorV3(
+            0x773ae8ca45D5701131CA84C58821a39DdAdC709c
+        );
+        deployParams.defaultProxyImplementation = DefaultProxyImplementation(
+            0x538459eeA06A06018C70bf9794e1c7b298694828
+        );
 
-        n = 0;
+        deployParams = commonContractsDeploy(deployParams);
+        n = 1;
         for (uint256 i = 0; i < n; i++) {
             deployParams.curator = curators[i];
             deployParams.lpTokenName = names[i];
@@ -100,7 +132,7 @@ contract Deploy is Script, DeployScript, Validator {
         }
         logDeployParams(deployParams);
 
-        // revert("Success");
+        revert("Success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {
