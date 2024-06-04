@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./Imports.sol";
 import "./DeployScript.sol";
-import "./DeployLibrary.sol";
-import "./ValidationLibrary.sol";
+import "./DeployInterfaces.sol";
+import "./Validator.sol";
 
-contract Deploy is Script, DeployScript {
+contract Deploy is Script, DeployScript, Validator {
     function run() external {
-        DeployLibrary.DeployParameters memory deployParams;
+        DeployInterfaces.DeployParameters memory deployParams;
 
         bool test = false;
         uint256 n = 4;
@@ -67,15 +66,18 @@ contract Deploy is Script, DeployScript {
         deployParams.firstDepositETH = DeployConstants.FIRST_DEPOSIT_ETH;
         deployParams.timeLockDelay = DeployConstants.TIMELOCK_TEST_DELAY;
 
-        DeployLibrary.DeploySetup[]
-            memory setups = new DeployLibrary.DeploySetup[](n);
+        DeployInterfaces.DeploySetup[]
+            memory setups = new DeployInterfaces.DeploySetup[](n);
 
+        deployParams = commonContractsDeploy(deployParams);
+
+        n = 1;
         for (uint256 i = 0; i < n; i++) {
             deployParams.curator = curators[i];
             deployParams.lpTokenName = names[i];
             deployParams.lpTokenSymbol = symbols[i];
             (deployParams, setups[i]) = deploy(deployParams);
-            ValidationLibrary.validateParameters(deployParams, setups[i]);
+            validateParameters(deployParams, setups[i]);
             setups[i].depositWrapper.deposit{
                 value: deployParams.firstDepositETH
             }(
@@ -97,13 +99,9 @@ contract Deploy is Script, DeployScript {
         // revert("Success");
     }
 
-    function logSetup(DeployLibrary.DeploySetup memory setup) internal view {
+    function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {
         console2.log(IERC20Metadata(address(setup.vault)).name());
         console2.log("Vault: ", address(setup.vault));
-        console2.log(
-            "InitialImplementation: ",
-            address(setup.initialImplementation)
-        );
         console2.log("Configurator: ", address(setup.configurator));
         console2.log("Validator: ", address(setup.validator));
         console2.log(
@@ -118,7 +116,7 @@ contract Deploy is Script, DeployScript {
     }
 
     function logDeployParams(
-        DeployLibrary.DeployParameters memory deployParams
+        DeployInterfaces.DeployParameters memory deployParams
     ) internal view {
         console2.log("Deployer: ", address(deployParams.deployer));
         console2.log("ProxyAdmin: ", address(deployParams.proxyAdmin));
@@ -141,6 +139,10 @@ contract Deploy is Script, DeployScript {
         console2.log("InitialDepositETH: ", deployParams.initialDepositETH);
         console2.log("TimeLockDelay: ", deployParams.timeLockDelay);
         console2.log("Initializer: ", address(deployParams.initializer));
+        console2.log(
+            "InitialImplementation: ",
+            address(deployParams.initialImplementation)
+        );
         console2.log("Erc20TvlModule: ", address(deployParams.erc20TvlModule));
         console2.log(
             "DefaultBondTvlModule: ",
