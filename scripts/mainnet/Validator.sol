@@ -3,13 +3,13 @@ pragma solidity 0.8.25;
 
 import "./DeployInterfaces.sol";
 
-abstract contract Validator {
+contract Validator {
     function test() external pure {}
 
     function validateParameters(
         DeployInterfaces.DeployParameters memory deployParams,
         DeployInterfaces.DeploySetup memory setup
-    ) internal view {
+    ) public view {
         // vault permissions
 
         bytes32 ADMIN_ROLE = keccak256("admin");
