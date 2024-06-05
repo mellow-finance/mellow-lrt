@@ -238,7 +238,50 @@ contract Deploy is Script {
         vm.startBroadcast(
             uint256(bytes32(vm.envBytes("HOLESKY_VAULT_ADMIN_PK")))
         );
-        deployVault();
+
+        // address u = 0x206739F22F107d63426dFC1bD3870B083FCc1367;
+        // address v = 0xBF706Bb08D760a766D990697477F6da2f1834993;
+        // IVault(v).withdrawalRequest(u);
+
+        // address[] memory vs = new address[](1);
+        // vs[0] = v;
+
+        /*
+            1. Time lock on curator
+            2. delay = 1 day
+            3. vault, proxy, validator admin = mellow + lido msig
+            4. strategy admin, strategy operator = curator msig
+            5. chainlink oracle: wsteth-to-weth + weth to usd,
+            6. ratios oracle: deposit: [100% weth, 0% wsteth], withdrawal: [0% weth, 100% wsteth]
+            7. deposit wrapper: weth, steth, wsteth
+            8. defaultBond factory == 
+
+        */
+
+        // address[] memory users = new address[](1);
+        // address[] memory vaults = new address[](3);
+        // users[0] = Constants.HOLESKY_DEPLOYER;
+        // vaults[0] = 0xBF706Bb08D760a766D990697477F6da2f1834993;
+        // vaults[1] = 0xEBB01cfBc08A891ca81034B80DBE7748963AdE53;
+        // vaults[2] = 0x7C9FA592083CFb9657D1869508116238F551A68d;
+
+        // CurveCollector curveCollector = new CurveCollector(
+        //     Constants.HOLESKY_DEPLOYER
+        // );
+
+        // address[] memory tokens = new address[](2);
+        // tokens[0] = 0xBF706Bb08D760a766D990697477F6da2f1834993;
+        // tokens[1] = Constants.WSTETH;
+
+        // CurvePoolMock curveMock = new CurvePoolMock(tokens);
+        // curveMock.mint(Constants.HOLESKY_DEPLOYER, 1 gwei);
+
+        // curveCollector.addPool(address(curveMock));
+
+        // curveCollector.collect(users);
+        // collector.multiCollect(users, vaults);
+
+        // deployVault();
         vm.stopBroadcast();
     }
 }

@@ -92,9 +92,14 @@ contract ChainlinkOracle is IChainlinkOracle {
             baseToken
         );
         priceX96_ = FullMath.mulDiv(
-            tokenPrice * 10 ** baseDecimals,
+            tokenPrice,
             Q96,
-            baseTokenPrice * 10 ** decimals
+            10 ** (decimals + IERC20Metadata(token).decimals())
+        );
+        priceX96_ = FullMath.mulDiv(
+            priceX96_,
+            10 ** (baseDecimals + IERC20Metadata(baseToken).decimals()),
+            baseTokenPrice
         );
     }
 }

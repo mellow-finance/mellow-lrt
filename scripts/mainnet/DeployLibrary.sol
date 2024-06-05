@@ -7,12 +7,9 @@ import "./DeployConstants.sol";
 library DeployLibrary {
     struct DeployParameters {
         address deployer;
+        address proxyAdmin;
         address admin;
         address curator;
-        address operator;
-        address proposer;
-        address acceptor;
-        address emergencyOperator;
         address wstethDefaultBond;
         address wsteth;
         address steth;
@@ -21,23 +18,28 @@ library DeployLibrary {
         string lpTokenName;
         string lpTokenSymbol;
         uint256 initialDepositETH;
-    }
-
-    struct DeploySetup {
+        uint256 timeLockDelay;
         Initializer initializer;
-        Vault vault;
-        Vault initialImplementation;
-        IVaultConfigurator configurator;
         ERC20TvlModule erc20TvlModule;
         DefaultBondTvlModule defaultBondTvlModule;
         DefaultBondModule defaultBondModule;
-        ManagedValidator validator;
         ManagedRatiosOracle ratiosOracle;
         ChainlinkOracle priceOracle;
-        DefaultBondStrategy defaultBondStrategy;
-        DepositWrapper depositWrapper;
         IAggregatorV3 wethAggregatorV3;
         IAggregatorV3 wstethAggregatorV3;
+        DefaultProxyImplementation defaultProxyImplementation;
+    }
+
+    struct DeploySetup {
+        Vault vault; // TransparantUpgradeableProxy
+        Vault initialImplementation; // base proxy implementation
+        IVaultConfigurator configurator;
+        ManagedValidator validator;
+        DefaultBondStrategy defaultBondStrategy;
+        DepositWrapper depositWrapper;
+        TimelockController timeLockedCurator;
         uint256 wstethAmountDeposited;
     }
+
+    function test() external pure {}
 }
