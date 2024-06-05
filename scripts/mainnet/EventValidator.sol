@@ -174,8 +174,10 @@ abstract contract EventValidator is StdAssertions, CommonBase {
         {
             address[] memory allowedContracts = new address[](1);
             bytes4[] memory allowedSignature = new bytes4[](1);
+            uint8[] memory roleBits = new uint8[](1);
             allowedContracts[0] = address(setup.vault);
             allowedSignature[0] = IVault.deposit.selector;
+            roleBits[0] = DeployConstants.DEPOSITOR_ROLE_BIT;
             for (uint256 i = 0; i < e.length; i++) {
                 Vm.Log memory e_ = e[i];
                 if (
@@ -213,7 +215,7 @@ abstract contract EventValidator is StdAssertions, CommonBase {
                     addressSpace,
                     contractsForCheck,
                     setup.validator,
-                    1 << DeployConstants.DEPOSITOR_ROLE_BIT,
+                    1 << roleBits[i],
                     allowedSignature[i]
                 );
             }
@@ -263,8 +265,6 @@ abstract contract EventValidator is StdAssertions, CommonBase {
                 );
             }
         }
-
-        assertTrue(false, "Success");
     }
 
     function has(
