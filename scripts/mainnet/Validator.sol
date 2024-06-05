@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import "./DeployInterfaces.sol";
 
-contract Validator {
+abstract contract Validator {
     function test() external pure {}
 
     function validateParameters(
@@ -52,16 +52,19 @@ contract Validator {
                 ),
                 "TimeLockedCurator address has no EXECUTOR_ROLE"
             );
-            // TODO: add
-            // require(
-            //     timelock.hasRole(timelock.PROPOSER_ROLE(), deployParams.admin)
-            // );
-            // require(
-            //     timelock.hasRole(timelock.CANCELLER_ROLE(), deployParams.admin)
-            // );
-            // require(
-            //     timelock.hasRole(timelock.EXECUTOR_ROLE(), deployParams.admin)
-            // );
+
+            require(
+                timelock.hasRole(timelock.PROPOSER_ROLE(), deployParams.admin),
+                "Admin has no PROPOSER_ROLE"
+            );
+            require(
+                timelock.hasRole(timelock.CANCELLER_ROLE(), deployParams.admin),
+                "Admin has no CANCELLER_ROLE"
+            );
+            require(
+                timelock.hasRole(timelock.EXECUTOR_ROLE(), deployParams.admin),
+                "Admin has no EXECUTOR_ROLE"
+            );
         }
 
         // Vault permissions

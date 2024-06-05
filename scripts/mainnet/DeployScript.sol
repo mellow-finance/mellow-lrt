@@ -64,21 +64,22 @@ abstract contract DeployScript is CommonBase {
                 deployParams.deployer
             );
 
-            address immutableProxyAdmin = address(
-                uint160(
-                    uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT))
+            s.proxyAdmin = ProxyAdmin(
+                address(
+                    uint160(
+                        uint256(
+                            vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT)
+                        )
+                    )
                 )
             );
-
-            ProxyAdmin(immutableProxyAdmin).upgradeAndCall(
+            s.proxyAdmin.upgradeAndCall(
                 ITransparentUpgradeableProxy(address(proxy)),
                 address(deployParams.initialImplementation),
                 new bytes(0)
             );
 
-            ProxyAdmin(immutableProxyAdmin).transferOwnership(
-                address(deployParams.proxyAdmin)
-            );
+            s.proxyAdmin.transferOwnership(address(deployParams.proxyAdmin));
             s.vault = Vault(payable(proxy));
         }
 

@@ -2,12 +2,14 @@
 pragma solidity 0.8.25;
 
 import "forge-std/Test.sol";
+import {StdAssertions} from "forge-std/StdAssertions.sol";
 import "forge-std/Script.sol";
 import "forge-std/Base.sol";
 import "forge-std/Vm.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/governance/TimelockController.sol";
@@ -85,6 +87,7 @@ interface DeployInterfaces {
 
     struct DeploySetup {
         Vault vault; // TransparantUpgradeableProxy
+        ProxyAdmin proxyAdmin;
         IVaultConfigurator configurator;
         ManagedValidator validator;
         DefaultBondStrategy defaultBondStrategy;

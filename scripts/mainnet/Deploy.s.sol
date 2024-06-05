@@ -4,8 +4,9 @@ pragma solidity 0.8.25;
 import "./DeployScript.sol";
 import "./DeployInterfaces.sol";
 import "./Validator.sol";
+import "./EventValidator.sol";
 
-contract Deploy is Script, DeployScript, Validator {
+contract Deploy is Script, DeployScript, Validator, EventValidator {
     function run() external {
         DeployInterfaces.DeployParameters memory deployParams;
 
@@ -110,7 +111,11 @@ contract Deploy is Script, DeployScript, Validator {
             deployParams.curator = curators[i];
             deployParams.lpTokenName = names[i];
             deployParams.lpTokenSymbol = symbols[i];
+
+            vm.recordLogs();
             (deployParams, setups[i]) = deploy(deployParams);
+            validateEvents(deployParams, setups[i], vm.getRecordedLogs());
+
             validateParameters(deployParams, setups[i]);
             if (false) {
                 setups[i].depositWrapper.deposit{
