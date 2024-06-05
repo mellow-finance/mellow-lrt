@@ -40,6 +40,10 @@ contract DefaultBondMock is IDefaultBond, ERC20 {
         IERC20(asset).transfer(recipient, amount);
     }
 
+    function limit() external view returns (uint256) {
+        return type(uint256).max;
+    }
+
     function totalRepaidDebt() external pure returns (uint256) {}
 
     function issuerRepaidDebt(address) external pure returns (uint256) {}

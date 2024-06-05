@@ -63,7 +63,6 @@ contract AcceptanceTest is DeployScript {
                     .RE7_VAULT_WETH_AMOUNT_DEPOSITED,
                 firstDepositETH: DeployConstantsProd
                     .RE7_VAULT_WETH_AMOUNT_DEPOSITED,
-                timeLockDelay: 60,
                 initialImplementation: Vault(
                     DeployConstantsProd.RE7_VAULT_ADDRESS_INIT
                 ),
@@ -109,9 +108,6 @@ contract AcceptanceTest is DeployScript {
         );
         setup.depositWrapper = DepositWrapper(
             DeployConstantsProd.RE7_VAULT_DEPOSIT_WRAPPER
-        );
-        setup.timeLockedCurator = TimelockController(
-            DeployConstantsProd.RE7_VAULT_TIME_LOCKED_CONTROLLER
         );
         setup.wstethAmountDeposited = DeployConstantsProd
             .RE7_VAULT_WETH_AMOUNT_DEPOSITED;

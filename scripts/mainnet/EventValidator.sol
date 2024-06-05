@@ -3,16 +3,7 @@ pragma solidity 0.8.25;
 
 import "./DeployInterfaces.sol";
 
-abstract contract EventValidator is StdAssertions, CommonBase {
-    bytes32 public constant OPERATOR = keccak256("operator");
-    bytes32 public constant ADMIN_ROLE = keccak256("admin");
-    bytes32 public constant ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
-    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
-
-    bytes32 public constant PROPOSER_ROLE = keccak256("PROPOSER_ROLE");
-    bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
-    bytes32 public constant CANCELLER_ROLE = keccak256("CANCELLER_ROLE");
-
+abstract contract EventValidator is StdAssertions {
     bytes32 public constant CONFIGURATOR_BASE_DELAY_SLOT =
         bytes32(uint256(0x1));
     bytes32 public constant CONFIGURATOR_DEPOSIT_CALLBACK_DELAY_SLOT =

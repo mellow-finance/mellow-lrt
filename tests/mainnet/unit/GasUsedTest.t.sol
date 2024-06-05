@@ -23,9 +23,6 @@ contract GasUsedTest is Validator, Test {
         setup.depositWrapper = DepositWrapper(
             payable(0x9CaA80709b4F9a72b70efc7Db4bE0150Bf362126)
         );
-        setup.timeLockedCurator = TimelockController(
-            payable(0xF1504311dB8df3e02D56Ef6a2278188969cC2EDA)
-        );
         setup.wstethAmountDeposited = 8557152514;
 
         params.deployer = 0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
@@ -42,7 +39,6 @@ contract GasUsedTest is Validator, Test {
         params.lpTokenName = "Steakhouse Vault (test)";
         params.lpTokenSymbol = "steakLRT (test)";
         params.initialDepositETH = 10000000000;
-        params.timeLockDelay = 60;
         params.initialImplementation = Vault(
             payable(0x0c3E4E9Ab10DfB52c52171F66eb5C7E05708F77F)
         );
