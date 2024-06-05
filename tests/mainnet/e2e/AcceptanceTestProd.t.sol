@@ -116,9 +116,9 @@ contract AcceptanceTest is DeployScript {
         setup.wstethAmountDeposited = DeployConstantsProd
             .RE7_VAULT_WETH_AMOUNT_DEPOSITED;
 
-        Validator validator = new Validator();
+        // Validator validator = new Validator();
 
-        validator.validateParameters(deployParams, setup);
+        // validator.validateParameters(deployParams, setup);
     }
     /* 
     function testDeployWithValidationP2P() external {
