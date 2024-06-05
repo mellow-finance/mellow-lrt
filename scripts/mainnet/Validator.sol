@@ -141,11 +141,11 @@ abstract contract Validator {
             );
             require(
                 setup.vault.balanceOf(address(setup.vault)) ==
-                    deployParams.initialDepositETH,
+                    setup.wstethAmountDeposited,
                 "Invalid vault balance"
             );
             require(
-                setup.vault.totalSupply() == deployParams.initialDepositETH,
+                setup.vault.totalSupply() == setup.wstethAmountDeposited,
                 "Invalid total supply"
             );
             require(
@@ -303,12 +303,12 @@ abstract contract Validator {
 
             {
                 require(
-                    setup.vault.totalSupply() == deployParams.initialDepositETH
+                    setup.vault.totalSupply() == setup.wstethAmountDeposited
                 );
                 require(setup.vault.balanceOf(deployParams.deployer) == 0);
                 require(
                     setup.vault.balanceOf(address(setup.vault)) ==
-                        deployParams.initialDepositETH
+                        setup.wstethAmountDeposited
                 );
 
                 IVault.ProcessWithdrawalsStack memory stack = setup
@@ -324,7 +324,7 @@ abstract contract Validator {
                     stack.tokensHash == keccak256(abi.encode(expectedTokens))
                 );
 
-                require(stack.totalSupply == deployParams.initialDepositETH);
+                require(stack.totalSupply == setup.wstethAmountDeposited);
                 require(
                     deployParams.initialDepositETH - 2 wei <=
                         stack.totalValue &&

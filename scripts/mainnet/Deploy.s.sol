@@ -113,9 +113,8 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
 
             vm.recordLogs();
             (deployParams, setups[i]) = deploy(deployParams);
-            validateEvents(deployParams, setups[i], vm.getRecordedLogs());
-
             validateParameters(deployParams, setups[i]);
+            validateEvents(deployParams, setups[i], vm.getRecordedLogs());
             if (false) {
                 setups[i].depositWrapper.deposit{
                     value: deployParams.firstDepositETH
