@@ -21,52 +21,6 @@ abstract contract Validator {
         uint256 DEFAULT_BOND_STRATEGY_ROLE_MASK = 1 << 1;
         uint256 DEFAULT_BOND_MODULE_ROLE_MASK = 1 << 2;
 
-        // TimelockController
-        {
-            TimelockController timelock = setup.timeLockedCurator;
-            require(
-                timelock.hasRole(
-                    timelock.DEFAULT_ADMIN_ROLE(),
-                    deployParams.admin
-                ),
-                "Admin address has no ADMIN_ROLE"
-            );
-            require(
-                timelock.hasRole(
-                    timelock.PROPOSER_ROLE(),
-                    deployParams.curator
-                ),
-                "TimeLockedCurator address has no PROPOSER_ROLE"
-            );
-            require(
-                timelock.hasRole(
-                    timelock.CANCELLER_ROLE(),
-                    deployParams.curator
-                ),
-                "TimeLockedCurator address has no CANCELLER_ROLE"
-            );
-            require(
-                timelock.hasRole(
-                    timelock.EXECUTOR_ROLE(),
-                    deployParams.curator
-                ),
-                "TimeLockedCurator address has no EXECUTOR_ROLE"
-            );
-
-            require(
-                timelock.hasRole(timelock.PROPOSER_ROLE(), deployParams.admin),
-                "Admin has no PROPOSER_ROLE"
-            );
-            require(
-                timelock.hasRole(timelock.CANCELLER_ROLE(), deployParams.admin),
-                "Admin has no CANCELLER_ROLE"
-            );
-            require(
-                timelock.hasRole(timelock.EXECUTOR_ROLE(), deployParams.admin),
-                "Admin has no EXECUTOR_ROLE"
-            );
-        }
-
         // Vault permissions
         {
             Vault vault = setup.vault;
@@ -79,22 +33,8 @@ abstract contract Validator {
                 "Admin not set"
             );
             require(
-                vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 1,
+                vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0,
                 "Wrong admin delegate count"
-            );
-            require(
-                !vault.hasRole(
-                    ADMIN_DELEGATE_ROLE,
-                    address(deployParams.curator)
-                ),
-                "Wrong curator"
-            );
-            require(
-                vault.hasRole(
-                    ADMIN_DELEGATE_ROLE,
-                    address(setup.timeLockedCurator)
-                ),
-                "Curator not set"
             );
             require(
                 vault.getRoleMemberCount(OPERATOR_ROLE) == 1,
@@ -150,17 +90,12 @@ abstract contract Validator {
                 validator.userRoles(deployParams.admin) == ADMIN_ROLE_MASK,
                 "Admin has no roles"
             );
-            require(
-                validator.userRoles(address(setup.timeLockedCurator)) == 0,
-                "Time locked curator has roles"
-            );
             if (deployParams.curator != deployParams.admin) {
                 require(
                     validator.userRoles(deployParams.curator) == 0,
                     "Curator has roles"
                 );
             }
-
             require(
                 validator.userRoles(address(setup.defaultBondStrategy)) ==
                     DEFAULT_BOND_STRATEGY_ROLE_MASK,

@@ -69,7 +69,6 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         deployParams.maximalTotalSupply = DeployConstants.MAXIMAL_TOTAL_SUPPLY;
         deployParams.initialDepositETH = DeployConstants.INITIAL_DEPOSIT_ETH;
         deployParams.firstDepositETH = DeployConstants.FIRST_DEPOSIT_ETH;
-        deployParams.timeLockDelay = DeployConstants.TIMELOCK_TEST_DELAY;
 
         DeployInterfaces.DeploySetup[]
             memory setups = new DeployInterfaces.DeploySetup[](n);
@@ -150,7 +149,6 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             address(setup.defaultBondStrategy)
         );
         console2.log("DepositWrapper: ", address(setup.depositWrapper));
-        console2.log("TimeLockedCurator: ", address(setup.timeLockedCurator));
         console2.log("WstethAmountDeposited: ", setup.wstethAmountDeposited);
         console2.log("---------------------------");
         block.timestamp;
@@ -178,7 +176,6 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         console2.log("LpTokenName: ", deployParams.lpTokenName);
         console2.log("LpTokenSymbol: ", deployParams.lpTokenSymbol);
         console2.log("InitialDepositETH: ", deployParams.initialDepositETH);
-        console2.log("TimeLockDelay: ", deployParams.timeLockDelay);
         console2.log("Initializer: ", address(deployParams.initializer));
         console2.log(
             "InitialImplementation: ",

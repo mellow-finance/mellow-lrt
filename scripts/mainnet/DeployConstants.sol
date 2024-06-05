@@ -32,9 +32,6 @@ library DeployConstants {
     address public constant MAINNET_TEST_DEPLOYER =
         0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 
-    uint256 public constant TIMELOCK_PROD_DELAY = 1 days;
-    uint256 public constant TIMELOCK_TEST_DELAY = 60 seconds;
-
     address public constant MELLOW_LIDO_TEST_MULTISIG =
         0x4573ed3B7bFc6c28a5c7C5dF0E292148e3448Fd6;
     address public constant MELLOW_LIDO_TEST_PROXY_MULTISIG =

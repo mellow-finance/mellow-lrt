@@ -72,7 +72,6 @@ interface DeployInterfaces {
         string lpTokenSymbol;
         uint256 initialDepositETH;
         uint256 firstDepositETH;
-        uint256 timeLockDelay;
         Vault initialImplementation;
         Initializer initializer;
         ERC20TvlModule erc20TvlModule;
@@ -92,7 +91,6 @@ interface DeployInterfaces {
         ManagedValidator validator;
         DefaultBondStrategy defaultBondStrategy;
         DepositWrapper depositWrapper;
-        TimelockController timeLockedCurator;
         uint256 wstethAmountDeposited;
     }
 }

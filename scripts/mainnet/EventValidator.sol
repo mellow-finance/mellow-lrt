@@ -57,301 +57,285 @@ abstract contract EventValidator is StdAssertions, CommonBase {
     bytes32 public constant CONFIGURATOR_VALIDATOR_SLOT =
         bytes32(uint256(0x3d));
     bytes32 public constant CONFIGURATOR_IS_DELEGATE_MODULE_APPROVED_SLOT =
-        bytes32(uint256(0x4));
+        bytes32(uint256(0x40));
 
     function validateEvents(
         DeployInterfaces.DeployParameters memory deployParams,
         DeployInterfaces.DeploySetup memory setup,
         Vm.Log[] memory e
-    ) public {
-        assertEq(e.length, 111);
+    ) public view {
+        address[] memory addressSpace = new address[](e.length * 9 + 2);
+        uint256 iterator = 0;
+        addressSpace[iterator++] = address(0);
+        addressSpace[iterator++] = address(deployParams.deployer);
+        for (uint256 i = 0; i < e.length; i++) {
+            addressSpace[iterator++] = e[i].emitter;
+            for (uint256 j = 0; j < e[i].topics.length; j++) {
+                addressSpace[iterator++] = address(
+                    uint160(uint256(e[i].topics[j]))
+                );
+            }
+        }
+        makeUnique(addressSpace);
 
-        assertEq(e[0].emitter, address(setup.vault));
-        assertEq(e[0].topics.length, 2);
-        assertEq(e[0].topics[0], ERC1967Utils.Upgraded.selector);
-        assertEq(
-            e[0].topics[1],
-            bytes32(uint256(uint160(address(deployParams.initializer))))
-        );
-        assertEq(e[0].data, new bytes(0));
-
-        assertEq(e[1].emitter, address(setup.proxyAdmin));
-        assertEq(e[1].topics.length, 3);
-        assertEq(e[1].topics[0], Ownable.OwnershipTransferred.selector);
-        assertEq(e[1].topics[1], bytes32(uint256(uint160(address(0)))));
-        assertEq(
-            e[1].topics[2],
-            bytes32(uint256(uint160(address(deployParams.deployer))))
-        );
-        assertEq(e[1].data, new bytes(0));
-
-        assertEq(e[2].emitter, address(setup.vault));
-        assertEq(e[2].topics.length, 1);
-        assertEq(e[2].topics[0], ERC1967Utils.AdminChanged.selector);
-        assertEq(e[2].data, abi.encode(address(0), address(setup.proxyAdmin)));
-
-        validateRoleGrantedEvent(
-            e[3],
-            address(setup.vault),
-            OPERATOR,
-            deployParams.deployer,
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[4],
-            address(setup.vault),
-            ADMIN_ROLE,
-            deployParams.deployer,
-            deployParams.deployer
-        );
-
-        assertEq(e[5].emitter, address(setup.vault));
-        assertEq(e[5].topics.length, 4);
-        assertEq(e[5].topics[0], IAccessControl.RoleAdminChanged.selector);
-        assertEq(e[5].topics[1], ADMIN_ROLE);
-        assertEq(e[5].topics[2], DEFAULT_ADMIN_ROLE);
-        assertEq(e[5].topics[3], ADMIN_ROLE);
-        assertEq(e[5].data, new bytes(0));
-
-        assertEq(e[6].emitter, address(setup.vault));
-        assertEq(e[6].topics.length, 4);
-        assertEq(e[6].topics[0], IAccessControl.RoleAdminChanged.selector);
-        assertEq(e[6].topics[1], ADMIN_DELEGATE_ROLE);
-        assertEq(e[6].topics[2], DEFAULT_ADMIN_ROLE);
-        assertEq(e[6].topics[3], ADMIN_ROLE);
-        assertEq(e[6].data, new bytes(0));
-
-        assertEq(e[7].emitter, address(setup.vault));
-        assertEq(e[7].topics.length, 4);
-        assertEq(e[7].topics[0], IAccessControl.RoleAdminChanged.selector);
-        assertEq(e[7].topics[1], OPERATOR);
-        assertEq(e[7].topics[2], DEFAULT_ADMIN_ROLE);
-        assertEq(e[7].topics[3], ADMIN_DELEGATE_ROLE);
-        assertEq(e[7].data, new bytes(0));
-
-        assertEq(e[8].emitter, address(setup.vault));
-        assertEq(e[8].topics.length, 2);
-        assertEq(e[8].topics[0], ERC1967Utils.Upgraded.selector);
-        assertEq(
-            e[8].topics[1],
-            bytes32(
-                uint256(uint160(address(deployParams.initialImplementation)))
-            )
-        );
-        assertEq(e[8].data, new bytes(0));
-
-        assertEq(e[9].emitter, address(setup.proxyAdmin));
-        assertEq(e[9].topics.length, 3);
-        assertEq(e[9].topics[0], Ownable.OwnershipTransferred.selector);
-        assertEq(
-            e[9].topics[1],
-            bytes32(uint256(uint160(address(deployParams.deployer))))
-        );
-        assertEq(
-            e[9].topics[2],
-            bytes32(uint256(uint160(address(deployParams.proxyAdmin))))
-        );
-        assertEq(e[9].data, new bytes(0));
-
-        validateRoleGrantedEvent(
-            e[10],
-            address(setup.timeLockedCurator),
-            DEFAULT_ADMIN_ROLE,
-            address(setup.timeLockedCurator),
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[11],
-            address(setup.timeLockedCurator),
-            DEFAULT_ADMIN_ROLE,
-            address(deployParams.admin),
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[12],
-            address(setup.timeLockedCurator),
-            PROPOSER_ROLE,
-            address(deployParams.curator),
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[13],
-            address(setup.timeLockedCurator),
-            CANCELLER_ROLE,
-            address(deployParams.curator),
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[14],
-            address(setup.timeLockedCurator),
-            PROPOSER_ROLE,
-            address(deployParams.admin),
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[15],
-            address(setup.timeLockedCurator),
-            CANCELLER_ROLE,
-            address(deployParams.admin),
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[16],
-            address(setup.timeLockedCurator),
-            EXECUTOR_ROLE,
-            address(deployParams.curator),
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[17],
-            address(setup.timeLockedCurator),
-            EXECUTOR_ROLE,
-            address(deployParams.admin),
-            deployParams.deployer
-        );
-
-        assertEq(e[18].emitter, address(setup.timeLockedCurator));
-        assertEq(e[18].topics.length, 1);
-        assertEq(e[18].topics[0], TimelockController.MinDelayChange.selector);
-        assertEq(e[18].data, abi.encode(uint256(0), uint256(60)));
-
-        validateRoleGrantedEvent(
-            e[19],
-            address(setup.vault),
-            ADMIN_DELEGATE_ROLE,
-            address(deployParams.deployer),
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[20],
-            address(setup.vault),
-            ADMIN_ROLE,
-            address(deployParams.admin),
-            deployParams.deployer
-        );
-        validateRoleGrantedEvent(
-            e[21],
-            address(setup.vault),
-            ADMIN_DELEGATE_ROLE,
-            address(setup.timeLockedCurator),
-            deployParams.deployer
-        );
-
-        assertEq(e[22].emitter, address(setup.vault));
-        assertEq(e[22].topics.length, 1);
-        assertEq(e[22].topics[0], IVault.TvlModuleAdded.selector);
-        assertEq(e[22].data, abi.encode(address(deployParams.erc20TvlModule)));
-
-        assertEq(e[23].emitter, address(setup.vault));
-        assertEq(e[23].topics.length, 1);
-        assertEq(e[23].topics[0], IVault.TvlModuleAdded.selector);
-        assertEq(
-            e[23].data,
-            abi.encode(address(deployParams.defaultBondTvlModule))
-        );
-
-        assertEq(e[24].emitter, address(setup.vault));
-        assertEq(e[24].topics.length, 1);
-        assertEq(e[24].topics[0], IVault.TokenAdded.selector);
-        assertEq(e[24].data, abi.encode(deployParams.wsteth));
+        // user roles
         {
-            uint256[] memory depositWithdrawalRatiosX96 = new uint256[](1);
-            depositWithdrawalRatiosX96[0] = 2 ** 96;
+            address[] memory allowedUsers = new address[](1);
+            allowedUsers[0] = deployParams.admin;
+            checkManagedValidatorUserRoles(
+                addressSpace,
+                allowedUsers,
+                setup.validator,
+                1 << DeployConstants.ADMIN_ROLE_BIT
+            );
 
-            assertEq(e[25].emitter, address(deployParams.ratiosOracle));
-            assertEq(e[25].topics.length, 2);
-            assertEq(
-                e[25].topics[0],
-                IManagedRatiosOracle.ManagedRatiosOracleUpdateRatios.selector
+            allowedUsers[0] = address(setup.defaultBondStrategy);
+            checkManagedValidatorUserRoles(
+                addressSpace,
+                allowedUsers,
+                setup.validator,
+                1 << DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
             );
-            assertEq(
-                e[25].topics[1],
-                bytes32(uint256(uint160(address(setup.vault))))
-            );
-            assertEq(e[25].data, abi.encode(true, depositWithdrawalRatiosX96));
 
-            assertEq(e[26].emitter, address(deployParams.ratiosOracle));
-            assertEq(e[26].topics.length, 2);
-            assertEq(
-                e[26].topics[0],
-                IManagedRatiosOracle.ManagedRatiosOracleUpdateRatios.selector
+            allowedUsers[0] = address(setup.defaultBondStrategy);
+            checkManagedValidatorUserRoles(
+                addressSpace,
+                allowedUsers,
+                setup.validator,
+                1 << DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
             );
-            assertEq(
-                e[26].topics[1],
-                bytes32(uint256(uint160(address(setup.vault))))
+
+            allowedUsers[0] = address(setup.vault);
+            checkManagedValidatorUserRoles(
+                addressSpace,
+                allowedUsers,
+                setup.validator,
+                1 << DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
             );
-            assertEq(e[26].data, abi.encode(false, depositWithdrawalRatiosX96));
+
+            allowedUsers = new address[](0);
+            for (uint256 bit = 0; bit < 256; bit++) {
+                if (bit == DeployConstants.ADMIN_ROLE_BIT) continue;
+                if (bit == DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT)
+                    continue;
+                if (bit == DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT)
+                    continue;
+                checkManagedValidatorUserRoles(
+                    addressSpace,
+                    allowedUsers,
+                    setup.validator,
+                    1 << bit
+                );
+            }
         }
 
-        validateConfiguratorStageEvent(
-            e[27],
-            address(setup.configurator),
-            CONFIGURATOR_RATIOS_ORACLE_SLOT,
-            uint256(uint160(address(deployParams.ratiosOracle))),
-            block.timestamp
-        );
-
-        validateConfiguratorCommitEvent(
-            e[28],
-            address(setup.configurator),
-            CONFIGURATOR_RATIOS_ORACLE_SLOT,
-            uint256(uint160(address(deployParams.ratiosOracle))),
-            block.timestamp
-        );
-
-        assertEq(e[29].emitter, address(deployParams.priceOracle));
-        assertEq(e[29].topics.length, 2);
+        // public roles
         assertEq(
-            e[29].topics[0],
-            IChainlinkOracle.ChainlinkOracleSetBaseToken.selector
+            setup.validator.publicRoles(),
+            1 << DeployConstants.DEPOSITOR_ROLE_BIT,
+            "Public roles check failed"
         );
-        assertEq(
-            e[29].topics[1],
-            bytes32(uint256(uint160(address(setup.vault))))
-        );
-        assertEq(e[29].data, abi.encode(deployParams.weth, block.timestamp));
 
+        // contract roles
         {
-            address[] memory tokens = new address[](2);
-            tokens[0] = deployParams.weth;
-            tokens[1] = deployParams.wsteth;
-            IChainlinkOracle.AggregatorData[]
-                memory data = new IChainlinkOracle.AggregatorData[](2);
-            data[0].aggregatorV3 = address(deployParams.wethAggregatorV3);
-            data[0].maxAge = 0;
-            data[1].aggregatorV3 = address(deployParams.wstethAggregatorV3);
-            data[1].maxAge = 0;
+            address[] memory allowedUsers = new address[](1);
+            allowedUsers[0] = address(setup.vault);
+            checkManagedValidatorAllowAllSignaturesRoles(
+                addressSpace,
+                allowedUsers,
+                setup.validator,
+                1 << DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
+            );
 
-            assertEq(e[30].emitter, address(deployParams.priceOracle));
-            assertEq(e[30].topics.length, 2);
-            assertEq(
-                e[30].topics[0],
-                IChainlinkOracle.ChainlinkOracleSetChainlinkOracles.selector
+            allowedUsers[0] = address(deployParams.defaultBondModule);
+            checkManagedValidatorAllowAllSignaturesRoles(
+                addressSpace,
+                allowedUsers,
+                setup.validator,
+                1 << DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
             );
-            assertEq(
-                e[30].topics[1],
-                bytes32(uint256(uint160(address(setup.vault))))
-            );
-            assertEq(e[30].data, abi.encode(tokens, data, block.timestamp));
+
+            allowedUsers = new address[](0);
+            for (uint256 bit = 0; bit < 256; bit++) {
+                if (bit == DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT)
+                    continue;
+                if (bit == DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT)
+                    continue;
+                checkManagedValidatorAllowAllSignaturesRoles(
+                    addressSpace,
+                    allowedUsers,
+                    setup.validator,
+                    1 << bit
+                );
+            }
         }
 
-        validateConfiguratorStageEvent(
-            e[31],
-            address(setup.configurator),
-            CONFIGURATOR_PRICE_ORACLE_SLOT,
-            uint256(uint160(address(deployParams.priceOracle))),
-            block.timestamp
-        );
+        // contract-signature roles
+        {
+            address[] memory allowedContracts = new address[](1);
+            allowedContracts[0] = address(setup.vault);
+            for (uint256 i = 0; i < e.length; i++) {
+                Vm.Log memory e_ = e[i];
+                if (
+                    e_.emitter != address(setup.validator) ||
+                    e_.topics[0] !=
+                    IManagedValidator.ContractSignatureRoleGranted.selector
+                ) continue;
+                bytes32 topic = e_.topics[1];
+                address contract_ = address(uint160(uint256(topic)));
+                assertEq(
+                    bytes32(uint256(uint160(contract_))),
+                    topic,
+                    "Invalid event topic"
+                );
 
-        validateConfiguratorCommitEvent(
-            e[32],
-            address(setup.configurator),
-            CONFIGURATOR_PRICE_ORACLE_SLOT,
-            uint256(uint160(address(deployParams.priceOracle))),
-            block.timestamp
-        );
+                bool found = false;
+                for (uint256 j = 0; j < allowedContracts.length; j++) {
+                    if (allowedContracts[j] == contract_) {
+                        found = true;
+                        break;
+                    }
+                }
+                assertTrue(found, "Invalid contract");
+            }
+        }
+
+        // custom validators
+        {
+            checkManagedValidatorCustomValidators(
+                addressSpace,
+                setup.validator
+            );
+        }
+
+        // configurator delegate module approvals
+        {
+            address[] memory allowedDelegateModules = new address[](1);
+            allowedDelegateModules[0] = address(deployParams.defaultBondModule);
+            for (uint256 i = 0; i < e.length; i++) {
+                Vm.Log memory e_ = e[i];
+                if (e_.emitter != address(setup.configurator)) continue;
+                if (e_.topics[0] != IVaultConfigurator.Stage.selector) continue;
+                if (
+                    e_.topics[1] <=
+                    CONFIGURATOR_IS_DELEGATE_MODULE_APPROVED_SLOT
+                ) continue;
+                bytes32 slot = e_.topics[1];
+                bool found = false;
+                for (uint256 j = 0; j < allowedDelegateModules.length; j++) {
+                    bytes32 allowedSlot = keccak256(
+                        abi.encode(
+                            allowedDelegateModules[j],
+                            CONFIGURATOR_IS_DELEGATE_MODULE_APPROVED_SLOT
+                        )
+                    );
+                    if (allowedSlot != slot) continue;
+                    found = true;
+                }
+                assertTrue(found, "Invalid delegate module address");
+            }
+
+            for (uint256 i = 0; i < allowedDelegateModules.length; i++) {
+                assertTrue(
+                    setup.configurator.isDelegateModuleApproved(
+                        allowedDelegateModules[i]
+                    ),
+                    "Required delegate module not approved"
+                );
+            }
+        }
 
         assertTrue(false, "Success");
+    }
+
+    function has(
+        address[] memory array,
+        address user
+    ) public pure returns (bool) {
+        for (uint256 i = 0; i < array.length; i++)
+            if (array[i] == user) return true;
+        return false;
+    }
+
+    function checkManagedValidatorUserRoles(
+        address[] memory users,
+        address[] memory allowedUsers,
+        ManagedValidator validator,
+        uint256 roleSet
+    ) public view {
+        for (uint256 i = 0; i < users.length; i++) {
+            uint256 roleSet_ = validator.userRoles(users[i]);
+            if (has(allowedUsers, users[i])) {
+                assertEq(roleSet_, roleSet, "Role check failed");
+            } else {
+                assertEq((roleSet_ & roleSet), 0, "Role check failed");
+            }
+        }
+    }
+
+    function checkManagedValidatorAllowAllSignaturesRoles(
+        address[] memory users,
+        address[] memory allowedUsers,
+        ManagedValidator validator,
+        uint256 roleSet
+    ) public view {
+        for (uint256 i = 0; i < users.length; i++) {
+            uint256 roleSet_ = validator.allowAllSignaturesRoles(users[i]);
+            if (has(allowedUsers, users[i])) {
+                assertEq(roleSet_, roleSet, "Role check failed");
+            } else {
+                assertEq((roleSet_ & roleSet), 0, "Role check failed");
+            }
+        }
+    }
+
+    function checkManagedValidatorAllowSignatureRoles(
+        address[] memory users,
+        address[] memory allowedUsers,
+        ManagedValidator validator,
+        uint256 roleSet,
+        bytes4 signature
+    ) public view {
+        for (uint256 i = 0; i < users.length; i++) {
+            uint256 roleSet_ = validator.allowSignatureRoles(
+                users[i],
+                signature
+            );
+            if (has(allowedUsers, users[i])) {
+                assertEq(roleSet_, roleSet, "Role check failed");
+            } else {
+                assertEq((roleSet_ & roleSet), 0, "Role check failed");
+            }
+        }
+    }
+
+    function checkManagedValidatorCustomValidators(
+        address[] memory users,
+        ManagedValidator validator
+    ) public view {
+        for (uint256 i = 0; i < users.length; i++) {
+            address customValidator = validator.customValidator(users[i]);
+            assertEq(
+                customValidator,
+                address(0),
+                "Custom validator check failed"
+            );
+        }
+    }
+
+    function checkRolesAccessControl(
+        address[] memory users,
+        address[] memory allowedUsers,
+        AccessControl contract_,
+        bytes32 role
+    ) public view {
+        for (uint256 i = 0; i < users.length; i++) {
+            assertEq(
+                contract_.hasRole(role, users[i]),
+                has(allowedUsers, users[i]),
+                "Role check failed"
+            );
+        }
     }
 
     function validateConfiguratorStageEvent(
@@ -360,7 +344,7 @@ abstract contract EventValidator is StdAssertions, CommonBase {
         bytes32 slot,
         uint256 stagedValue,
         uint256 timestamp
-    ) public {
+    ) public pure {
         assertEq(e.emitter, emitter);
         assertEq(e.topics.length, 3);
         assertEq(e.topics[0], IVaultConfigurator.Stage.selector);
@@ -386,7 +370,7 @@ abstract contract EventValidator is StdAssertions, CommonBase {
         bytes32 slot,
         uint256 stagedValue,
         uint256 timestamp
-    ) public {
+    ) public pure {
         assertEq(e.emitter, emitter);
         assertEq(e.topics.length, 3);
         assertEq(e.topics[0], IVaultConfigurator.Commit.selector);
@@ -412,7 +396,7 @@ abstract contract EventValidator is StdAssertions, CommonBase {
         bytes32 role,
         address account,
         address sender
-    ) public {
+    ) public pure {
         assertEq(e.emitter, emitter);
         assertEq(e.topics.length, 4);
         assertEq(e.topics[0], IAccessControl.RoleGranted.selector);
@@ -420,5 +404,20 @@ abstract contract EventValidator is StdAssertions, CommonBase {
         assertEq(e.topics[2], bytes32(uint256(uint160(account))));
         assertEq(e.topics[3], bytes32(uint256(uint160(sender))));
         assertEq(e.data, new bytes(0));
+    }
+
+    function makeUnique(address[] memory a) public pure {
+        for (uint256 i = 0; i < a.length; i++)
+            for (uint256 j = i + 1; j < a.length; j++)
+                if (a[i] > a[j]) (a[i], a[j]) = (a[j], a[i]);
+        uint256 itr = 0;
+        for (uint256 i = 0; i < a.length; i++) {
+            if (i == 0 || a[i] != a[i - 1]) {
+                a[itr++] = a[i];
+            }
+        }
+        assembly {
+            mstore(a, itr)
+        }
     }
 }

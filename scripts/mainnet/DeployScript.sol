@@ -83,28 +83,8 @@ abstract contract DeployScript is CommonBase {
             s.vault = Vault(payable(proxy));
         }
 
-        // setup timelocked controller
-        {
-            address[] memory proposers = new address[](2);
-            proposers[0] = deployParams.curator;
-            proposers[1] = deployParams.admin;
-            address[] memory executors = new address[](2);
-            executors[0] = deployParams.curator;
-            executors[1] = deployParams.admin;
-            s.timeLockedCurator = new TimelockController(
-                deployParams.timeLockDelay,
-                proposers,
-                executors,
-                deployParams.admin
-            );
-        }
-
         s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
         s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
-        s.vault.grantRole(
-            s.vault.ADMIN_DELEGATE_ROLE(),
-            address(s.timeLockedCurator)
-        );
 
         s.configurator = s.vault.configurator();
 
