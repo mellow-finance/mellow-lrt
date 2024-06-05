@@ -299,6 +299,9 @@ contract Unit is Test {
         uint256 expectedPriceX96 = uint256(2917 * 2 ** 96) / 1e12;
         if (block.number == 19845261) assertEq(priceX96, 231158100161120637905);
         assertApproxEqAbs(priceX96, expectedPriceX96, uint256(2 ** 96) / 100);
+
+        uint256 oneEthPriceInUsdc = FullMath.mulDiv(1 ether, priceX96, 2 ** 96);
+        assertApproxEqAbs(oneEthPriceInUsdc, 2917 * 1e6, 1e6);
     }
 
     function testPriceX96FailsWithBaseStaleOracle() external {
