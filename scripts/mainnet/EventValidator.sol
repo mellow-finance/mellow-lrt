@@ -173,7 +173,9 @@ abstract contract EventValidator is StdAssertions, CommonBase {
         // contract-signature roles
         {
             address[] memory allowedContracts = new address[](1);
+            bytes4[] memory allowedSignature = new bytes4[](1);
             allowedContracts[0] = address(setup.vault);
+            allowedSignature[0] = IVault.deposit.selector;
             for (uint256 i = 0; i < e.length; i++) {
                 Vm.Log memory e_ = e[i];
                 if (
@@ -181,6 +183,7 @@ abstract contract EventValidator is StdAssertions, CommonBase {
                     e_.topics[0] !=
                     IManagedValidator.ContractSignatureRoleGranted.selector
                 ) continue;
+                assertEq(e_.topics.length, 2);
                 bytes32 topic = e_.topics[1];
                 address contract_ = address(uint160(uint256(topic)));
                 assertEq(
@@ -189,14 +192,30 @@ abstract contract EventValidator is StdAssertions, CommonBase {
                     "Invalid event topic"
                 );
 
+                (bytes4 signature, ) = abi.decode(e_.data, (bytes4, uint256));
                 bool found = false;
                 for (uint256 j = 0; j < allowedContracts.length; j++) {
-                    if (allowedContracts[j] == contract_) {
+                    if (
+                        allowedContracts[j] == contract_ &&
+                        allowedSignature[j] == signature
+                    ) {
                         found = true;
                         break;
                     }
                 }
                 assertTrue(found, "Invalid contract");
+            }
+
+            for (uint256 i = 0; i < allowedContracts.length; i++) {
+                address[] memory contractsForCheck = new address[](1);
+                contractsForCheck[0] = allowedContracts[i];
+                checkManagedValidatorAllowSignatureRoles(
+                    addressSpace,
+                    contractsForCheck,
+                    setup.validator,
+                    1 << DeployConstants.DEPOSITOR_ROLE_BIT,
+                    allowedSignature[i]
+                );
             }
         }
 
@@ -321,89 +340,6 @@ abstract contract EventValidator is StdAssertions, CommonBase {
                 "Custom validator check failed"
             );
         }
-    }
-
-    function checkRolesAccessControl(
-        address[] memory users,
-        address[] memory allowedUsers,
-        AccessControl contract_,
-        bytes32 role
-    ) public view {
-        for (uint256 i = 0; i < users.length; i++) {
-            assertEq(
-                contract_.hasRole(role, users[i]),
-                has(allowedUsers, users[i]),
-                "Role check failed"
-            );
-        }
-    }
-
-    function validateConfiguratorStageEvent(
-        Vm.Log memory e,
-        address emitter,
-        bytes32 slot,
-        uint256 stagedValue,
-        uint256 timestamp
-    ) public pure {
-        assertEq(e.emitter, emitter);
-        assertEq(e.topics.length, 3);
-        assertEq(e.topics[0], IVaultConfigurator.Stage.selector);
-        assertEq(e.topics[1], slot);
-        assertEq(
-            e.topics[2],
-            keccak256(
-                abi.encode(
-                    IVaultConfigurator.Data({
-                        value: uint256(0),
-                        stagedValue: stagedValue,
-                        stageTimestamp: timestamp
-                    })
-                )
-            )
-        );
-        assertEq(e.data, abi.encode(stagedValue, timestamp));
-    }
-
-    function validateConfiguratorCommitEvent(
-        Vm.Log memory e,
-        address emitter,
-        bytes32 slot,
-        uint256 stagedValue,
-        uint256 timestamp
-    ) public pure {
-        assertEq(e.emitter, emitter);
-        assertEq(e.topics.length, 3);
-        assertEq(e.topics[0], IVaultConfigurator.Commit.selector);
-        assertEq(e.topics[1], slot);
-        assertEq(
-            e.topics[2],
-            keccak256(
-                abi.encode(
-                    IVaultConfigurator.Data({
-                        value: uint256(0),
-                        stagedValue: stagedValue,
-                        stageTimestamp: timestamp
-                    })
-                )
-            )
-        );
-        assertEq(e.data, abi.encode(timestamp));
-    }
-
-    function validateRoleGrantedEvent(
-        Vm.Log memory e,
-        address emitter,
-        bytes32 role,
-        address account,
-        address sender
-    ) public pure {
-        assertEq(e.emitter, emitter);
-        assertEq(e.topics.length, 4);
-        assertEq(e.topics[0], IAccessControl.RoleGranted.selector);
-        assertEq(e.topics[1], role);
-        assertEq(e.topics[2], bytes32(uint256(uint160(account))));
-        assertEq(e.topics[3], bytes32(uint256(uint160(sender))));
-        assertEq(e.data, new bytes(0));
     }
 
     function makeUnique(address[] memory a) public pure {
