@@ -28,19 +28,29 @@ contract Validator {
                 timelock.hasRole(
                     timelock.DEFAULT_ADMIN_ROLE(),
                     deployParams.admin
-                )
+                ),
+                "Admin address has no ADMIN_ROLE"
             );
             require(
-                timelock.hasRole(timelock.PROPOSER_ROLE(), deployParams.curator)
+                timelock.hasRole(
+                    timelock.PROPOSER_ROLE(),
+                    deployParams.curator
+                ),
+                "TimeLockedCurator address has no PROPOSER_ROLE"
             );
             require(
                 timelock.hasRole(
                     timelock.CANCELLER_ROLE(),
                     deployParams.curator
-                )
+                ),
+                "TimeLockedCurator address has no CANCELLER_ROLE"
             );
             require(
-                timelock.hasRole(timelock.EXECUTOR_ROLE(), deployParams.curator)
+                timelock.hasRole(
+                    timelock.EXECUTOR_ROLE(),
+                    deployParams.curator
+                ),
+                "TimeLockedCurator address has no EXECUTOR_ROLE"
             );
             // TODO: add
             // require(
@@ -83,9 +93,16 @@ contract Validator {
                 ),
                 "Curator not set"
             );
-            require(vault.getRoleMemberCount(OPERATOR_ROLE) == 1);
             require(
-                vault.hasRole(OPERATOR_ROLE, address(setup.defaultBondStrategy))
+                vault.getRoleMemberCount(OPERATOR_ROLE) == 1,
+                "OPERATOR_ROLE count is not equal to 1"
+            );
+            require(
+                vault.hasRole(
+                    OPERATOR_ROLE,
+                    address(setup.defaultBondStrategy)
+                ),
+                "DefaultBondStrategy has no OPERATOR_ROLE"
             );
         }
 
@@ -96,16 +113,31 @@ contract Validator {
                 strategy.getRoleMemberCount(ADMIN_ROLE) == 1,
                 "Admin not set"
             );
-            require(strategy.hasRole(ADMIN_ROLE, deployParams.admin));
-            require(strategy.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0);
-            require(strategy.getRoleMemberCount(OPERATOR_ROLE) == 1);
-            require(strategy.hasRole(OPERATOR_ROLE, deployParams.curator));
+            require(
+                strategy.hasRole(ADMIN_ROLE, deployParams.admin),
+                "DefaultBondStrategy: admin has no ADMIN_ROLE"
+            );
+            require(
+                strategy.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0,
+                "DefaultBondStrategy: more than one has ADMIN_DELEGATE_ROLE"
+            );
+            require(
+                strategy.getRoleMemberCount(OPERATOR_ROLE) == 1,
+                "DefaultBondStrategy: OPERATOR_ROLE count is not equal to 1"
+            );
+            require(
+                strategy.hasRole(OPERATOR_ROLE, deployParams.curator),
+                "DefaultBondStrategy: curator has no OPERATOR_ROLE"
+            );
         }
 
         // Managed validator permissions
         {
             ManagedValidator validator = setup.validator;
-            require(validator.publicRoles() == DEPOSITOR_ROLE_MASK);
+            require(
+                validator.publicRoles() == DEPOSITOR_ROLE_MASK,
+                "DEPOSITOR_ROLE_MASK mismatch"
+            );
 
             require(
                 validator.userRoles(deployParams.deployer) == 0,
@@ -128,38 +160,47 @@ contract Validator {
 
             require(
                 validator.userRoles(address(setup.defaultBondStrategy)) ==
-                    DEFAULT_BOND_STRATEGY_ROLE_MASK
+                    DEFAULT_BOND_STRATEGY_ROLE_MASK,
+                "DEFAULT_BOND_STRATEGY_ROLE_MASK mismatch"
             );
             require(
                 validator.userRoles(address(setup.vault)) ==
-                    DEFAULT_BOND_MODULE_ROLE_MASK
+                    DEFAULT_BOND_MODULE_ROLE_MASK,
+                "DEFAULT_BOND_MODULE_ROLE_MASK mismatch"
             );
 
             require(
                 validator.allowAllSignaturesRoles(
                     address(setup.defaultBondStrategy)
-                ) == 0
+                ) == 0,
+                "Invalid allowAllSignaturesRoles of DefaultBondStrategy"
             );
             require(
                 validator.allowAllSignaturesRoles(address(setup.vault)) ==
-                    DEFAULT_BOND_STRATEGY_ROLE_MASK
+                    DEFAULT_BOND_STRATEGY_ROLE_MASK,
+                "Invalid allowAllSignaturesRoles of Vault"
             );
             require(
                 validator.allowAllSignaturesRoles(
                     address(deployParams.defaultBondModule)
-                ) == DEFAULT_BOND_MODULE_ROLE_MASK
+                ) == DEFAULT_BOND_MODULE_ROLE_MASK,
+                "Invalid allowAllSignaturesRoles of DefaultBondModule"
             );
             require(
                 validator.allowSignatureRoles(
                     address(setup.vault),
                     IVault.deposit.selector
-                ) == DEPOSITOR_ROLE_MASK
+                ) == DEPOSITOR_ROLE_MASK,
+                "Invalid allowSignatureRoles of Vault"
             );
         }
 
         // Vault balances
         {
-            require(setup.vault.balanceOf(deployParams.deployer) == 0);
+            require(
+                setup.vault.balanceOf(deployParams.deployer) == 0,
+                "Invalid vault lp tokens balance"
+            );
             require(
                 setup.vault.balanceOf(address(setup.vault)) ==
                     deployParams.initialDepositETH,
@@ -200,49 +241,75 @@ contract Validator {
         {
             require(
                 keccak256(bytes(setup.vault.name())) ==
-                    keccak256(bytes(deployParams.lpTokenName))
+                    keccak256(bytes(deployParams.lpTokenName)),
+                "Wrong LP token name"
             );
             require(
                 keccak256(bytes(setup.vault.symbol())) ==
-                    keccak256(bytes(deployParams.lpTokenSymbol))
+                    keccak256(bytes(deployParams.lpTokenSymbol)),
+                "Wrong LP token symbol"
             );
-            require(setup.vault.decimals() == 18);
+            require(setup.vault.decimals() == 18, "Invalid token decimals");
 
             require(
                 address(setup.vault.configurator()) ==
-                    address(setup.configurator)
+                    address(setup.configurator),
+                "Invalid configurator address"
             );
             address[] memory underlyingTokens = setup.vault.underlyingTokens();
-            require(underlyingTokens.length == 1);
-            require(underlyingTokens[0] == deployParams.wsteth);
+            require(
+                underlyingTokens.length == 1,
+                "Invalid length of underlyingTokens"
+            );
+            require(
+                underlyingTokens[0] == deployParams.wsteth,
+                "Underlying token is not wsteth"
+            );
             {
                 address[] memory tvlModules = setup.vault.tvlModules();
-                require(tvlModules.length == 2);
-                require(tvlModules[0] == address(deployParams.erc20TvlModule));
+                require(tvlModules.length == 2, "Invalid tvl modules count");
                 require(
-                    tvlModules[1] == address(deployParams.defaultBondTvlModule)
+                    tvlModules[0] == address(deployParams.erc20TvlModule),
+                    "Invalid first tvl module"
+                );
+                require(
+                    tvlModules[1] == address(deployParams.defaultBondTvlModule),
+                    "Invalid second tvl module"
                 );
             }
 
             require(
                 setup.vault.withdrawalRequest(deployParams.deployer).lpAmount ==
-                    0
+                    0,
+                "Deployer has withdrawal request"
             );
             {
                 address[] memory pendingWithdrawers = setup
                     .vault
                     .pendingWithdrawers();
-                require(pendingWithdrawers.length == 0);
+                require(
+                    pendingWithdrawers.length == 0,
+                    "Deployer has pending withdrawal request"
+                );
             }
             {
                 (
                     address[] memory underlyingTvlTokens,
                     uint256[] memory underlyingTvlValues
                 ) = setup.vault.underlyingTvl();
-                require(underlyingTvlTokens.length == 1);
-                require(underlyingTvlTokens[0] == deployParams.wsteth);
+                require(
+                    underlyingTvlTokens.length == 1,
+                    "Invalid length of underlyingTvlTokens"
+                );
+                require(
+                    underlyingTvlTokens[0] == deployParams.wsteth,
+                    "Underlying tvl token is not wsteth"
+                );
 
-                require(underlyingTvlValues.length == 1);
+                require(
+                    underlyingTvlValues.length == 1,
+                    "Invalid length of underlyingTvlValues"
+                );
                 uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
                     .getStETHByWstETH(underlyingTvlValues[0]);
                 // valid only for tests or right after deployment
@@ -250,7 +317,8 @@ contract Validator {
                 require(
                     deployParams.initialDepositETH - 2 wei <=
                         expectedStethAmount &&
-                        expectedStethAmount <= deployParams.initialDepositETH
+                        expectedStethAmount <= deployParams.initialDepositETH,
+                    "Invalid initialDepositETH"
                 );
             }
 
@@ -259,18 +327,28 @@ contract Validator {
                     address[] memory baseTvlTokens,
                     uint256[] memory baseTvlValues
                 ) = setup.vault.baseTvl();
-                require(baseTvlTokens.length == 2);
-                require(baseTvlValues.length == 2);
+                require(
+                    baseTvlTokens.length == 2,
+                    "Invalid baseTvlTokens count"
+                );
+                require(
+                    baseTvlValues.length == 2,
+                    "Invalid baseTvlValues count"
+                );
 
                 uint256 wstethIndex = deployParams.wsteth <
                     deployParams.wstethDefaultBond
                     ? 0
                     : 1;
 
-                require(baseTvlTokens[wstethIndex] == deployParams.wsteth);
+                require(
+                    baseTvlTokens[wstethIndex] == deployParams.wsteth,
+                    "BaseTvlTokens is not wsteth"
+                );
                 require(
                     baseTvlTokens[wstethIndex ^ 1] ==
-                        deployParams.wstethDefaultBond
+                        deployParams.wstethDefaultBond,
+                    "Invalid wstethDefaultBond"
                 );
 
                 require(baseTvlValues[wstethIndex] == 0);

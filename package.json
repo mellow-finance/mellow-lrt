@@ -14,7 +14,7 @@
     "prettier": "prettier --write ./src/** && prettier --write ./tests/** && prettier --write ./scripts/**",
     "prettier:check": "prettier --check ./src/** && prettier --check ./tests/**",
     "prettier:changed": "prettier --write $(git status | grep '\\.sol' | grep -v 'deleted:' | cut -d ' ' -f 4)",
-    "test:prod": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017905 --match-path ./tests/mainnet/e2e/AcceptanceTestProd.t.sol\\*",
+    "test:acceptance": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017905 --match-path ./tests/mainnet/acceptance\\*",
     "test": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./tests/mainnet/\\*",
     "size": "forge build --sizes --force",
     "deploy:holesky": "forge script --use 0.8.25 scripts/holesky/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",

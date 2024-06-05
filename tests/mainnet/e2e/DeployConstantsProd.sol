@@ -42,28 +42,46 @@ library DeployConstantsProd {
         0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
     string public constant RE7_VAULT_NAME = "Re7 Labs Mellow LRT";
     string public constant RE7_VAULT_SYMBOL = "Re7MLRT";
-    
-    address public constant RE7_VAULT_INITIALIZER = 0x8f06BEB555D57F0D20dB817FF138671451084e24;
-    address payable public constant RE7_VAULT_ADDRESS = payable(0x20eF170856B8A746Df78406bfC2535b36F35774F);
-    address payable public constant RE7_VAULT_ADDRESS_INIT = payable(0x20eF170856B8A746Df78406bfC2535b36F35774F);
-    address public constant RE7_VAULT_CONFIGURATOR = 0x3492407B9b8e0619d4fF423265F1cA5BE5198dd8;
-    address public constant RE7_VAULT_ERC20TVLMODULE = 0xCA60f449867c9101Ec80F8C611eaB39afE7bD638;
-    address public constant RE7_VAULT_DEFAULTBONDTVLMODULE = 0x48f758bd51555765EBeD4FD01c85554bD0B3c03B;
-    address public constant RE7_VAULT_MANAGED_VALIDATOR = 0xa064e9D2599b7029Bb5d4896812D339ac1aAa111;
-    address public constant RE7_VAULT_RATIOS_ORACLE = 0x1437DCcA4e1442f20285Fb7C11805E7a965681e2;
-    address public constant RE7_VAULT_PRICE_ORACLE = 0xA5046e9379B168AFA154504Cf16853B6a7728436;
-    address public constant RE7_VAULT_DEFAULTBONDMODULE = 0x204043f4bda61F719Ad232b4196E1bc4131a3096;
-    address payable public constant RE7_VAULT_DEPOSIT_WRAPPER = payable(0x9d9d932Ff608F505EAd156E79C87A98Eb0527A1c);
-    address public constant RE7_VAULT_DEFAULT_PROXY_IMPLEMENTATION = 0x538459eeA06A06018C70bf9794e1c7b298694828;
-    address public constant RE7_VAULT_ADMIN_PROXY = 0xD8996bb6e74b82Ca4DA473A7e4DD4A1974AFE3be;
+
+    address public constant RE7_VAULT_INITIALIZER =
+        0x8f06BEB555D57F0D20dB817FF138671451084e24;
+    address payable public constant RE7_VAULT_ADDRESS =
+        payable(0x20eF170856B8A746Df78406bfC2535b36F35774F);
+    address payable public constant RE7_VAULT_ADDRESS_INIT =
+        payable(0x20eF170856B8A746Df78406bfC2535b36F35774F);
+    address public constant RE7_VAULT_CONFIGURATOR =
+        0x3492407B9b8e0619d4fF423265F1cA5BE5198dd8;
+    address public constant RE7_VAULT_ERC20TVLMODULE =
+        0xCA60f449867c9101Ec80F8C611eaB39afE7bD638;
+    address public constant RE7_VAULT_DEFAULTBONDTVLMODULE =
+        0x48f758bd51555765EBeD4FD01c85554bD0B3c03B;
+    address public constant RE7_VAULT_MANAGED_VALIDATOR =
+        0xa064e9D2599b7029Bb5d4896812D339ac1aAa111;
+    address public constant RE7_VAULT_RATIOS_ORACLE =
+        0x1437DCcA4e1442f20285Fb7C11805E7a965681e2;
+    address public constant RE7_VAULT_PRICE_ORACLE =
+        0xA5046e9379B168AFA154504Cf16853B6a7728436;
+    address public constant RE7_VAULT_DEFAULTBONDMODULE =
+        0x204043f4bda61F719Ad232b4196E1bc4131a3096;
+    address payable public constant RE7_VAULT_DEPOSIT_WRAPPER =
+        payable(0x9d9d932Ff608F505EAd156E79C87A98Eb0527A1c);
+    address public constant RE7_VAULT_DEFAULT_PROXY_IMPLEMENTATION =
+        0x538459eeA06A06018C70bf9794e1c7b298694828;
+    address public constant RE7_VAULT_ADMIN_PROXY =
+        0xD8996bb6e74b82Ca4DA473A7e4DD4A1974AFE3be;
     address public constant RE7_VAULT_RESTRICTING_KEEPER = address(0);
-    address public constant RE7_VAULT_WETH_AGGREGATOR = 0x3C1418499aa69A08DfBCed4243BBA7EB90dE3D09;
-    address public constant RE7_VAULT_WSTETH_AGGREGATOR = 0x773ae8ca45D5701131CA84C58821a39DdAdC709c;
+    address public constant RE7_VAULT_WETH_AGGREGATOR =
+        0x3C1418499aa69A08DfBCed4243BBA7EB90dE3D09;
+    address public constant RE7_VAULT_WSTETH_AGGREGATOR =
+        0x773ae8ca45D5701131CA84C58821a39DdAdC709c;
     uint256 public constant RE7_VAULT_WETH_AMOUNT_DEPOSITED = 10000000000;
-    address public constant RE7_VAULT_WETH_DEFAULT_BOND_FACTORY = 0x3F95a719260ce6ec9622bC549c9adCff9edf16D9;
-    address public constant RE7_VAULT_WETH_DEFAULT_BOND = 0xB56dA788Aa93Ed50F50e0d38641519FfB3C3D1Eb;
-    address payable public constant RE7_VAULT_TIME_LOCKED_CONTROLLER = payable(0xF84Bf03bcd79e09796E69134C2a6Ba6b60aC4eAB);
-    
+    address public constant RE7_VAULT_WETH_DEFAULT_BOND_FACTORY =
+        0x3F95a719260ce6ec9622bC549c9adCff9edf16D9;
+    address public constant RE7_VAULT_WETH_DEFAULT_BOND =
+        0xB56dA788Aa93Ed50F50e0d38641519FfB3C3D1Eb;
+    address payable public constant RE7_VAULT_TIME_LOCKED_CONTROLLER =
+        payable(0xF84Bf03bcd79e09796E69134C2a6Ba6b60aC4eAB);
+
     // P2P:
     address public constant P2P_LIDO_MELLOW_MULTISIG =
         0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
@@ -80,7 +98,8 @@ library DeployConstantsProd {
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
-    address public constant MAINNET_DEPLOYER = 0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
+    address public constant MAINNET_DEPLOYER =
+        0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 
     // ---------- Holesky Testnet ----------
     // Mellow:
