@@ -7,7 +7,13 @@ import "../unit/VaultTestCommon.t.sol";
 contract VaultTestUnit is VaultTestCommon {
     using SafeERC20 for IERC20;
 
+    bytes32 public constant OPERATOR = keccak256("operator");
+    bytes32 public constant ADMIN_ROLE = keccak256("admin");
+    bytes32 public constant ADMIN_DELEGATE_ROLE = keccak256("admin_delegate");
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
+
     function testConstructor() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         vault.requireAdmin(admin);
@@ -15,9 +21,53 @@ contract VaultTestUnit is VaultTestCommon {
         assertEq(vault.symbol(), "mLRT");
         assertEq(vault.decimals(), 18);
         assertNotEq(address(vault.configurator()), address(0));
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 5);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
     }
 
     function testAddTokenInRandomOrder() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         address[] memory underlyingTokens = vault.underlyingTokens();
@@ -66,15 +116,74 @@ contract VaultTestUnit is VaultTestCommon {
             Constants.USDT
         ];
 
+        address[5] memory tokensArray = [
+            Constants.WETH,
+            Constants.WSTETH,
+            Constants.STETH,
+            Constants.USDT,
+            Constants.RETH
+        ];
+
         for (uint256 i = 0; i < underlyingTokens.length; i++) {
             assertEq(underlyingTokens[i], targetArray[i]);
             if (i > 0) {
                 assertTrue(underlyingTokens[i] > underlyingTokens[i - 1]);
             }
         }
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 10);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        for (uint256 i = 5; i < 10; i++) {
+            assertEq(e[i].emitter, address(vault));
+            assertEq(e[i].topics.length, 1);
+            assertEq(e[i].topics[0], IVault.TokenAdded.selector);
+            assertEq(e[i].data, abi.encode(tokensArray[i - 5]));
+        }
     }
 
     function testAddTokenInSortedOrder() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         address[] memory underlyingTokens = vault.underlyingTokens();
@@ -100,9 +209,60 @@ contract VaultTestUnit is VaultTestCommon {
                 }
             }
         }
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 10);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        for (uint256 i = 5; i < 10; i++) {
+            assertEq(e[i].emitter, address(vault));
+            assertEq(e[i].topics.length, 1);
+            assertEq(e[i].topics[0], IVault.TokenAdded.selector);
+            assertEq(e[i].data, abi.encode(tokens[i - 5]));
+        }
     }
 
     function testAddTokenInReversedSortedOrder() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         address[] memory underlyingTokens = vault.underlyingTokens();
@@ -129,16 +289,111 @@ contract VaultTestUnit is VaultTestCommon {
                 }
             }
         }
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 10);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        for (uint256 i = 5; i < 10; i++) {
+            assertEq(e[i].emitter, address(vault));
+            assertEq(e[i].topics.length, 1);
+            assertEq(e[i].topics[0], IVault.TokenAdded.selector);
+            assertEq(e[i].data, abi.encode(tokens[10 - i - 1]));
+        }
     }
 
     function testAddTokenFailsWithForbidden() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
         vault.addToken(address(0));
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 5);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
     }
 
     function testAddTokenFailsWithInvalidToken() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
         vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
@@ -149,9 +404,58 @@ contract VaultTestUnit is VaultTestCommon {
         vm.expectRevert(abi.encodeWithSignature("InvalidToken()"));
         vault.addToken(address(vault));
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 6);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        assertEq(e[5].emitter, address(vault));
+        assertEq(e[5].topics.length, 1);
+        assertEq(e[5].topics[0], IVault.TokenAdded.selector);
+        assertEq(e[5].data, abi.encode(address(1)));
     }
 
     function testRemoveToken() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
 
@@ -181,15 +485,133 @@ contract VaultTestUnit is VaultTestCommon {
         assertEq(underlyingTokens.length, 0);
 
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 11);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        assertEq(e[5].emitter, address(vault));
+        assertEq(e[5].topics.length, 1);
+        assertEq(e[5].topics[0], IVault.TokenAdded.selector);
+        assertEq(e[5].data, abi.encode(Constants.WETH));
+
+        assertEq(e[6].emitter, address(vault));
+        assertEq(e[6].topics.length, 1);
+        assertEq(e[6].topics[0], IVault.TokenAdded.selector);
+        assertEq(e[6].data, abi.encode(Constants.WSTETH));
+
+        assertEq(e[7].emitter, address(vault));
+        assertEq(e[7].topics.length, 1);
+        assertEq(e[7].topics[0], IVault.TokenAdded.selector);
+        assertEq(e[7].data, abi.encode(Constants.RETH));
+
+        assertEq(e[8].emitter, address(vault));
+        assertEq(e[8].topics.length, 1);
+        assertEq(e[8].topics[0], IVault.TokenRemoved.selector);
+        assertEq(e[8].data, abi.encode(Constants.WETH));
+
+        assertEq(e[9].emitter, address(vault));
+        assertEq(e[9].topics.length, 1);
+        assertEq(e[9].topics[0], IVault.TokenRemoved.selector);
+        assertEq(e[9].data, abi.encode(Constants.WSTETH));
+
+        assertEq(e[10].emitter, address(vault));
+        assertEq(e[10].topics.length, 1);
+        assertEq(e[10].topics[0], IVault.TokenRemoved.selector);
+        assertEq(e[10].data, abi.encode(Constants.RETH));
     }
 
     function testRemoveTokenFailsWithForbidden() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
         vault.removeToken(address(0));
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 5);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
     }
 
     function testRemoveTokenFailsWithInvalidToken() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
 
@@ -197,9 +619,53 @@ contract VaultTestUnit is VaultTestCommon {
         vault.removeToken(address(0));
 
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 5);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
     }
 
     function testRemoveTokenFailsWithNonZeroValue() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
 
@@ -212,9 +678,73 @@ contract VaultTestUnit is VaultTestCommon {
         vault.removeToken(Constants.WETH);
 
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 9);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        assertEq(e[5].emitter, address(vault));
+        assertEq(e[5].topics.length, 1);
+        assertEq(e[5].topics[0], IVault.TokenAdded.selector);
+        assertEq(e[5].data, abi.encode(address(Constants.WETH)));
+
+        assertEq(e[6].emitter, address(vault));
+        assertEq(e[6].topics.length, 1);
+        assertEq(e[6].topics[0], IVault.TvlModuleAdded.selector);
+        assertEq(e[6].data, abi.encode(address(tvlModule)));
+
+        Constants.validateDealLogs(
+            e[7],
+            e[8],
+            address(this),
+            Constants.WETH,
+            address(vault),
+            1 ether,
+            3
+        );
     }
 
     function testAddTvlModule() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
 
@@ -230,9 +760,58 @@ contract VaultTestUnit is VaultTestCommon {
         assertEq(tvlModules[0], address(tvlModule));
 
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 6);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        assertEq(e[5].emitter, address(vault));
+        assertEq(e[5].topics.length, 1);
+        assertEq(e[5].topics[0], IVault.TvlModuleAdded.selector);
+        assertEq(e[5].data, abi.encode(address(tvlModule)));
     }
 
     function testAddTvlModuleFailsWithAlreadyAdded() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         vm.startPrank(admin);
 
@@ -250,16 +829,109 @@ contract VaultTestUnit is VaultTestCommon {
         vm.expectRevert(abi.encodeWithSignature("AlreadyAdded()"));
         vault.addTvlModule(address(tvlModule));
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 6);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        assertEq(e[5].emitter, address(vault));
+        assertEq(e[5].topics.length, 1);
+        assertEq(e[5].topics[0], IVault.TvlModuleAdded.selector);
+        assertEq(e[5].data, abi.encode(address(tvlModule)));
     }
 
     function testAddTvlModuleFailsWithForbidden() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
         ERC20TvlModule tvlModule = new ERC20TvlModule();
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
         vault.addTvlModule(address(tvlModule));
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 5);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
     }
 
     function testAddTvlModuleFailsWithInvalidToken() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         vm.startPrank(admin);
@@ -276,9 +948,72 @@ contract VaultTestUnit is VaultTestCommon {
         vault.addTvlModule(address(tvlModule));
 
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 8);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        assertEq(e[5].emitter, address(vault));
+        assertEq(e[5].topics.length, 1);
+        assertEq(e[5].topics[0], IVault.TokenAdded.selector);
+        assertEq(e[5].data, abi.encode(Constants.WSTETH));
+
+        assertEq(e[6].emitter, address(tvlModule));
+        assertEq(e[6].topics.length, 2);
+        assertEq(
+            e[6].topics[0],
+            IDefaultBondTvlModule.DefaultBondTvlModuleSetParams.selector
+        );
+        assertEq(e[6].topics[1], bytes32(uint256(uint160(address(vault)))));
+        assertEq(e[6].data, abi.encode(bonds));
+
+        assertEq(e[7].emitter, address(vault));
+        assertEq(e[7].topics.length, 1);
+        assertEq(e[7].topics[0], IVault.TokenRemoved.selector);
+        assertEq(e[7].data, abi.encode(Constants.WSTETH));
     }
 
     function testRemoveTvlModule() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         vm.startPrank(admin);
@@ -293,25 +1028,167 @@ contract VaultTestUnit is VaultTestCommon {
         assertEq(tvlModules.length, 0);
 
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 7);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        assertEq(e[5].emitter, address(vault));
+        assertEq(e[5].topics.length, 1);
+        assertEq(e[5].topics[0], IVault.TvlModuleAdded.selector);
+        assertEq(e[5].data, abi.encode(address(tvlModule)));
+
+        assertEq(e[6].emitter, address(vault));
+        assertEq(e[6].topics.length, 1);
+        assertEq(e[6].topics[0], IVault.TvlModuleRemoved.selector);
+        assertEq(e[6].data, abi.encode(address(tvlModule)));
     }
 
     function testRemoveTvlModuleFailWithInvalidState() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         vm.startPrank(admin);
         vm.expectRevert(abi.encodeWithSignature("InvalidState()"));
         vault.removeTvlModule(address(0));
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 5);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
     }
 
     function testRemoveTvlModuleFailWithForbidden() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
         vault.removeTvlModule(address(0));
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 5);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
     }
 
     function testExternalCall() external {
+        vm.recordLogs();
         Vault vault = new Vault("Mellow LRT Vault", "mLRT", admin);
 
         vm.startPrank(admin);
@@ -350,6 +1227,147 @@ contract VaultTestUnit is VaultTestCommon {
         assertEq(weth, Constants.WETH);
 
         vm.stopPrank();
+
+        Vm.Log[] memory e = vm.getRecordedLogs();
+        assertEq(e.length, 14);
+
+        assertEq(e[0].emitter, address(vault));
+        assertEq(e[0].topics.length, 4);
+        assertEq(e[0].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[0].topics[1], OPERATOR);
+        assertEq(e[0].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[0].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[0].data, new bytes(0));
+
+        assertEq(e[1].emitter, address(vault));
+        assertEq(e[1].topics.length, 4);
+        assertEq(e[1].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[1].topics[1], ADMIN_ROLE);
+        assertEq(e[1].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[1].topics[3], bytes32(uint256(uint160(address(this)))));
+        assertEq(e[1].data, new bytes(0));
+
+        assertEq(e[2].emitter, address(vault));
+        assertEq(e[2].topics.length, 4);
+        assertEq(e[2].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[2].topics[1], ADMIN_ROLE);
+        assertEq(e[2].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[2].topics[3], ADMIN_ROLE);
+        assertEq(e[2].data, new bytes(0));
+
+        assertEq(e[3].emitter, address(vault));
+        assertEq(e[3].topics.length, 4);
+        assertEq(e[3].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[3].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[3].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[3].topics[3], ADMIN_ROLE);
+        assertEq(e[3].data, new bytes(0));
+
+        assertEq(e[4].emitter, address(vault));
+        assertEq(e[4].topics.length, 4);
+        assertEq(e[4].topics[0], IAccessControl.RoleAdminChanged.selector);
+        assertEq(e[4].topics[1], OPERATOR);
+        assertEq(e[4].topics[2], DEFAULT_ADMIN_ROLE);
+        assertEq(e[4].topics[3], ADMIN_DELEGATE_ROLE);
+        assertEq(e[4].data, new bytes(0));
+
+        assertEq(e[5].emitter, address(vault));
+        assertEq(e[5].topics.length, 4);
+        assertEq(e[5].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[5].topics[1], ADMIN_DELEGATE_ROLE);
+        assertEq(e[5].topics[2], bytes32(uint256(uint160(admin))));
+        assertEq(e[5].topics[3], bytes32(uint256(uint160(admin))));
+        assertEq(e[5].data, new bytes(0));
+
+        assertEq(e[6].emitter, address(vault));
+        assertEq(e[6].topics.length, 4);
+        assertEq(e[6].topics[0], IAccessControl.RoleGranted.selector);
+        assertEq(e[6].topics[1], OPERATOR);
+        assertEq(e[6].topics[2], bytes32(uint256(uint160(operator))));
+        assertEq(e[6].topics[3], bytes32(uint256(uint160(admin))));
+        assertEq(e[6].data, new bytes(0));
+
+        assertEq(e[7].emitter, address(configurator));
+        assertEq(e[7].topics.length, 3);
+        assertEq(e[7].topics[0], IVaultConfigurator.Stage.selector);
+        assertEq(e[7].topics[1], Constants.CONFIGURATOR_VALIDATOR_SLOT);
+        assertEq(
+            e[7].topics[2],
+            keccak256(
+                abi.encode(
+                    IVaultConfigurator.Data({
+                        value: uint256(0),
+                        stagedValue: uint256(uint160(address(validator))),
+                        stageTimestamp: block.timestamp
+                    })
+                )
+            )
+        );
+        assertEq(
+            e[7].data,
+            abi.encode(uint256(uint160(address(validator))), block.timestamp)
+        );
+
+        assertEq(e[8].emitter, address(configurator));
+        assertEq(e[8].topics.length, 3);
+        assertEq(e[8].topics[0], IVaultConfigurator.Commit.selector);
+        assertEq(e[8].topics[1], Constants.CONFIGURATOR_VALIDATOR_SLOT);
+        assertEq(
+            e[8].topics[2],
+            keccak256(
+                abi.encode(
+                    IVaultConfigurator.Data({
+                        value: uint256(0),
+                        stagedValue: uint256(uint160(address(validator))),
+                        stageTimestamp: block.timestamp
+                    })
+                )
+            )
+        );
+        assertEq(e[8].data, abi.encode(block.timestamp));
+
+        assertEq(e[9].emitter, address(validator));
+        assertEq(e[9].topics.length, 2);
+        assertEq(e[9].topics[0], IManagedValidator.RoleGranted.selector);
+        assertEq(e[9].topics[1], bytes32(uint256(uint160(operator))));
+        assertEq(e[9].data, abi.encode(externalCallRole));
+
+        assertEq(e[10].emitter, address(validator));
+        assertEq(e[10].topics.length, 2);
+        assertEq(
+            e[10].topics[0],
+            IManagedValidator.ContractRoleGranted.selector
+        );
+        assertEq(e[10].topics[1], bytes32(uint256(uint160(address(vault)))));
+        assertEq(e[10].data, abi.encode(externalCallRole));
+
+        assertEq(e[11].emitter, address(validator));
+        assertEq(e[11].topics.length, 2);
+        assertEq(e[11].topics[0], IManagedValidator.RoleGranted.selector);
+        assertEq(e[11].topics[1], bytes32(uint256(uint160(address(vault)))));
+        assertEq(e[11].data, abi.encode(externalCallRole));
+
+        assertEq(e[12].emitter, address(validator));
+        assertEq(e[12].topics.length, 2);
+        assertEq(
+            e[12].topics[0],
+            IManagedValidator.ContractRoleGranted.selector
+        );
+        assertEq(e[12].topics[1], bytes32(uint256(uint160(uniswapV3Router))));
+        assertEq(e[12].data, abi.encode(externalCallRole));
+
+        assertEq(e[13].emitter, address(vault));
+        assertEq(e[13].topics.length, 2);
+        assertEq(e[13].topics[0], IVault.ExternalCall.selector);
+        assertEq(e[13].topics[1], bytes32(uint256(uint160(uniswapV3Router))));
+        assertEq(
+            e[13].data,
+            abi.encode(
+                abi.encodeWithSignature("WETH9()"),
+                true,
+                abi.encode(Constants.WETH)
+            )
+        );
     }
 
     function testExternalCallFailsWithForbidden() external {

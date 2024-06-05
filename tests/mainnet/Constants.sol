@@ -97,6 +97,8 @@ library Constants {
     address public constant STAKING_ROUTER =
         0xFdDf38947aFB03C621C71b06C9C70bce73f12999;
 
+    bytes32 public constant CONFIGURATOR_VALIDATOR_SLOT = bytes32(uint256(61));
+
     function calculateLogsForDeal(
         address msgSender,
         address token,
