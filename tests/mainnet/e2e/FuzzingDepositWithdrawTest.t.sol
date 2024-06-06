@@ -13,11 +13,11 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
     uint256[] amounts;
     uint256[] lpAmounts;
     uint256 private seed;
-    uint256 private constant userCount = 1;
+    uint256 private constant userCount = 2;
 
     uint256 public constant MAX_ERROR_DEPOSIT = 4 wei;
 
-    constructor() {
+    function setUp() public {
         seed = 12345567890;
 
         bool test = true;
@@ -54,7 +54,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
         deployParams.initialDepositETH = DeployConstants.INITIAL_DEPOSIT_ETH;
         deployParams.firstDepositETH = DeployConstants.FIRST_DEPOSIT_ETH;
         deployParams.timeLockDelay = DeployConstants.TIMELOCK_TEST_DELAY;
-
+// ------------------------------
         deployParams.initializer = Initializer(
             0x8f06BEB555D57F0D20dB817FF138671451084e24
         );
@@ -85,6 +85,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
         deployParams.defaultProxyImplementation = DefaultProxyImplementation(
             0x538459eeA06A06018C70bf9794e1c7b298694828
         );
+// ------------------------------
 
         deployParams = commonContractsDeploy(deployParams);
         deployParams.curator = curator;
