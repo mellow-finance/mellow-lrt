@@ -4,11 +4,15 @@ pragma solidity 0.8.25;
 import "./DeployInterfaces.sol";
 
 abstract contract Validator {
-    function test() external pure {}
-
+    /*
+        validationFlagsBits:
+        0 - mainnet test deployment (the vault has an additional actor with the admin delegate role)
+        1 - immediately after deployment
+    */
     function validateParameters(
         DeployInterfaces.DeployParameters memory deployParams,
-        DeployInterfaces.DeploySetup memory setup
+        DeployInterfaces.DeploySetup memory setup,
+        uint8 validationFlags
     ) public view {
         // vault permissions
 
@@ -21,52 +25,6 @@ abstract contract Validator {
         uint256 DEFAULT_BOND_STRATEGY_ROLE_MASK = 1 << 1;
         uint256 DEFAULT_BOND_MODULE_ROLE_MASK = 1 << 2;
 
-        // TimelockController
-        {
-            TimelockController timelock = setup.timeLockedCurator;
-            require(
-                timelock.hasRole(
-                    timelock.DEFAULT_ADMIN_ROLE(),
-                    deployParams.admin
-                ),
-                "Admin address has no ADMIN_ROLE"
-            );
-            require(
-                timelock.hasRole(
-                    timelock.PROPOSER_ROLE(),
-                    deployParams.curator
-                ),
-                "TimeLockedCurator address has no PROPOSER_ROLE"
-            );
-            require(
-                timelock.hasRole(
-                    timelock.CANCELLER_ROLE(),
-                    deployParams.curator
-                ),
-                "TimeLockedCurator address has no CANCELLER_ROLE"
-            );
-            require(
-                timelock.hasRole(
-                    timelock.EXECUTOR_ROLE(),
-                    deployParams.curator
-                ),
-                "TimeLockedCurator address has no EXECUTOR_ROLE"
-            );
-
-            require(
-                timelock.hasRole(timelock.PROPOSER_ROLE(), deployParams.admin),
-                "Admin has no PROPOSER_ROLE"
-            );
-            require(
-                timelock.hasRole(timelock.CANCELLER_ROLE(), deployParams.admin),
-                "Admin has no CANCELLER_ROLE"
-            );
-            require(
-                timelock.hasRole(timelock.EXECUTOR_ROLE(), deployParams.admin),
-                "Admin has no EXECUTOR_ROLE"
-            );
-        }
-
         // Vault permissions
         {
             Vault vault = setup.vault;
@@ -78,24 +36,19 @@ abstract contract Validator {
                 vault.hasRole(ADMIN_ROLE, deployParams.admin),
                 "Admin not set"
             );
-            require(
-                vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 1,
-                "Wrong admin delegate count"
-            );
-            require(
-                !vault.hasRole(
-                    ADMIN_DELEGATE_ROLE,
-                    address(deployParams.curator)
-                ),
-                "Wrong curator"
-            );
-            require(
-                vault.hasRole(
-                    ADMIN_DELEGATE_ROLE,
-                    address(setup.timeLockedCurator)
-                ),
-                "Curator not set"
-            );
+            if (validationFlags & 1 == 0) {
+                require(
+                    vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0,
+                    "Wrong admin delegate count"
+                );
+            } else {
+                // ignore future validation
+                // only for testing
+                require(
+                    vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 1,
+                    "Wrong admin delegate count"
+                );
+            }
             require(
                 vault.getRoleMemberCount(OPERATOR_ROLE) == 1,
                 "OPERATOR_ROLE count is not equal to 1"
@@ -150,17 +103,12 @@ abstract contract Validator {
                 validator.userRoles(deployParams.admin) == ADMIN_ROLE_MASK,
                 "Admin has no roles"
             );
-            require(
-                validator.userRoles(address(setup.timeLockedCurator)) == 0,
-                "Time locked curator has roles"
-            );
             if (deployParams.curator != deployParams.admin) {
                 require(
                     validator.userRoles(deployParams.curator) == 0,
                     "Curator has roles"
                 );
             }
-
             require(
                 validator.userRoles(address(setup.defaultBondStrategy)) ==
                     DEFAULT_BOND_STRATEGY_ROLE_MASK,
@@ -199,18 +147,18 @@ abstract contract Validator {
         }
 
         // Vault balances
-        {
+        if (validationFlags & 2 == 0) {
             require(
                 setup.vault.balanceOf(deployParams.deployer) == 0,
                 "Invalid vault lp tokens balance"
             );
             require(
                 setup.vault.balanceOf(address(setup.vault)) ==
-                    deployParams.initialDepositETH,
+                    setup.wstethAmountDeposited,
                 "Invalid vault balance"
             );
             require(
-                setup.vault.totalSupply() == deployParams.initialDepositETH,
+                setup.vault.totalSupply() == setup.wstethAmountDeposited,
                 "Invalid total supply"
             );
             require(
@@ -233,11 +181,14 @@ abstract contract Validator {
             uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
                 .getStETHByWstETH(bondBalance);
             // at most 2 weis loss due to eth->steth && steth->wsteth conversions
-            require(
-                deployParams.initialDepositETH - 2 wei <= expectedStethAmount &&
-                    expectedStethAmount <= deployParams.initialDepositETH,
-                "Invalid steth amount"
-            );
+            if (validationFlags & 2 == 0) {
+                require(
+                    deployParams.initialDepositETH - 2 wei <=
+                        expectedStethAmount &&
+                        expectedStethAmount <= deployParams.initialDepositETH,
+                    "Invalid steth amount"
+                );
+            }
         }
 
         // Vault values
@@ -259,15 +210,19 @@ abstract contract Validator {
                     address(setup.configurator),
                 "Invalid configurator address"
             );
-            address[] memory underlyingTokens = setup.vault.underlyingTokens();
-            require(
-                underlyingTokens.length == 1,
-                "Invalid length of underlyingTokens"
-            );
-            require(
-                underlyingTokens[0] == deployParams.wsteth,
-                "Underlying token is not wsteth"
-            );
+            {
+                address[] memory underlyingTokens = setup
+                    .vault
+                    .underlyingTokens();
+                require(
+                    underlyingTokens.length == 1,
+                    "Invalid length of underlyingTokens"
+                );
+                require(
+                    underlyingTokens[0] == deployParams.wsteth,
+                    "Underlying token is not wsteth"
+                );
+            }
             {
                 address[] memory tvlModules = setup.vault.tvlModules();
                 require(tvlModules.length == 2, "Invalid tvl modules count");
@@ -281,12 +236,15 @@ abstract contract Validator {
                 );
             }
 
-            require(
-                setup.vault.withdrawalRequest(deployParams.deployer).lpAmount ==
-                    0,
-                "Deployer has withdrawal request"
-            );
-            {
+            if (validationFlags & 2 == 0) {
+                require(
+                    setup
+                        .vault
+                        .withdrawalRequest(deployParams.deployer)
+                        .lpAmount == 0,
+                    "Deployer has withdrawal request"
+                );
+
                 address[] memory pendingWithdrawers = setup
                     .vault
                     .pendingWithdrawers();
@@ -317,12 +275,15 @@ abstract contract Validator {
                     .getStETHByWstETH(underlyingTvlValues[0]);
                 // valid only for tests or right after deployment
                 // after that getStETHByWstETH will return different ratios due to rebase logic
-                require(
-                    deployParams.initialDepositETH - 2 wei <=
-                        expectedStethAmount &&
-                        expectedStethAmount <= deployParams.initialDepositETH,
-                    "Invalid initialDepositETH"
-                );
+                if (validationFlags & 2 == 0) {
+                    require(
+                        deployParams.initialDepositETH - 2 wei <=
+                            expectedStethAmount &&
+                            expectedStethAmount <=
+                            deployParams.initialDepositETH,
+                        "Invalid initialDepositETH"
+                    );
+                }
             }
 
             {
@@ -359,22 +320,27 @@ abstract contract Validator {
                     .getStETHByWstETH(baseTvlValues[wstethIndex ^ 1]);
                 // valid only for tests or right after deployment
                 // after that getStETHByWstETH will return different ratios due to rebase logic
-                require(
-                    deployParams.initialDepositETH - 2 wei <=
-                        expectedStethAmount &&
-                        expectedStethAmount <= deployParams.initialDepositETH
-                );
+                if (validationFlags & 2 == 0) {
+                    require(
+                        deployParams.initialDepositETH - 2 wei <=
+                            expectedStethAmount &&
+                            expectedStethAmount <=
+                            deployParams.initialDepositETH
+                    );
+                }
             }
 
             {
-                require(
-                    setup.vault.totalSupply() == deployParams.initialDepositETH
-                );
-                require(setup.vault.balanceOf(deployParams.deployer) == 0);
-                require(
-                    setup.vault.balanceOf(address(setup.vault)) ==
-                        deployParams.initialDepositETH
-                );
+                if (validationFlags & 2 == 0) {
+                    require(
+                        setup.vault.totalSupply() == setup.wstethAmountDeposited
+                    );
+                    require(setup.vault.balanceOf(deployParams.deployer) == 0);
+                    require(
+                        setup.vault.balanceOf(address(setup.vault)) ==
+                            setup.wstethAmountDeposited
+                    );
+                }
 
                 IVault.ProcessWithdrawalsStack memory stack = setup
                     .vault
@@ -389,12 +355,14 @@ abstract contract Validator {
                     stack.tokensHash == keccak256(abi.encode(expectedTokens))
                 );
 
-                require(stack.totalSupply == deployParams.initialDepositETH);
-                require(
-                    deployParams.initialDepositETH - 2 wei <=
-                        stack.totalValue &&
-                        stack.totalValue <= deployParams.initialDepositETH
-                );
+                if (validationFlags & 2 == 0) {
+                    require(stack.totalSupply == setup.wstethAmountDeposited);
+                    require(
+                        deployParams.initialDepositETH - 2 wei <=
+                            stack.totalValue &&
+                            stack.totalValue <= deployParams.initialDepositETH
+                    );
+                }
 
                 require(stack.ratiosX96.length == 1);
                 require(stack.ratiosX96[0] == DeployConstants.Q96);
@@ -641,4 +609,6 @@ abstract contract Validator {
             );
         }
     }
+
+    function testValidator() external pure {}
 }

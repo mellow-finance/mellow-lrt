@@ -112,3 +112,5 @@ out/
 
 # foundry magic
 /src/tmp
+
+__pycache__/
