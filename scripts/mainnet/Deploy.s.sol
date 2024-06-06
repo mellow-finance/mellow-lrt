@@ -113,7 +113,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
 
             vm.recordLogs();
             (deployParams, setups[i]) = deploy(deployParams);
-            validateParameters(deployParams, setups[i]);
+            validateParameters(deployParams, setups[i], 0);
             validateEvents(deployParams, setups[i], vm.getRecordedLogs());
             if (false) {
                 setups[i].depositWrapper.deposit{
