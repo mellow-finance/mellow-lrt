@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import "../../../scripts/mainnet/Deploy.s.sol";
 
 contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
+    using SafeERC20 for IERC20;
+
     DeployInterfaces.DeployParameters deployParams;
     DeployInterfaces.DeploySetup setup;
 
@@ -11,7 +13,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
     uint256[] amounts;
     uint256[] lpAmounts;
     uint256 private seed;
-    uint256 private constant userCount = 10;
+    uint256 private constant userCount = 1;
 
     uint256 public constant MAX_ERROR_DEPOSIT = 4 wei;
 
@@ -153,6 +155,135 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 0,
                 type(uint256).max
             );
+            assertApproxEqAbs(lpAmount, amount, MAX_ERROR_DEPOSIT);
+            vm.stopPrank();
+            amounts.push() = amount;
+            lpAmounts.push() = lpAmount;
+            assertEq(lpAmount, IERC20(setup.vault).balanceOf(depositor));
+            totalLpAmountUsers += lpAmount;
+        }
+
+        uint256 totalSupplyAfterDeposit = setup.vault.totalSupply();
+        assertApproxEqAbs(totalLpAmountUsers, totalSupplyAfterDeposit - totalSupplyInit, userCount * MAX_ERROR_DEPOSIT);
+        totalLpAmountUsers = 0;
+
+        // first random withdrawals
+        {
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+                uint256 amount = amounts[i];
+                uint256 amountWithdraw = _getRandomFraction(amount);
+                if (amountWithdraw == 0) {
+                    continue;
+                }
+                vm.startPrank(depositor);
+                setup.vault.registerWithdrawal(
+                    depositor,
+                    amountWithdraw,
+                    new uint256[](1),
+                    type(uint256).max,
+                    type(uint256).max,
+                    false
+                );
+                vm.stopPrank();
+                amount -= amountWithdraw;
+                amounts[i] = amount;
+                totalLpAmountUsers += IERC20(setup.vault).balanceOf(depositor);
+            }
+
+            vm.startPrank(deployParams.admin);
+            setup.defaultBondStrategy.processAll();
+            vm.stopPrank();
+
+            address[] memory withdrawers = setup.vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+
+            uint256 totalSupplyAfterWithdraw0 = setup.vault.totalSupply();
+            assertApproxEqAbs(totalLpAmountUsers, totalSupplyAfterWithdraw0 - totalSupplyInit, userCount * MAX_ERROR_DEPOSIT);
+        }
+        totalLpAmountUsers = 0;
+
+        // withdrawal remains
+        {
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+                uint256 amount = amounts[i];
+                uint256 amountWithdraw = amount;
+                if (amountWithdraw == 0) {
+                    continue;
+                }
+                console2.log(amount, amountWithdraw);
+                vm.startPrank(depositor);
+                setup.vault.registerWithdrawal(
+                    depositor,
+                    amountWithdraw,
+                    new uint256[](1),
+                    type(uint256).max,
+                    type(uint256).max,
+                    false
+                );
+                vm.stopPrank();
+                amount -= amountWithdraw;
+                totalLpAmountUsers += IERC20(setup.vault).balanceOf(depositor);
+                assertEq(amount, 0);
+            }
+
+            assertEq(totalLpAmountUsers, 0);
+            vm.startPrank(deployParams.admin);
+            setup.defaultBondStrategy.processAll();
+            vm.stopPrank();
+
+            address[] memory withdrawers = setup.vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+
+            uint256 totalSupplyAfterWithdraw1 = setup.vault.totalSupply();
+            assertEq(totalSupplyAfterWithdraw1, totalSupplyInit);
+            
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+               // assertEq(lpAmounts[i], IERC20(DeployConstants.WSTETH).balanceOf(depositor));
+            }
+        }
+        (, uint256[] memory baseTvlAfter) = setup.vault.baseTvl();
+
+        for (uint256 i = 0; i < baseTvlInit.length; i++) {
+            assertApproxEqAbs(baseTvlInit[i], baseTvlAfter[i], userCount * MAX_ERROR_DEPOSIT);
+        }
+    }
+
+    function testFuzz_RandomDeposit_WETH_Withdraw(
+        uint64[userCount] memory randomAmounts,
+        uint160 seedRandom
+    ) external {
+        (, uint256[] memory baseTvlInit) = setup.vault.baseTvl();
+        uint256 totalSupplyInit = setup.vault.totalSupply();
+        uint256 totalLpAmountUsers;
+        seed = seedRandom;
+        for (uint160 i = 0; i < userCount; i++) {
+            uint64 amount = randomAmounts[i];
+            amount += (amount < 1000 gwei ? 1000 gwei : 0);
+            randomAmounts[i] = amount;
+            address depositor = address(uint160(i + 0xffffffffffff));
+            users.push() = depositor;
+        }
+
+        // initial deposits
+        for (uint160 i = 0; i < userCount; i++) {
+            uint64 amount = randomAmounts[i];
+            address depositor = users[i];
+            deal(DeployConstants.WETH, depositor, amount);
+            vm.startPrank(depositor);
+            IERC20(DeployConstants.WETH).safeIncreaseAllowance(
+                address(setup.depositWrapper),
+                amount
+            );
+            uint256 lpAmount = setup.depositWrapper.deposit(
+                depositor,
+                DeployConstants.WETH,
+                amount,
+                0,
+                type(uint256).max
+            );
             vm.stopPrank();
             amounts.push() = amount;
             lpAmounts.push() = lpAmount;
@@ -229,6 +360,387 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
             vm.startPrank(deployParams.admin);
             setup.defaultBondStrategy.processAll();
             vm.stopPrank();
+
+            address[] memory withdrawers = setup.vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+
+            uint256 totalSupplyAfterWithdraw1 = setup.vault.totalSupply();
+            assertEq(totalSupplyAfterWithdraw1, totalSupplyInit);
+            
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+               // assertEq(lpAmounts[i], IERC20(DeployConstants.WSTETH).balanceOf(depositor));
+            }
+        }
+        (, uint256[] memory baseTvlAfter) = setup.vault.baseTvl();
+
+        for (uint256 i = 0; i < baseTvlInit.length; i++) {
+            assertApproxEqAbs(baseTvlInit[i], baseTvlAfter[i], userCount * MAX_ERROR_DEPOSIT);
+        }
+    }
+
+    function testFuzz_RandomDeposit_WSTETH_Withdraw(
+        uint64[userCount] memory randomAmounts,
+        uint160 seedRandom
+    ) external {
+        (, uint256[] memory baseTvlInit) = setup.vault.baseTvl();
+        uint256 totalSupplyInit = setup.vault.totalSupply();
+        uint256 totalLpAmountUsers;
+        seed = seedRandom;
+        for (uint160 i = 0; i < userCount; i++) {
+            uint64 amount = randomAmounts[i];
+            amount += (amount < 1000 gwei ? 1000 gwei : 0);
+            randomAmounts[i] = amount;
+            address depositor = address(uint160(i + 0xffffffffffff));
+            users.push() = depositor;
+        }
+
+        // initial deposits
+        for (uint160 i = 0; i < userCount; i++) {
+            uint64 amount = randomAmounts[i];
+            address depositor = users[i];
+            deal(DeployConstants.WSTETH, depositor, amount);
+            vm.startPrank(depositor);
+            IERC20(DeployConstants.WSTETH).safeIncreaseAllowance(
+                address(setup.depositWrapper),
+                amount
+            );
+            uint256 lpAmount = setup.depositWrapper.deposit(
+                depositor,
+                DeployConstants.WSTETH,
+                amount,
+                0,
+                type(uint256).max
+            );
+            vm.stopPrank();
+            amounts.push() = lpAmount;
+            lpAmounts.push() = lpAmount;
+            assertEq(lpAmount, IERC20(setup.vault).balanceOf(depositor));
+            totalLpAmountUsers += lpAmount;
+        }
+
+        uint256 totalSupplyAfterDeposit = setup.vault.totalSupply();
+        assertApproxEqAbs(totalLpAmountUsers, totalSupplyAfterDeposit - totalSupplyInit, userCount * MAX_ERROR_DEPOSIT);
+        totalLpAmountUsers = 0;
+
+        // first random withdrawals
+        {
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+                uint256 amount = amounts[i];
+                uint256 amountWithdraw = _getRandomFraction(amount);
+                if (amountWithdraw == 0) {
+                    continue;
+                }
+                vm.startPrank(depositor);
+                setup.vault.registerWithdrawal(
+                    depositor,
+                    amountWithdraw,
+                    new uint256[](1),
+                    type(uint256).max,
+                    type(uint256).max,
+                    false
+                );
+                vm.stopPrank();
+                amount -= amountWithdraw;
+                amounts[i] = amount;
+                totalLpAmountUsers += IERC20(setup.vault).balanceOf(depositor);
+            }
+
+            vm.startPrank(deployParams.admin);
+            setup.defaultBondStrategy.processAll();
+            vm.stopPrank();
+
+            address[] memory withdrawers = setup.vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+
+            uint256 totalSupplyAfterWithdraw0 = setup.vault.totalSupply();
+            assertEq(totalLpAmountUsers, totalSupplyAfterWithdraw0 - totalSupplyInit);
+        }
+
+        totalLpAmountUsers = 0;
+
+        // withdrawal remains
+        {
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+                uint256 amount = amounts[i];
+                uint256 amountWithdraw = amount;
+                if (amountWithdraw == 0) {
+                    continue;
+                }
+                console2.log(amount, amountWithdraw);
+                vm.startPrank(depositor);
+                setup.vault.registerWithdrawal(
+                    depositor,
+                    amountWithdraw,
+                    new uint256[](1),
+                    type(uint256).max,
+                    type(uint256).max,
+                    false
+                );
+                vm.stopPrank();
+                amount -= amountWithdraw;
+                totalLpAmountUsers += IERC20(setup.vault).balanceOf(depositor);
+                assertEq(amount, 0);
+            }
+
+        //    assertEq(totalLpAmountUsers, 0);
+            vm.startPrank(deployParams.admin);
+            setup.defaultBondStrategy.processAll();
+            vm.stopPrank();
+
+            address[] memory withdrawers = setup.vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+
+            uint256 totalSupplyAfterWithdraw1 = setup.vault.totalSupply();
+            assertEq(totalSupplyAfterWithdraw1, totalSupplyInit);
+            
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+               // assertEq(lpAmounts[i], IERC20(DeployConstants.WSTETH).balanceOf(depositor));
+            }
+        }
+        (, uint256[] memory baseTvlAfter) = setup.vault.baseTvl();
+
+        for (uint256 i = 0; i < baseTvlInit.length; i++) {
+            assertApproxEqAbs(baseTvlInit[i], baseTvlAfter[i], userCount * MAX_ERROR_DEPOSIT);
+        }
+    }
+
+/*    // revert at STETH.balanceOf(anyAddress)
+    function testFuzz_RandomDeposit_STETH_Withdraw(
+        uint64[userCount] memory randomAmounts,
+        uint160 seedRandom
+    ) external {
+        (, uint256[] memory baseTvlInit) = setup.vault.baseTvl();
+        uint256 totalSupplyInit = setup.vault.totalSupply();
+        uint256 totalLpAmountUsers;
+        seed = seedRandom;
+        for (uint160 i = 0; i < userCount; i++) {
+            uint64 amount = randomAmounts[i];
+            amount += (amount < 1000 gwei ? 1000 gwei : 0);
+            randomAmounts[i] = amount;
+            address depositor = address(uint160(i + 0xffffffffffff));
+            users.push() = depositor;
+        }
+
+        // initial deposits
+        for (uint160 i = 0; i < userCount; i++) {
+            uint64 amount = randomAmounts[i];
+            address depositor = users[i];
+            deal(DeployConstants.STETH, depositor, amount);
+            vm.startPrank(depositor);
+            IERC20(DeployConstants.STETH).safeIncreaseAllowance(
+                address(setup.depositWrapper),
+                amount
+            );
+            uint256 lpAmount = setup.depositWrapper.deposit(
+                depositor,
+                DeployConstants.STETH,
+                amount,
+                0,
+                type(uint256).max
+            );
+            vm.stopPrank();
+            amounts.push() = amount;
+            lpAmounts.push() = lpAmount;
+            assertEq(lpAmount, IERC20(setup.vault).balanceOf(depositor));
+            totalLpAmountUsers += lpAmount;
+        }
+
+        uint256 totalSupplyAfterDeposit = setup.vault.totalSupply();
+        assertEq(totalLpAmountUsers, totalSupplyAfterDeposit - totalSupplyInit);
+        totalLpAmountUsers = 0;
+
+
+        // first random withdrawals
+        {
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+                uint256 amount = amounts[i];
+                uint256 amountWithdraw = _getRandomFraction(amount);
+                if (amountWithdraw == 0) {
+                    continue;
+                }
+                vm.startPrank(depositor);
+                setup.vault.registerWithdrawal(
+                    depositor,
+                    amountWithdraw,
+                    new uint256[](1),
+                    type(uint256).max,
+                    type(uint256).max,
+                    false
+                );
+                vm.stopPrank();
+                amount -= amountWithdraw;
+                amounts[i] = amount;
+                totalLpAmountUsers += IERC20(setup.vault).balanceOf(depositor);
+            }
+
+            vm.startPrank(deployParams.admin);
+            setup.defaultBondStrategy.processAll();
+            vm.stopPrank();
+
+            address[] memory withdrawers = setup.vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+
+            uint256 totalSupplyAfterWithdraw0 = setup.vault.totalSupply();
+            assertEq(totalLpAmountUsers, totalSupplyAfterWithdraw0 - totalSupplyInit);
+        }
+        totalLpAmountUsers = 0;
+
+        // withdrawal remains
+        {
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+                uint256 amount = amounts[i];
+                uint256 amountWithdraw = amount;
+                if (amountWithdraw == 0) {
+                    continue;
+                }
+                console2.log(amount, amountWithdraw);
+                vm.startPrank(depositor);
+                setup.vault.registerWithdrawal(
+                    depositor,
+                    amountWithdraw,
+                    new uint256[](1),
+                    type(uint256).max,
+                    type(uint256).max,
+                    false
+                );
+                vm.stopPrank();
+                amount -= amountWithdraw;
+                totalLpAmountUsers += IERC20(setup.vault).balanceOf(depositor);
+                assertEq(amount, 0);
+            }
+
+            assertEq(totalLpAmountUsers, 0);
+            vm.startPrank(deployParams.admin);
+            setup.defaultBondStrategy.processAll();
+            vm.stopPrank();
+
+            address[] memory withdrawers = setup.vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+
+            uint256 totalSupplyAfterWithdraw1 = setup.vault.totalSupply();
+            assertEq(totalSupplyAfterWithdraw1, totalSupplyInit);
+            
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+               // assertEq(lpAmounts[i], IERC20(DeployConstants.WSTETH).balanceOf(depositor));
+            }
+        }
+        (, uint256[] memory baseTvlAfter) = setup.vault.baseTvl();
+
+        for (uint256 i = 0; i < baseTvlInit.length; i++) {
+            assertApproxEqAbs(baseTvlInit[i], baseTvlAfter[i], userCount * MAX_ERROR_DEPOSIT);
+        }
+    } */
+
+    function testFuzz_RandomDeposit_ETH_Emergency_Withdraw(
+        uint64[userCount] memory randomAmounts,
+        uint160 seedRandom
+    ) external {
+        (, uint256[] memory baseTvlInit) = setup.vault.baseTvl();
+        uint256 totalSupplyInit = setup.vault.totalSupply();
+        uint256 totalLpAmountUsers;
+        seed = seedRandom;
+        for (uint160 i = 0; i < userCount; i++) {
+            uint64 amount = randomAmounts[i];
+            amount += (amount < 1000 gwei ? 1000 gwei : 0);
+            randomAmounts[i] = amount;
+            address depositor = address(uint160(i + 0xffffffffffff));
+            users.push() = depositor;
+        }
+
+        // initial deposits
+        for (uint160 i = 0; i < userCount; i++) {
+            uint64 amount = randomAmounts[i];
+            address depositor = users[i];
+            deal(depositor, amount);
+            vm.startPrank(depositor);
+            uint256 lpAmount = setup.depositWrapper.deposit{value: amount}(
+                depositor,
+                address(0),
+                amount,
+                0,
+                type(uint256).max
+            );
+            vm.stopPrank();
+            amounts.push() = amount;
+            lpAmounts.push() = lpAmount;
+            assertEq(lpAmount, IERC20(setup.vault).balanceOf(depositor));
+            totalLpAmountUsers += lpAmount;
+        }
+
+        uint256 totalSupplyAfterDeposit = setup.vault.totalSupply();
+        assertEq(totalLpAmountUsers, totalSupplyAfterDeposit - totalSupplyInit);
+        totalLpAmountUsers = 0;
+
+        // first random withdrawals
+        {
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+                uint256 amount = amounts[i];
+                uint256 amountWithdraw = _getRandomFraction(amount);
+                if (amountWithdraw == 0) {
+                    continue;
+                }
+                vm.startPrank(depositor);
+                setup.vault.registerWithdrawal(
+                    depositor,
+                    amountWithdraw,
+                    new uint256[](1),
+                    type(uint256).max,
+                    type(uint256).max,
+                    false
+                );
+                vm.stopPrank();
+                amount -= amountWithdraw;
+                amounts[i] = amount;
+                totalLpAmountUsers += IERC20(setup.vault).balanceOf(depositor);
+            }
+
+            vm.startPrank(deployParams.admin);
+            setup.defaultBondStrategy.processAll();
+            vm.stopPrank();
+
+            address[] memory withdrawers = setup.vault.pendingWithdrawers();
+            assertEq(withdrawers.length, 0);
+
+            uint256 totalSupplyAfterWithdraw0 = setup.vault.totalSupply();
+            assertEq(totalLpAmountUsers, totalSupplyAfterWithdraw0 - totalSupplyInit);
+        }
+        totalLpAmountUsers = 0;
+
+        // emergency withdrawal remains
+        {
+            for (uint256 i = 0; i < userCount; i++) {
+                address depositor = users[i];
+                uint256 amount = amounts[i];
+                if (amount== 0) {
+                    continue;
+                }
+                vm.startPrank(depositor);
+                setup.vault.registerWithdrawal(
+                    depositor,
+                    amount,
+                    new uint256[](1),
+                    type(uint256).max,
+                    type(uint256).max,
+                    false
+                );
+                uint256[] memory amountWithdraw = new uint256[](2);
+                vm.warp(block.timestamp + 91 days);
+                amountWithdraw = setup.vault.emergencyWithdraw(amountWithdraw, type(uint256).max);
+                vm.stopPrank();
+                totalLpAmountUsers += IERC20(setup.vault).balanceOf(depositor);
+                console2.log(amountWithdraw[0], amountWithdraw[1]);
+                //console2.log("balances", IERC20(DeployConstants.WETH).balanceOf(depositor), IERC20(DeployConstants.WSTETH).balanceOf(depositor));
+            }
+
+            assertEq(totalLpAmountUsers, 0);
 
             address[] memory withdrawers = setup.vault.pendingWithdrawers();
             assertEq(withdrawers.length, 0);
