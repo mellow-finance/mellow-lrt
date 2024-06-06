@@ -14,7 +14,7 @@
     "prettier": "prettier --write ./src/** && prettier --write ./tests/** && prettier --write ./scripts/**",
     "prettier:check": "prettier --check ./src/** && prettier --check ./tests/**",
     "prettier:changed": "prettier --write $(git status | grep '\\.sol' | grep -v 'deleted:' | cut -d ' ' -f 4)",
-    "test:it": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017905 --match-path ./tests/mainnet/e2e/IntegrationTest.t.sol",
+    "test:fuzz": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017905 --match-path ./tests/mainnet/e2e/FuzzingDepositWithdrawTest.t.sol",
     "test:gas": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017905 --match-path ./tests/mainnet/unit/GasUsedTest.t.sol",
     "test:acceptance": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017905 --match-path ./tests/mainnet/acceptance\\*",
     "test": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./tests/mainnet/\\*",
