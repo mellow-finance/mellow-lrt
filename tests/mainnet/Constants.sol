@@ -104,7 +104,7 @@ library Constants {
         address token,
         address to,
         uint256 amount
-    ) internal view returns (Vm.Log memory firstLog, Vm.Log memory secondLog) {
+    ) internal pure returns (Vm.Log memory firstLog, Vm.Log memory secondLog) {
         return calculateLogsForDeal(msgSender, token, to, amount, 0);
     }
 
@@ -112,9 +112,9 @@ library Constants {
         address msgSender,
         address token,
         address to,
-        uint256 amount,
+        uint256,
         uint256 storageSlot_
-    ) internal view returns (Vm.Log memory firstLog, Vm.Log memory secondLog) {
+    ) internal pure returns (Vm.Log memory firstLog, Vm.Log memory secondLog) {
         firstLog.emitter = address(msgSender);
         firstLog.topics = new bytes32[](1);
         firstLog.data = abi.encode(
@@ -139,7 +139,7 @@ library Constants {
         address token,
         address to,
         uint256 amount
-    ) internal view returns (Vm.Log memory log) {
+    ) internal pure returns (Vm.Log memory log) {
         log.emitter = token;
         log.topics = new bytes32[](3);
         log.data = abi.encode(amount);
@@ -154,7 +154,7 @@ library Constants {
         address token,
         address to,
         uint256 amount
-    ) internal view returns (Vm.Log memory log) {
+    ) internal pure returns (Vm.Log memory log) {
         log.emitter = token;
         log.topics = new bytes32[](3);
         log.data = abi.encode(amount);
@@ -169,7 +169,7 @@ library Constants {
         address token,
         address to,
         uint256 amount
-    ) internal view returns (Vm.Log memory log) {
+    ) internal pure returns (Vm.Log memory log) {
         log.emitter = token;
         log.topics = new bytes32[](3);
         log.data = abi.encode(amount);
@@ -186,7 +186,7 @@ library Constants {
         address token,
         address to,
         uint256 amount
-    ) internal view {
+    ) internal pure {
         validateDealLogs(e0, e1, msgSender, token, to, amount, 0);
     }
 
@@ -198,7 +198,7 @@ library Constants {
         address to,
         uint256 amount,
         uint256 storageSlot_
-    ) internal view {
+    ) internal pure {
         (
             Vm.Log memory firstLog,
             Vm.Log memory secondLog
@@ -234,7 +234,7 @@ library Constants {
         address token,
         address to,
         uint256 amount
-    ) internal view {
+    ) internal pure {
         Vm.Log memory log = calculateLogsForApproval(from, token, to, amount);
         require(e0.emitter == log.emitter, "emitter");
         require(e0.topics.length == log.topics.length, "topics length");
@@ -250,7 +250,7 @@ library Constants {
         address token,
         address to,
         uint256 amount
-    ) internal view {
+    ) internal pure {
         Vm.Log memory log = calculateLogsForTransfer(from, token, to, amount);
         require(e0.emitter == log.emitter, "emitter");
         require(e0.topics.length == log.topics.length, "topics length");
@@ -266,7 +266,7 @@ library Constants {
         address token,
         address to,
         uint256 amount
-    ) internal view {
+    ) internal pure {
         Vm.Log memory log = calculateLogsForTransferShares(
             from,
             token,
@@ -280,4 +280,6 @@ library Constants {
         require(e0.topics[2] == log.topics[2], "topics[2]");
         require(keccak256(e0.data) == keccak256(log.data), "data");
     }
+
+    function test() public pure {}
 }

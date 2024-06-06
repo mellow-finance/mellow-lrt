@@ -264,4 +264,6 @@ contract DeployScript is Test {
 
         vm.stopPrank();
     }
+
+    function test() public pure {}
 }

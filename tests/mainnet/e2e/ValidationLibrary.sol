@@ -32,4 +32,6 @@ library ValidationLibrary {
             )
         );
     }
+
+    function test() public pure {}
 }

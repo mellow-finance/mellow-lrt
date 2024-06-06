@@ -112,4 +112,6 @@ contract VaultTestCommon is Test {
             depositRole
         );
     }
+
+    function test() public pure {}
 }

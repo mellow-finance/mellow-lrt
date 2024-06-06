@@ -10,6 +10,12 @@ contract DefaultBondMock is IDefaultBond, ERC20 {
 
     function testMock() public {}
 
+    uint256 public limit = type(uint256).max;
+
+    function setLimit(uint256 newLimit) external {
+        limit = newLimit;
+    }
+
     constructor(address asset_) ERC20("mock", "mock") {
         asset = asset_;
     }
@@ -38,10 +44,6 @@ contract DefaultBondMock is IDefaultBond, ERC20 {
     function withdraw(address recipient, uint256 amount) external {
         _burn(msg.sender, amount);
         IERC20(asset).transfer(recipient, amount);
-    }
-
-    function limit() external view returns (uint256) {
-        return type(uint256).max;
     }
 
     function totalRepaidDebt() external pure returns (uint256) {}
