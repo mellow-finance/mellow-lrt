@@ -18,55 +18,41 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
 
     function setUp() public {
         seed = 0;
-        bool test = true;
         address curator = DeployConstants.STEAKHOUSE_MULTISIG;
         string memory name = DeployConstants.STEAKHOUSE_VAULT_NAME;
         string memory symbol = DeployConstants.STEAKHOUSE_VAULT_SYMBOL;
 
         deployParams.deployer = DeployConstants.MAINNET_DEPLOYER;
-        vm.startBroadcast(deployParams.deployer);
+        vm.startPrank(deployParams.deployer);
 
         deployParams.proxyAdmin = DeployConstants.MELLOW_LIDO_PROXY_MULTISIG;
         deployParams.admin = DeployConstants.MELLOW_LIDO_MULTISIG;
 
-        // only for testing purposes
-        if (test) {
-            deployParams.wstethDefaultBond = DeployConstants
-                .WSTETH_DEFAULT_BOND;
-            deployParams.wstethDefaultBondFactory = DeployConstants
-                .WSTETH_DEFAULT_BOND_FACTORY;
-        } else {
-            deployParams.wstethDefaultBond = DeployConstants
-                .WSTETH_DEFAULT_BOND;
-            deployParams.wstethDefaultBondFactory = DeployConstants
-                .WSTETH_DEFAULT_BOND_FACTORY;
-        }
+        deployParams.wstethDefaultBondFactory = DeployConstants
+            .WSTETH_DEFAULT_BOND_FACTORY;
+        deployParams.wstethDefaultBond = IDefaultCollateralFactory(
+            DeployConstants.WSTETH_DEFAULT_BOND_FACTORY
+        ).create(DeployConstants.WSTETH, type(uint256).max, address(0));
 
         deployParams.wsteth = DeployConstants.WSTETH;
         deployParams.steth = DeployConstants.STETH;
         deployParams.weth = DeployConstants.WETH;
 
         deployParams.maximalTotalSupply = DeployConstants.MAXIMAL_TOTAL_SUPPLY;
-        deployParams.initialDepositETH = DeployConstants.INITIAL_DEPOSIT_ETH;
-        deployParams.firstDepositETH = DeployConstants.FIRST_DEPOSIT_ETH;
+        deployParams.initialDepositETH =
+            DeployConstants.INITIAL_DEPOSIT_ETH +
+            DeployConstants.FIRST_DEPOSIT_ETH;
+        deployParams.firstDepositETH = 0;
         deployParams = commonContractsDeploy(deployParams);
         deployParams.curator = curator;
         deployParams.lpTokenName = name;
         deployParams.lpTokenSymbol = symbol;
 
+        deal(deployParams.deployer, deployParams.initialDepositETH);
         (deployParams, setup) = deploy(deployParams);
 
         validateParameters(deployParams, setup, 0);
-        if (false) {
-            setup.depositWrapper.deposit{value: deployParams.firstDepositETH}(
-                deployParams.deployer,
-                address(0),
-                deployParams.firstDepositETH,
-                0,
-                type(uint256).max
-            );
-        }
-        vm.stopBroadcast();
+        vm.stopPrank();
     }
 
     function _random() internal returns (uint256) {

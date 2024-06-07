@@ -486,13 +486,19 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
             totalSupply
         ) + MAX_ERROR;
 
+        int256 excess = 0;
         for (uint256 i = 0; i < depositors.length; i++) {
+            excess += int256(withdrawnAmounts[i]);
             assertLe(
                 depositedAmounts[i],
                 withdrawnAmounts[i] + allowed_error,
                 string.concat(
-                    "deposit amounts > withdrawal amounts + allowed_error. ",
-                    Strings.toString(allowed_error)
+                    "deposit amounts > withdrawal amounts + allowed_error ",
+                    Strings.toString(allowed_error),
+                    " ",
+                    Strings.toString(depositedAmounts[i]),
+                    " ",
+                    Strings.toString(withdrawnAmounts[i])
                 )
             );
             assertEq(
@@ -501,6 +507,22 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
                 "non-zero balance"
             );
         }
+        for (uint256 i = 0; i < depositors.length; i++) {
+            excess -= int256(depositedAmounts[i]);
+        }
+        excess +=
+            int256(full_wsteth_balance) -
+            int256(setup.wstethAmountDeposited);
+        assertLe(
+            excess - int256(allowed_error),
+            int256(cumulative_rogue_deposits_wsteth),
+            "Excess - allowed_error > cumulative rogue deposits"
+        );
+        assertLe(
+            int256(cumulative_rogue_deposits_wsteth),
+            excess + int256(allowed_error),
+            "Cumulative rogue deposits < excess + allowed_error"
+        );
 
         address[] memory pendingWithdrawers = setup.vault.pendingWithdrawers();
         assertEq(0, pendingWithdrawers.length, "pending withdrawals not empty");
