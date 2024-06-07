@@ -161,25 +161,37 @@ abstract contract Validator {
                 setup.vault.totalSupply() == setup.wstethAmountDeposited,
                 "Invalid total supply"
             );
+            if (
+                IDefaultBond(deployParams.wstethDefaultBond).limit() !=
+                IDefaultBond(deployParams.wstethDefaultBond).totalSupply()
+            ) {
+                require(
+                    IERC20(deployParams.wsteth).balanceOf(
+                        address(setup.vault)
+                    ) == 0,
+                    "Invalid wsteth balance of vault"
+                );
+            }
+            uint256 fullWstethBalance = IERC20(deployParams.wstethDefaultBond)
+                .balanceOf(address(setup.vault)) +
+                IERC20(deployParams.wsteth).balanceOf(address(setup.vault));
             require(
-                IERC20(deployParams.wsteth).balanceOf(address(setup.vault)) ==
-                    0,
-                "Invalid wsteth balance of vault"
+                fullWstethBalance == setup.wstethAmountDeposited,
+                "Invalid fullWstethBalance balance"
             );
-            uint256 bondBalance = IERC20(deployParams.wstethDefaultBond)
-                .balanceOf(address(setup.vault));
-            require(
-                bondBalance == setup.wstethAmountDeposited,
-                "Invalid bond balance"
-            );
-            require(
-                IERC20(deployParams.wsteth).balanceOf(
-                    deployParams.wstethDefaultBond
-                ) >= bondBalance,
-                "Invalid wsteth balance of bond"
-            );
+            if (
+                IDefaultBond(deployParams.wstethDefaultBond).limit() !=
+                IDefaultBond(deployParams.wstethDefaultBond).totalSupply()
+            ) {
+                require(
+                    IERC20(deployParams.wsteth).balanceOf(
+                        deployParams.wstethDefaultBond
+                    ) >= fullWstethBalance,
+                    "Invalid wsteth balance of bond"
+                );
+            }
             uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
-                .getStETHByWstETH(bondBalance);
+                .getStETHByWstETH(fullWstethBalance);
             // at most 2 weis loss due to eth->steth && steth->wsteth conversions
             if (validationFlags & 2 == 0) {
                 require(
@@ -315,9 +327,18 @@ abstract contract Validator {
                     "Invalid wstethDefaultBond"
                 );
 
-                require(baseTvlValues[wstethIndex] == 0);
+                if (
+                    IDefaultBond(deployParams.wstethDefaultBond).limit() !=
+                    IDefaultBond(deployParams.wstethDefaultBond).totalSupply()
+                ) {
+                    require(baseTvlValues[wstethIndex] == 0);
+                }
+
                 uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
-                    .getStETHByWstETH(baseTvlValues[wstethIndex ^ 1]);
+                    .getStETHByWstETH(
+                        baseTvlValues[wstethIndex] +
+                            baseTvlValues[wstethIndex ^ 1]
+                    );
                 // valid only for tests or right after deployment
                 // after that getStETHByWstETH will return different ratios due to rebase logic
                 if (validationFlags & 2 == 0) {
@@ -349,40 +370,69 @@ abstract contract Validator {
                 address[] memory expectedTokens = new address[](1);
                 expectedTokens[0] = deployParams.wsteth;
                 require(
-                    stack.tokensHash == keccak256(abi.encode(stack.tokens))
+                    stack.tokensHash == keccak256(abi.encode(stack.tokens)),
+                    "Invalid tokens hash"
                 );
                 require(
-                    stack.tokensHash == keccak256(abi.encode(expectedTokens))
+                    stack.tokensHash == keccak256(abi.encode(expectedTokens)),
+                    "Invalid expected tokens hash"
                 );
 
                 if (validationFlags & 2 == 0) {
-                    require(stack.totalSupply == setup.wstethAmountDeposited);
+                    require(
+                        stack.totalSupply == setup.wstethAmountDeposited,
+                        "Invalid total supply"
+                    );
                     require(
                         deployParams.initialDepositETH - 2 wei <=
                             stack.totalValue &&
-                            stack.totalValue <= deployParams.initialDepositETH
+                            stack.totalValue <= deployParams.initialDepositETH,
+                        "Invalid total value"
                     );
                 }
 
-                require(stack.ratiosX96.length == 1);
-                require(stack.ratiosX96[0] == DeployConstants.Q96);
+                require(
+                    stack.ratiosX96.length == 1,
+                    "Invalid ratiosX96 length"
+                );
+                require(
+                    stack.ratiosX96[0] == DeployConstants.Q96,
+                    "Invalid ratioX96 value"
+                );
 
-                require(stack.erc20Balances.length == 1);
-                require(stack.erc20Balances[0] == 0);
+                require(
+                    stack.erc20Balances.length == 1,
+                    "Invalid erc20Balances length"
+                );
+
+                if (
+                    IDefaultBond(deployParams.wstethDefaultBond).limit() !=
+                    IDefaultBond(deployParams.wstethDefaultBond).totalSupply()
+                ) {
+                    require(
+                        stack.erc20Balances[0] == 0,
+                        "Invalid erc20Balances value"
+                    );
+                }
 
                 uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
                     .getStETHByWstETH(DeployConstants.Q96);
                 require(
                     stack.ratiosX96Value > 0 &&
-                        stack.ratiosX96Value <= expectedStethAmount
+                        stack.ratiosX96Value <= expectedStethAmount,
+                    "Invalid ratiosX96Value"
                 );
-                assert(
+                require(
                     (expectedStethAmount - stack.ratiosX96Value) <
-                        stack.ratiosX96Value / 1e10
+                        stack.ratiosX96Value / 1e10,
+                    "Invalid ratiosX96Value"
                 );
 
-                require(stack.timestamp == block.timestamp);
-                require(stack.feeD9 == 0);
+                require(
+                    stack.timestamp == block.timestamp,
+                    "Invalid timestamp"
+                );
+                require(stack.feeD9 == 0, "Invalid feeD9");
             }
         }
 

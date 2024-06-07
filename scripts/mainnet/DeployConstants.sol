@@ -25,48 +25,43 @@ library DeployConstants {
     address public constant WSTETH_DEFAULT_BOND =
         0xC329400492c6ff2438472D4651Ad17389fCb843a;
 
-    address public constant WSTETH_DEFAULT_BOND_FACTORY_TEST =
-        0x3F95a719260ce6ec9622bC549c9adCff9edf16D9;
-    address public constant WSTETH_DEFAULT_BOND_TEST =
-        0xB56dA788Aa93Ed50F50e0d38641519FfB3C3D1Eb;
-    address public constant MAINNET_TEST_DEPLOYER =
+    address public constant MAINNET_DEPLOYER =
         0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 
-    address public constant MELLOW_LIDO_TEST_MULTISIG =
-        0x4573ed3B7bFc6c28a5c7C5dF0E292148e3448Fd6;
-    address public constant MELLOW_LIDO_TEST_PROXY_MULTISIG =
-        0xD8996bb6e74b82Ca4DA473A7e4DD4A1974AFE3be;
-    address public constant MELLOW_LIDO_PROD_MULTISIG =
+    address public constant MELLOW_LIDO_MULTISIG =
         0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
-    address public constant MELLOW_LIDO_PROD_PROXY_MULTISIG =
+    address public constant MELLOW_LIDO_PROXY_MULTISIG =
         0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
 
     address public constant STEAKHOUSE_MULTISIG =
-        0x2E93913A796a6C6b2bB76F41690E78a2E206Be54;
+        0x2afc096981c2CFe3501bE4054160048718F6C0C8;
     address public constant RE7_MULTISIG =
         0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
     address public constant MEV_MULTISIG =
         0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A;
+    address public constant P2P_MULTISIG =
+        0x4a3c7F2470Aa00ebE6aE7cB1fAF95964b9de1eF4;
 
     // ---------- Ethereum Mainnet (test) ----------
 
-    // Steakhouse:
-    string public constant STEAKHOUSE_VAULT_TEST_NAME =
-        "Steakhouse Vault (test)";
-    string public constant STEAKHOUSE_VAULT_TEST_SYMBOL = "steakLRT (test)";
+    // Steakhouse
+    string public constant STEAKHOUSE_VAULT_NAME =
+        "Steakhouse Resteaking Vault";
+    string public constant STEAKHOUSE_VAULT_SYMBOL = "steakLRT";
 
     // Re7
-
-    string public constant RE7_VAULT_TEST_NAME = "Re7 Labs LRT (test)";
-    string public constant RE7_VAULT_TEST_SYMBOL = "Re7LRT (test)";
+    string public constant RE7_VAULT_NAME = "Re7 Labs LRT";
+    string public constant RE7_VAULT_SYMBOL = "Re7LRT";
 
     // MEV
+    string public constant MEV_VAULT_NAME = "MEVcap ETH";
+    string public constant MEV_VAULT_SYMBOL = "mevcETH";
 
-    string public constant MEV_VAULT_TEST_NAME = "MEVcap ETH (test)";
-    string public constant MEV_VAULT_TEST_SYMBOL = "mevcETH (test)";
+    // P2P
+    string public constant P2P_VAULT_NAME = "Restaking Vault ETH";
+    string public constant P2P_VAULT_SYMBOL = "rstETH";
 
     // Mellow
-
     string public constant MELLOW_VAULT_NAME = "Mellow Test ETH";
-    string public constant MELLOW_VAULT_SYMBOL = "mtestETH";
+    string public constant MELLOW_VAULT_SYMBOL = "mETH (test)";
 }

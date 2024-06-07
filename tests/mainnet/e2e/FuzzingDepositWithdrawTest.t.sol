@@ -20,22 +20,21 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
         seed = 0;
         bool test = true;
         address curator = DeployConstants.STEAKHOUSE_MULTISIG;
-        string memory name = DeployConstants.STEAKHOUSE_VAULT_TEST_NAME;
-        string memory symbol = DeployConstants.STEAKHOUSE_VAULT_TEST_SYMBOL;
+        string memory name = DeployConstants.STEAKHOUSE_VAULT_NAME;
+        string memory symbol = DeployConstants.STEAKHOUSE_VAULT_SYMBOL;
 
-        deployParams.deployer = DeployConstants.MAINNET_TEST_DEPLOYER;
+        deployParams.deployer = DeployConstants.MAINNET_DEPLOYER;
         vm.startBroadcast(deployParams.deployer);
 
-        deployParams.proxyAdmin = DeployConstants
-            .MELLOW_LIDO_TEST_PROXY_MULTISIG;
-        deployParams.admin = DeployConstants.MELLOW_LIDO_TEST_MULTISIG;
+        deployParams.proxyAdmin = DeployConstants.MELLOW_LIDO_PROXY_MULTISIG;
+        deployParams.admin = DeployConstants.MELLOW_LIDO_MULTISIG;
 
         // only for testing purposes
         if (test) {
             deployParams.wstethDefaultBond = DeployConstants
-                .WSTETH_DEFAULT_BOND_TEST;
+                .WSTETH_DEFAULT_BOND;
             deployParams.wstethDefaultBondFactory = DeployConstants
-                .WSTETH_DEFAULT_BOND_FACTORY_TEST;
+                .WSTETH_DEFAULT_BOND_FACTORY;
         } else {
             deployParams.wstethDefaultBond = DeployConstants
                 .WSTETH_DEFAULT_BOND;

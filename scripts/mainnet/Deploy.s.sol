@@ -8,104 +8,63 @@ import "./EventValidator.sol";
 
 contract Deploy is Script, DeployScript, Validator, EventValidator {
     function run() external {
-        DeployInterfaces.DeployParameters memory deployParams;
-
-        bool test = true;
-        uint256 n = 4;
-
+        uint256 n = 5;
         address[] memory curators = new address[](n);
         curators[0] = DeployConstants.STEAKHOUSE_MULTISIG;
         curators[1] = DeployConstants.RE7_MULTISIG;
         curators[2] = DeployConstants.MEV_MULTISIG;
-        curators[3] = DeployConstants.MELLOW_LIDO_TEST_MULTISIG;
+        curators[3] = DeployConstants.P2P_MULTISIG;
+        curators[4] = DeployConstants.MELLOW_LIDO_MULTISIG;
 
         string[] memory names = new string[](n);
-        names[0] = DeployConstants.STEAKHOUSE_VAULT_TEST_NAME;
-        names[1] = DeployConstants.RE7_VAULT_TEST_NAME;
-        names[2] = DeployConstants.MEV_VAULT_TEST_NAME;
-        names[3] = DeployConstants.MELLOW_VAULT_NAME;
+        names[0] = DeployConstants.STEAKHOUSE_VAULT_NAME;
+        names[1] = DeployConstants.RE7_VAULT_NAME;
+        names[2] = DeployConstants.MEV_VAULT_NAME;
+        names[3] = DeployConstants.P2P_VAULT_NAME;
+        names[4] = DeployConstants.MELLOW_VAULT_NAME;
 
         string[] memory symbols = new string[](n);
-        symbols[0] = DeployConstants.STEAKHOUSE_VAULT_TEST_SYMBOL;
-        symbols[1] = DeployConstants.RE7_VAULT_TEST_SYMBOL;
-        symbols[2] = DeployConstants.MEV_VAULT_TEST_SYMBOL;
-        symbols[3] = DeployConstants.MELLOW_VAULT_SYMBOL;
+        symbols[0] = DeployConstants.STEAKHOUSE_VAULT_SYMBOL;
+        symbols[1] = DeployConstants.RE7_VAULT_SYMBOL;
+        symbols[2] = DeployConstants.MEV_VAULT_SYMBOL;
+        symbols[3] = DeployConstants.P2P_VAULT_SYMBOL;
+        symbols[4] = DeployConstants.MELLOW_VAULT_SYMBOL;
 
-        deployParams.deployer = DeployConstants.MAINNET_TEST_DEPLOYER;
-        vm.startBroadcast(
-            uint256(bytes32(vm.envBytes("MAINNET_TEST_DEPLOYER")))
-        );
-
-        deployParams.proxyAdmin = DeployConstants
-            .MELLOW_LIDO_TEST_PROXY_MULTISIG;
-        deployParams.admin = DeployConstants.MELLOW_LIDO_TEST_MULTISIG;
-
-        // only for testing purposes
-        if (test) {
-            deployParams.wstethDefaultBond = DeployConstants
-                .WSTETH_DEFAULT_BOND_TEST;
-            deployParams.wstethDefaultBondFactory = DeployConstants
-                .WSTETH_DEFAULT_BOND_FACTORY_TEST;
-            // TransparentUpgradeableProxy factory = new TransparentUpgradeableProxy(
-            //         DeployConstants.WSTETH_DEFAULT_BOND_FACTORY,
-            //         address(this),
-            //         ""
-            //     );
-            // deployParams.wstethDefaultBond = IDefaultCollateralFactory(
-            //     address(factory)
-            // ).create(DeployConstants.WSTETH, type(uint256).max, address(0));
-            // deployParams.wstethDefaultBondFactory = address(factory);
-        } else {
-            deployParams.wstethDefaultBond = DeployConstants
-                .WSTETH_DEFAULT_BOND;
-            deployParams.wstethDefaultBondFactory = DeployConstants
-                .WSTETH_DEFAULT_BOND_FACTORY;
-        }
-
-        deployParams.wsteth = DeployConstants.WSTETH;
-        deployParams.steth = DeployConstants.STETH;
-        deployParams.weth = DeployConstants.WETH;
-
-        deployParams.maximalTotalSupply = DeployConstants.MAXIMAL_TOTAL_SUPPLY;
-        deployParams.initialDepositETH = DeployConstants.INITIAL_DEPOSIT_ETH;
-        deployParams.firstDepositETH = DeployConstants.FIRST_DEPOSIT_ETH;
+        DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
+            .DeployParameters({
+                deployer: DeployConstants.MAINNET_DEPLOYER,
+                proxyAdmin: DeployConstants.MELLOW_LIDO_PROXY_MULTISIG,
+                admin: DeployConstants.MELLOW_LIDO_MULTISIG,
+                curator: address(0),
+                lpTokenName: "",
+                lpTokenSymbol: "",
+                wstethDefaultBond: DeployConstants.WSTETH_DEFAULT_BOND,
+                wstethDefaultBondFactory: DeployConstants
+                    .WSTETH_DEFAULT_BOND_FACTORY,
+                wsteth: DeployConstants.WSTETH,
+                steth: DeployConstants.STETH,
+                weth: DeployConstants.WETH,
+                maximalTotalSupply: DeployConstants.MAXIMAL_TOTAL_SUPPLY,
+                initialDepositETH: DeployConstants.INITIAL_DEPOSIT_ETH,
+                firstDepositETH: DeployConstants.FIRST_DEPOSIT_ETH,
+                initializer: Initializer(address(0)),
+                initialImplementation: Vault(payable(address(0))),
+                erc20TvlModule: ERC20TvlModule(address(0)),
+                defaultBondTvlModule: DefaultBondTvlModule(address(0)),
+                defaultBondModule: DefaultBondModule(address(0)),
+                ratiosOracle: ManagedRatiosOracle(address(0)),
+                priceOracle: ChainlinkOracle(address(0)),
+                wethAggregatorV3: IAggregatorV3(address(0)),
+                wstethAggregatorV3: IAggregatorV3(address(0)),
+                defaultProxyImplementation: DefaultProxyImplementation(
+                    address(0)
+                )
+            });
 
         DeployInterfaces.DeploySetup[]
             memory setups = new DeployInterfaces.DeploySetup[](n);
-
-        deployParams.initializer = Initializer(
-            0x8f06BEB555D57F0D20dB817FF138671451084e24
-        );
-        deployParams.initialImplementation = Vault(
-            payable(0x0c3E4E9Ab10DfB52c52171F66eb5C7E05708F77F)
-        );
-        deployParams.erc20TvlModule = ERC20TvlModule(
-            0xCA60f449867c9101Ec80F8C611eaB39afE7bD638
-        );
-        deployParams.defaultBondModule = DefaultBondModule(
-            0x204043f4bda61F719Ad232b4196E1bc4131a3096
-        );
-        deployParams.defaultBondTvlModule = DefaultBondTvlModule(
-            0x48f758bd51555765EBeD4FD01c85554bD0B3c03B
-        );
-        deployParams.ratiosOracle = ManagedRatiosOracle(
-            0x1437DCcA4e1442f20285Fb7C11805E7a965681e2
-        );
-        deployParams.priceOracle = ChainlinkOracle(
-            0xA5046e9379B168AFA154504Cf16853B6a7728436
-        );
-        deployParams.wethAggregatorV3 = ConstantAggregatorV3(
-            0x3C1418499aa69A08DfBCed4243BBA7EB90dE3D09
-        );
-        deployParams.wstethAggregatorV3 = WStethRatiosAggregatorV3(
-            0x773ae8ca45D5701131CA84C58821a39DdAdC709c
-        );
-        deployParams.defaultProxyImplementation = DefaultProxyImplementation(
-            0x538459eeA06A06018C70bf9794e1c7b298694828
-        );
-
+        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
         deployParams = commonContractsDeploy(deployParams);
-        n = 1;
         for (uint256 i = 0; i < n; i++) {
             deployParams.curator = curators[i];
             deployParams.lpTokenName = names[i];
@@ -115,27 +74,22 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             (deployParams, setups[i]) = deploy(deployParams);
             validateParameters(deployParams, setups[i], 0);
             validateEvents(deployParams, setups[i], vm.getRecordedLogs());
-            if (false) {
-                setups[i].depositWrapper.deposit{
-                    value: deployParams.firstDepositETH
-                }(
-                    deployParams.deployer,
-                    address(0),
-                    deployParams.firstDepositETH,
-                    0,
-                    type(uint256).max
-                );
-            }
+            setups[i].depositWrapper.deposit{
+                value: deployParams.firstDepositETH
+            }(
+                deployParams.deployer,
+                address(0),
+                deployParams.firstDepositETH,
+                0,
+                type(uint256).max
+            );
         }
 
         vm.stopBroadcast();
-
         for (uint256 i = 0; i < n; i++) {
             logSetup(setups[i]);
         }
         logDeployParams(deployParams);
-
-        revert("Success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {
@@ -149,6 +103,10 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         );
         console2.log("DepositWrapper: ", address(setup.depositWrapper));
         console2.log("WstethAmountDeposited: ", setup.wstethAmountDeposited);
+        console2.log(
+            "TransparentUpgradeableProxy-ProxyAdmin: ",
+            address(setup.proxyAdmin)
+        );
         console2.log("---------------------------");
         block.timestamp;
     }

@@ -15,7 +15,7 @@ abstract contract DeployScript is CommonBase {
             deployParams.initialImplementation = new Vault(
                 "",
                 "",
-                address(this)
+                address(0xdead)
             );
         if (address(deployParams.erc20TvlModule) == address(0))
             deployParams.erc20TvlModule = new ERC20TvlModule();
