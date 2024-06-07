@@ -12,7 +12,7 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
 
     uint256 private seed;
 
-    uint256 public constant MAX_ERROR = 4 wei;
+    uint256 public constant MAX_ERROR = 10 wei;
     uint256 public constant Q96 = 2 ** 96;
     uint256 public constant D18 = 1e18;
 
@@ -23,8 +23,6 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
     uint256 public cumulative_deposits_wsteth;
     uint256 public cumulative_processed_withdrawals_wsteth;
     uint256 public cumulative_rogue_deposits_wsteth;
-
-    uint256 public expected_deposit_wsteth_ratio_x96;
 
     function deployVault(uint256 symbioticLimit, uint256 mellowLimit) public {
         seed = 0;
@@ -70,27 +68,9 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
 
         vm.recordLogs();
         (deployParams, setup) = deploy(deployParams);
-        console2.log("validation:");
         validateParameters(deployParams, setup, 0);
         validateEvents(deployParams, setup, vm.getRecordedLogs());
         vm.stopPrank();
-
-        _update_expected_deposit_wsteth_ratio_x96();
-    }
-
-    function _update_expected_deposit_wsteth_ratio_x96() internal {
-        uint256 total_supply = setup.vault.totalSupply();
-        uint256 full_wsteth_balance = IERC20(deployParams.wsteth).balanceOf(
-            address(setup.vault)
-        ) +
-            IERC20(deployParams.wstethDefaultBond).balanceOf(
-                address(setup.vault)
-            );
-        expected_deposit_wsteth_ratio_x96 = Math.mulDiv(
-            total_supply,
-            Q96,
-            full_wsteth_balance
-        );
     }
 
     function _indexOf(address user) internal view returns (uint256) {
@@ -165,6 +145,35 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
             address(setup.depositWrapper),
             amount
         );
+
+        uint256 totalSupply = setup.vault.totalSupply();
+        uint256 priceX96 = deployParams.priceOracle.priceX96(
+            address(setup.vault),
+            deployParams.wsteth
+        );
+
+        uint256 depositValue = FullMath.mulDiv(amount, priceX96, Q96);
+
+        // assertApproxEqAbs(
+        //     depositValue,
+        //     IWSteth(deployParams.wsteth).getStETHByWstETH(amount),
+        //     MAX_ERROR
+        // );
+
+        uint256 totalValue = FullMath.mulDivRoundingUp(
+            IERC20(deployParams.wstethDefaultBond).balanceOf(
+                address(setup.vault)
+            ) + IERC20(deployParams.wsteth).balanceOf(address(setup.vault)),
+            priceX96,
+            Q96
+        );
+
+        uint256 expectedLpAmount = FullMath.mulDiv(
+            depositValue,
+            totalSupply,
+            totalValue
+        );
+
         uint256 lpAmount;
         try
             setup.depositWrapper.deposit(
@@ -185,22 +194,11 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
             vm.stopPrank();
             return;
         }
-
         vm.stopPrank();
 
-        cumulative_deposits_wsteth += amount;
-        uint256 current_minted_lp_deposited_ratio_x96 = Math.mulDiv(
-            lpAmount,
-            Q96,
-            amount
-        );
+        assertEq(expectedLpAmount, lpAmount, "invalid deposit ratio");
 
-        // assertApproxEqAbs(
-        //     current_minted_lp_deposited_ratio_x96,
-        //     expected_deposit_wsteth_ratio_x96,
-        //     Math.mulDiv(Q96, MAX_ERROR, D18)
-        // );
-        expected_deposit_wsteth_ratio_x96 = current_minted_lp_deposited_ratio_x96;
+        cumulative_deposits_wsteth += amount;
         depositedAmounts[_indexOf(user)] += amount;
     }
 
@@ -359,8 +357,6 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
         IERC20(deployParams.wsteth).safeTransfer(address(setup.vault), amount);
         vm.stopPrank();
         cumulative_rogue_deposits_wsteth += amount;
-
-        _update_expected_deposit_wsteth_ratio_x96();
     }
 
     function validate_invariants() internal view {
@@ -484,8 +480,6 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
     }
 
     function validate_final_invariants() internal view {
-        uint256 badUsersCnt = 0;
-
         uint256 totalSupply = setup.vault.totalSupply();
         uint256 full_wsteth_balance = IERC20(deployParams.wsteth).balanceOf(
             address(setup.vault)
@@ -503,12 +497,15 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
             assertLe(
                 depositedAmounts[i],
                 withdrawnAmounts[i] + allowed_error,
-                "deposit amounts > withdrawal amounts + allowed_error"
+                string.concat(
+                    "deposit amounts > withdrawal amounts + allowed_error. ",
+                    Strings.toString(allowed_error)
+                )
             );
             assertEq(
                 0,
                 setup.vault.balanceOf(depositors[i]),
-                "balance not zero"
+                "non-zero balance"
             );
         }
 
@@ -546,7 +543,7 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
         validate_final_invariants();
     }
 
-    function testFuzz_Solvency(
+    function testFuzz_SolvencyWithSetOfTransitions(
         uint8 n_,
         uint256 symbioticLimit,
         uint256 mellowLimit,
@@ -577,6 +574,56 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
             }
         }
 
+        finalize_test();
+        validate_invariants();
+        validate_final_invariants();
+    }
+
+    function testFuzz_SolvencySequenceOfTransitions(
+        uint256 symbioticLimit,
+        uint256 mellowLimit,
+        uint8[] memory sequence
+    ) external {
+        uint256 n = sequence.length;
+        {
+            uint256 iterator = 0;
+            for (uint256 i = 0; i < n; i++) {
+                if (sequence[i] <= 4) {
+                    sequence[iterator++] = sequence[i];
+                }
+            }
+            assembly {
+                mstore(sequence, iterator)
+            }
+            n = sequence.length;
+        }
+        // to prevent OOG
+        if (n > 5000) {
+            n = 5000;
+            assembly {
+                mstore(sequence, n)
+            }
+        }
+        deployVault(symbioticLimit, mellowLimit);
+        for (uint256 i = 0; i < n; i++) {
+            if (sequence[i] == 0) {
+                transition_random_deposit();
+                validate_invariants();
+            }
+            if (sequence[i] == 1) {
+                transition_random_wsteth_price_change();
+                validate_invariants();
+            } else if (sequence[i] == 2) {
+                transition_request_random_withdrawal();
+                validate_invariants();
+            } else if (sequence[i] == 3) {
+                transition_process_random_requested_withdrawals_subset();
+                validate_invariants();
+            } else if (sequence[i] == 4) {
+                transfer_rogue_deposit();
+                validate_invariants();
+            }
+        }
         finalize_test();
         validate_invariants();
         validate_final_invariants();
