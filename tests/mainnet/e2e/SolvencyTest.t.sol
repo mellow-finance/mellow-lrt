@@ -36,10 +36,8 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
         deployParams.proxyAdmin = DeployConstants.MELLOW_LIDO_PROXY_MULTISIG;
         deployParams.admin = DeployConstants.MELLOW_LIDO_MULTISIG;
 
-        // only for testing purposes
         deployParams.wstethDefaultBondFactory = DeployConstants
             .WSTETH_DEFAULT_BOND_FACTORY;
-
         deployParams.wstethDefaultBond = IDefaultCollateralFactory(
             deployParams.wstethDefaultBondFactory
         ).create(DeployConstants.WSTETH, symbioticLimit, address(0));
@@ -48,8 +46,10 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
         deployParams.steth = DeployConstants.STETH;
         deployParams.weth = DeployConstants.WETH;
 
-        deployParams.initialDepositETH = DeployConstants.INITIAL_DEPOSIT_ETH;
-        deployParams.firstDepositETH = DeployConstants.FIRST_DEPOSIT_ETH;
+        deployParams.initialDepositETH =
+            DeployConstants.INITIAL_DEPOSIT_ETH +
+            DeployConstants.FIRST_DEPOSIT_ETH;
+        deployParams.firstDepositETH = 0;
         deployParams = commonContractsDeploy(deployParams);
         deployParams.curator = curator;
         deployParams.lpTokenName = name;
@@ -153,13 +153,6 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
         );
 
         uint256 depositValue = FullMath.mulDiv(amount, priceX96, Q96);
-
-        // assertApproxEqAbs(
-        //     depositValue,
-        //     IWSteth(deployParams.wsteth).getStETHByWstETH(amount),
-        //     MAX_ERROR
-        // );
-
         uint256 totalValue = FullMath.mulDivRoundingUp(
             IERC20(deployParams.wstethDefaultBond).balanceOf(
                 address(setup.vault)
@@ -524,7 +517,7 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
 
     function testSolvency() external {
         uint256 n = 1000; // n = 1000 -> used gas ~= 2**32, so if set higher, it will fail with OOG
-        deployVault(n * 1e6 ether, 0 * n * 1e6 ether);
+        deployVault(n * 1e6 ether, n * 1e6 ether);
         for (uint256 i = 0; i < n; i++) {
             transition_random_deposit();
             validate_invariants();
@@ -588,9 +581,9 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
         {
             uint256 iterator = 0;
             for (uint256 i = 0; i < n; i++) {
-                if (sequence[i] <= 4) {
-                    sequence[iterator++] = sequence[i];
-                }
+                sequence[i] = uint8(
+                    uint256(keccak256(abi.encode(sequence[i]))) % 5
+                );
             }
             assembly {
                 mstore(sequence, iterator)
