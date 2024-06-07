@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "forge-std/Test.sol";
+import {stdStorage, StdStorage} from "forge-std/Test.sol";
 import {StdAssertions} from "forge-std/StdAssertions.sol";
 import "forge-std/Script.sol";
 import "forge-std/Base.sol";

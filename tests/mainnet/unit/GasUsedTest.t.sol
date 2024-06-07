@@ -12,9 +12,9 @@ contract GasUsedTest is Validator, DeployScript, Test {
     DeployInterfaces.DeploySetup setup;
 
     function setUp() external {
-        params.deployer = DeployConstants.MAINNET_TEST_DEPLOYER;
-        params.proxyAdmin = DeployConstants.MELLOW_LIDO_TEST_PROXY_MULTISIG;
-        params.admin = DeployConstants.MELLOW_LIDO_TEST_MULTISIG;
+        params.deployer = DeployConstants.MAINNET_DEPLOYER;
+        params.proxyAdmin = DeployConstants.MELLOW_LIDO_PROXY_MULTISIG;
+        params.admin = DeployConstants.MELLOW_LIDO_MULTISIG;
         params.wstethDefaultBond = address(
             new DefaultBondMock(DeployConstants.WSTETH)
         );
