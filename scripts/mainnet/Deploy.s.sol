@@ -8,27 +8,24 @@ import "./EventValidator.sol";
 
 contract Deploy is Script, DeployScript, Validator, EventValidator {
     function run() external {
-        uint256 n = 5;
+        uint256 n = 4;
         address[] memory curators = new address[](n);
         curators[0] = DeployConstants.STEAKHOUSE_MULTISIG;
         curators[1] = DeployConstants.RE7_MULTISIG;
         curators[2] = DeployConstants.MEV_MULTISIG;
         curators[3] = DeployConstants.P2P_MULTISIG;
-        curators[4] = DeployConstants.MELLOW_LIDO_MULTISIG;
 
         string[] memory names = new string[](n);
         names[0] = DeployConstants.STEAKHOUSE_VAULT_NAME;
         names[1] = DeployConstants.RE7_VAULT_NAME;
         names[2] = DeployConstants.MEV_VAULT_NAME;
         names[3] = DeployConstants.P2P_VAULT_NAME;
-        names[4] = DeployConstants.MELLOW_VAULT_NAME;
 
         string[] memory symbols = new string[](n);
         symbols[0] = DeployConstants.STEAKHOUSE_VAULT_SYMBOL;
         symbols[1] = DeployConstants.RE7_VAULT_SYMBOL;
         symbols[2] = DeployConstants.MEV_VAULT_SYMBOL;
         symbols[3] = DeployConstants.P2P_VAULT_SYMBOL;
-        symbols[4] = DeployConstants.MELLOW_VAULT_SYMBOL;
 
         DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
             .DeployParameters({

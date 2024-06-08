@@ -10,8 +10,6 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
     DeployInterfaces.DeploySetup setup;
 
     uint256 private seed;
-    // uint256 private constant userCount = 2;
-
     uint256 public constant MAX_USERS = 4;
     uint256 public constant MAX_ERROR_DEPOSIT = 4 wei;
     uint256 public constant Q96 = 2 ** 96;

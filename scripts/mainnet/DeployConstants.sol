@@ -42,7 +42,7 @@ library DeployConstants {
     address public constant P2P_MULTISIG =
         0x4a3c7F2470Aa00ebE6aE7cB1fAF95964b9de1eF4;
 
-    // ---------- Ethereum Mainnet (test) ----------
+    // ---------- Ethereum Mainnet ----------
 
     // Steakhouse
     string public constant STEAKHOUSE_VAULT_NAME =

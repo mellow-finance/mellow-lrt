@@ -25,10 +25,13 @@ contract Collector is DefaultAccessControl {
         uint128[] withdrawalRatiosX96; // ratiosX96 for withdrawals
         uint256[] pricesX96; // pricesX96 for underlying tokens
         uint256 totalSupply; // total supply of the vault
+        uint256 maximalTotalSupply; // limit of total supply of the vault
         uint256 userBalanceETH; // user vault balance in ETH
         uint256 userBalanceUSDC; // user vault balance in USDC
         uint256 totalValueETH; // total value of the vault in ETH
         uint256 totalValueUSDC; // total value of the vault in USDC
+        uint256 maximalTotalSupplyETH; // eth value for max limit total supply
+        uint256 maximalTotalSupplyUSDC; // usdc value for max limit total supply
         uint256 lpPriceD18; // LP price in USDC weis 1e8 (due to chainlink decimals)
         bool shouldCloseWithdrawalRequest; // if the withdrawal request should be closed
         IVault.WithdrawalRequest withdrawalRequest; // withdrawal request
@@ -122,6 +125,18 @@ contract Collector is DefaultAccessControl {
                     responses[i].totalValueUSDC,
                     D18,
                     responses[i].totalSupply
+                );
+
+                responses[i].maximalTotalSupply = vault
+                    .configurator()
+                    .maximalTotalSupply();
+                responses[i].maximalTotalSupplyETH = FullMath.mulDiv(
+                    responses[i].maximalTotalSupply,
+                    responses[i].totalValueETH,
+                    responses[i].totalSupply
+                );
+                responses[i].maximalTotalSupplyUSDC = convertWethToUSDC(
+                    responses[i].maximalTotalSupplyETH
                 );
             }
 
