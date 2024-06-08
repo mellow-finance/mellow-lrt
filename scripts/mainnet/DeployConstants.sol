@@ -39,7 +39,7 @@ library DeployConstants {
         0x2afc096981c2CFe3501bE4054160048718F6C0C8;
     address public constant RE7_MULTISIG =
         0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
-    address public constant MEV_MULTISIG =
+    address public constant AMPHOR_MULTISIG =
         0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A;
     address public constant P2P_MULTISIG =
         0x4a3c7F2470Aa00ebE6aE7cB1fAF95964b9de1eF4;
@@ -55,9 +55,9 @@ library DeployConstants {
     string public constant RE7_VAULT_NAME = "Re7 Labs LRT";
     string public constant RE7_VAULT_SYMBOL = "Re7LRT";
 
-    // MEV
-    string public constant MEV_VAULT_NAME = "MEVcap ETH";
-    string public constant MEV_VAULT_SYMBOL = "mevcETH";
+    // Amphor
+    string public constant AMPHOR_VAULT_NAME = "Amphor Restaked ETH";
+    string public constant AMPHOR_VAULT_SYMBOL = "amphrETH";
 
     // P2P
     string public constant P2P_VAULT_NAME = "Restaking Vault ETH";

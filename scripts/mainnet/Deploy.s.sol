@@ -12,19 +12,19 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         address[] memory curators = new address[](n);
         curators[0] = DeployConstants.STEAKHOUSE_MULTISIG;
         curators[1] = DeployConstants.RE7_MULTISIG;
-        curators[2] = DeployConstants.MEV_MULTISIG;
+        curators[2] = DeployConstants.AMPHOR_MULTISIG;
         curators[3] = DeployConstants.P2P_MULTISIG;
 
         string[] memory names = new string[](n);
         names[0] = DeployConstants.STEAKHOUSE_VAULT_NAME;
         names[1] = DeployConstants.RE7_VAULT_NAME;
-        names[2] = DeployConstants.MEV_VAULT_NAME;
+        names[2] = DeployConstants.AMPHOR_VAULT_NAME;
         names[3] = DeployConstants.P2P_VAULT_NAME;
 
         string[] memory symbols = new string[](n);
         symbols[0] = DeployConstants.STEAKHOUSE_VAULT_SYMBOL;
         symbols[1] = DeployConstants.RE7_VAULT_SYMBOL;
-        symbols[2] = DeployConstants.MEV_VAULT_SYMBOL;
+        symbols[2] = DeployConstants.AMPHOR_VAULT_SYMBOL;
         symbols[3] = DeployConstants.P2P_VAULT_SYMBOL;
 
         DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
@@ -62,9 +62,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             memory setups = new DeployInterfaces.DeploySetup[](n);
         vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
         deployParams = commonContractsDeploy(deployParams);
-        uint256 index = 0;
         for (uint256 i = 0; i < n; i++) {
-            if (i != index) continue;
             deployParams.curator = curators[i];
             deployParams.lpTokenName = names[i];
             deployParams.lpTokenSymbol = symbols[i];

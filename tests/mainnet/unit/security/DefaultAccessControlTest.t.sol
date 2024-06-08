@@ -58,6 +58,10 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         deployParams.lpTokenName = name;
         deployParams.lpTokenSymbol = symbol;
 
+        deal(
+            deployParams.deployer,
+            deployParams.initialDepositETH + deployParams.firstDepositETH
+        );
         (deployParams, setup) = deploy(deployParams);
 
         validateParameters(deployParams, setup, 0);
