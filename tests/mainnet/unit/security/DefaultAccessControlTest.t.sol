@@ -8,23 +8,24 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
     using SafeERC20 for IERC20;
 
     address private constant admin = address(bytes20(keccak256("admin")));
-    address private constant adminDelegate = address(bytes20(keccak256("admin delegate")));
+    address private constant adminDelegate =
+        address(bytes20(keccak256("admin delegate")));
     address private operator1;
-    address private constant operator2 = address(bytes20(keccak256("operator2")));
+    address private constant operator2 =
+        address(bytes20(keccak256("operator2")));
     uint256 public constant Q96 = 2 ** 96;
     DeployInterfaces.DeployParameters deployParams;
     DeployInterfaces.DeploySetup setup;
 
     function setUp() public {
         bool test = true;
-        address curator = DeployConstants.STEAKHOUSE_MULTISIG;
         string memory name = DeployConstants.STEAKHOUSE_VAULT_NAME;
         string memory symbol = DeployConstants.STEAKHOUSE_VAULT_SYMBOL;
 
         deployParams.deployer = DeployConstants.MAINNET_DEPLOYER;
         vm.startBroadcast(deployParams.deployer);
 
-        deployParams.proxyAdmin = admin;// DeployConstants.MELLOW_LIDO_PROXY_MULTISIG;
+        deployParams.proxyAdmin = admin; // DeployConstants.MELLOW_LIDO_PROXY_MULTISIG;
         deployParams.admin = admin; //DeployConstants.MELLOW_LIDO_MULTISIG;
 
         // only for testing purposes
@@ -78,7 +79,9 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
 
     function testFuzz_DefaultBondValidator(address randomAddress) public {
         vm.startPrank(admin);
-        DefaultBondValidator defaultBondValidator = new DefaultBondValidator(admin);
+        DefaultBondValidator defaultBondValidator = new DefaultBondValidator(
+            admin
+        );
         defaultBondValidator.setSupportedBond(address(0xdead), false);
         vm.stopPrank();
 
@@ -120,7 +123,10 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         vm.stopPrank();
     }
 
-    function testFuzz_VaultToken(address randomAddress, address randomToken) public {
+    function testFuzz_VaultToken(
+        address randomAddress,
+        address randomToken
+    ) public {
         vm.assume(randomToken != address(0));
         uint256 snapshotId = vm.snapshot();
 
@@ -196,7 +202,6 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
         setup.vault.addTvlModule(address(deployParams.erc20TvlModule));
         vm.stopPrank();
-
     }
 
     function testFuzz_VaultProcessWithdrawals(address randomAddress) public {
@@ -208,7 +213,7 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         vm.deal(users[0], amount);
 
         vm.startPrank(users[0]);
-        uint256 lpAmount = setup.depositWrapper.deposit{value: amount}(
+        setup.depositWrapper.deposit{value: amount}(
             users[0],
             address(0),
             amount,
@@ -278,10 +283,14 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         setup.vault.delegateCall(address(deployParams.defaultBondModule), data);
         vm.stopPrank();
     }
-   
-    function testFuzz_DefaultBondStrategyProcessAll(address randomAddress)  public {
+
+    function testFuzz_DefaultBondStrategyProcessAll(
+        address randomAddress
+    ) public {
         vm.assume(randomAddress != address(0));
-        DefaultBondStrategy strategy = DefaultBondStrategy(setup.defaultBondStrategy);
+        DefaultBondStrategy strategy = DefaultBondStrategy(
+            setup.defaultBondStrategy
+        );
 
         vm.startPrank(admin);
         strategy.processAll();
@@ -302,8 +311,10 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         strategy.processAll();
         vm.stopPrank();
     }
-    
-    function testFuzz_DefaultBondStrategyProcessWithdrawals(address randomAddress)  public {
+
+    function testFuzz_DefaultBondStrategyProcessWithdrawals(
+        address randomAddress
+    ) public {
         vm.assume(randomAddress != address(0));
 
         address[] memory users = new address[](1);
@@ -313,7 +324,7 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         vm.deal(users[0], amount);
 
         vm.startPrank(users[0]);
-        uint256 lpAmount = setup.depositWrapper.deposit{value: amount}(
+        setup.depositWrapper.deposit{value: amount}(
             users[0],
             address(0),
             amount,
@@ -333,9 +344,10 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
 
         address[] memory withdrawers = setup.vault.pendingWithdrawers();
         assertEq(withdrawers.length, 1);
-        
 
-        DefaultBondStrategy strategy = DefaultBondStrategy(setup.defaultBondStrategy);
+        DefaultBondStrategy strategy = DefaultBondStrategy(
+            setup.defaultBondStrategy
+        );
 
         uint256 snapshotId = vm.snapshot();
 
@@ -361,10 +373,14 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         strategy.processWithdrawals(users);
         vm.stopPrank();
     }
-    
-    function testFuzz_DefaultBondStrategyDepositCallback(address randomAddress)  public {
+
+    function testFuzz_DefaultBondStrategyDepositCallback(
+        address randomAddress
+    ) public {
         vm.assume(randomAddress != address(0));
-        DefaultBondStrategy strategy = DefaultBondStrategy(setup.defaultBondStrategy);
+        DefaultBondStrategy strategy = DefaultBondStrategy(
+            setup.defaultBondStrategy
+        );
 
         vm.startPrank(admin);
         strategy.depositCallback(new uint256[](1), 0);
@@ -385,12 +401,18 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         strategy.depositCallback(new uint256[](1), 0);
         vm.stopPrank();
     }
-    
-    function testFuzz_DefaultBondStrategySetData(address randomAddress, address randomToken)  public {
+
+    function testFuzz_DefaultBondStrategySetData(
+        address randomAddress,
+        address randomToken
+    ) public {
         vm.assume(randomAddress != address(0));
         vm.assume(randomToken != address(0));
-        DefaultBondStrategy strategy = DefaultBondStrategy(setup.defaultBondStrategy);
-        IDefaultBondStrategy.Data[] memory data = new IDefaultBondStrategy.Data[](1);
+        DefaultBondStrategy strategy = DefaultBondStrategy(
+            setup.defaultBondStrategy
+        );
+        IDefaultBondStrategy.Data[]
+            memory data = new IDefaultBondStrategy.Data[](1);
         data[0].bond = address(new DefaultBondMock(address(randomToken)));
         data[0].ratioX96 = Q96;
         uint256 snapshotId = vm.snapshot();
@@ -398,7 +420,7 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         vm.startPrank(admin);
         strategy.setData(randomToken, data);
         vm.stopPrank();
-        
+
         vm.revertTo(snapshotId);
         vm.startPrank(operator1);
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
@@ -419,7 +441,6 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
     }
 
     function testFuzz_VaultExternalCall(address randomAddress) public {
-        bytes memory data = abi.encode(0);
         address uniswapV3Pool = 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640;
         bytes4 selector = bytes4(0x3850c7bd);
 
@@ -432,21 +453,33 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         setup.configurator.stageValidator(address(validator));
         vm.warp(block.timestamp + 31 days);
         setup.configurator.commitValidator();
-        setup.vault.externalCall(uniswapV3Pool, abi.encodeWithSelector(selector));
+        setup.vault.externalCall(
+            uniswapV3Pool,
+            abi.encodeWithSelector(selector)
+        );
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        setup.vault.externalCall(uniswapV3Pool, abi.encodeWithSelector(selector));
+        setup.vault.externalCall(
+            uniswapV3Pool,
+            abi.encodeWithSelector(selector)
+        );
         vm.stopPrank();
 
         vm.startPrank(operator2);
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
-        setup.vault.externalCall(uniswapV3Pool, abi.encodeWithSelector(selector));
+        setup.vault.externalCall(
+            uniswapV3Pool,
+            abi.encodeWithSelector(selector)
+        );
         vm.stopPrank();
 
         vm.startPrank(randomAddress);
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
-        setup.vault.externalCall(uniswapV3Pool, abi.encodeWithSelector(selector));
+        setup.vault.externalCall(
+            uniswapV3Pool,
+            abi.encodeWithSelector(selector)
+        );
         vm.stopPrank();
     }
 }
