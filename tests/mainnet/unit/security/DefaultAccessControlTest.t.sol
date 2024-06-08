@@ -18,6 +18,11 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
     DeployInterfaces.DeploySetup setup;
 
     function setUp() public {
+        string memory rpc = vm.envString("MAINNET_RPC");
+        uint256 fork = vm.createFork(rpc, 20017905);
+        vm.selectFork(fork);
+
+        console.log("block.number", block.number);
         bool test = true;
         string memory name = DeployConstants.STEAKHOUSE_VAULT_NAME;
         string memory symbol = DeployConstants.STEAKHOUSE_VAULT_SYMBOL;
@@ -206,6 +211,9 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
 
     function testFuzz_VaultProcessWithdrawals(address randomAddress) public {
         vm.assume(randomAddress != address(0));
+        vm.assume(randomAddress != admin);
+        vm.assume(randomAddress != operator1);
+        vm.assume(randomAddress != operator2);
         address[] memory users = new address[](1);
         users[0] = vm.createWallet("user").addr;
         uint256 amount = 1 ether;
@@ -263,6 +271,8 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
 
     function testFuzz_VaultDelegateCall(address randomAddress) public {
         vm.assume(randomAddress != address(0));
+        vm.assume(randomAddress != admin);
+        vm.assume(randomAddress != operator1);
         bytes memory data = abi.encode(1);
 
         vm.startPrank(admin);
@@ -288,6 +298,7 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         address randomAddress
     ) public {
         vm.assume(randomAddress != address(0));
+        vm.assume(randomAddress != admin);
         DefaultBondStrategy strategy = DefaultBondStrategy(
             setup.defaultBondStrategy
         );
@@ -378,6 +389,7 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         address randomAddress
     ) public {
         vm.assume(randomAddress != address(0));
+        vm.assume(randomAddress != admin);
         DefaultBondStrategy strategy = DefaultBondStrategy(
             setup.defaultBondStrategy
         );
@@ -407,6 +419,7 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
         address randomToken
     ) public {
         vm.assume(randomAddress != address(0));
+        vm.assume(randomAddress != admin);
         vm.assume(randomToken != address(0));
         DefaultBondStrategy strategy = DefaultBondStrategy(
             setup.defaultBondStrategy
@@ -441,6 +454,9 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
     }
 
     function testFuzz_VaultExternalCall(address randomAddress) public {
+        vm.assume(randomAddress != address(0));
+        vm.assume(randomAddress != admin);
+        vm.assume(randomAddress != operator1);
         address uniswapV3Pool = 0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640;
         bytes4 selector = bytes4(0x3850c7bd);
 

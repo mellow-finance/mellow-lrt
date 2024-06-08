@@ -24,6 +24,12 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
     uint256 public cumulative_processed_withdrawals_wsteth;
     uint256 public cumulative_rogue_deposits_wsteth;
 
+    function setUp() public {
+        string memory rpc = vm.envString("MAINNET_RPC");
+        uint256 fork = vm.createFork(rpc, 20017905);
+        vm.selectFork(fork);
+    }
+
     function deployVault(uint256 symbioticLimit, uint256 mellowLimit) public {
         seed = 0;
         address curator = DeployConstants.STEAKHOUSE_MULTISIG;
