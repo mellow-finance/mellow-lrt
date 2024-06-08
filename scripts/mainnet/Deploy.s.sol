@@ -62,31 +62,35 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             memory setups = new DeployInterfaces.DeploySetup[](n);
         vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
         deployParams = commonContractsDeploy(deployParams);
+        uint256 index = 0;
         for (uint256 i = 0; i < n; i++) {
+            if (i != index) continue;
             deployParams.curator = curators[i];
             deployParams.lpTokenName = names[i];
             deployParams.lpTokenSymbol = symbols[i];
 
-            vm.recordLogs();
+            // vm.recordLogs();
             (deployParams, setups[i]) = deploy(deployParams);
-            validateParameters(deployParams, setups[i], 0);
-            validateEvents(deployParams, setups[i], vm.getRecordedLogs());
-            setups[i].depositWrapper.deposit{
-                value: deployParams.firstDepositETH
-            }(
-                deployParams.deployer,
-                address(0),
-                deployParams.firstDepositETH,
-                0,
-                type(uint256).max
-            );
+            // validateParameters(deployParams, setups[i], 0);
+            // validateEvents(deployParams, setups[i], vm.getRecordedLogs());
+            // setups[i].depositWrapper.deposit{
+            //     value: deployParams.firstDepositETH
+            // }(
+            //     deployParams.deployer,
+            //     address(0),
+            //     deployParams.firstDepositETH,
+            //     0,
+            //     type(uint256).max
+            // );
         }
 
         vm.stopBroadcast();
         for (uint256 i = 0; i < n; i++) {
+            if (i != index) continue;
             logSetup(setups[i]);
         }
         logDeployParams(deployParams);
+        revert("Success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {

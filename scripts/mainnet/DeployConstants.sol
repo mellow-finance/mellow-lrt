@@ -26,6 +26,8 @@ library DeployConstants {
         0xC329400492c6ff2438472D4651Ad17389fCb843a;
 
     address public constant MAINNET_DEPLOYER =
+        0x188858AC61a74350116d1CB6958fBc509FD6afA1;
+    address public constant MAINNET_TEST_DEPLOYER =
         0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 
     address public constant MELLOW_LIDO_MULTISIG =

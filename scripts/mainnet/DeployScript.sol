@@ -3,6 +3,8 @@ pragma solidity 0.8.25;
 
 import "./DeployInterfaces.sol";
 
+import "@openzeppelin/contracts/utils/Create2.sol";
+
 abstract contract DeployScript is CommonBase {
     using SafeERC20 for IERC20;
 
@@ -52,12 +54,44 @@ abstract contract DeployScript is CommonBase {
         )
     {
         {
-            TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            bytes memory creationCode = abi.encodePacked(
+                type(TransparentUpgradeableProxy).creationCode,
+                abi.encode(
+                    address(deployParams.initializer),
+                    address(deployParams.deployer),
+                    new bytes(0)
+                )
+            );
+            bytes32 creationCodeHash = keccak256(creationCode);
+
+            uint160 mask = uint160(0xffFf000000000000000000000000000000000000);
+            uint160 beef = uint160(0xbeeF000000000000000000000000000000000000);
+            uint256 salt = 0;
+            address expectedProxyAddress;
+
+            while (true) {
+                expectedProxyAddress = Create2.computeAddress(
+                    bytes32(salt),
+                    creationCodeHash,
+                    deployParams.deployer
+                );
+                if ((uint160(expectedProxyAddress) & mask) == beef) {
+                    console2.log("address, salt: ", expectedProxyAddress, salt);
+                    break;
+                } else {
+                    salt++;
+                }
+            }
+
+            TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy{
+                salt: bytes32(salt)
+            }(
                 address(deployParams.initializer),
                 address(deployParams.deployer),
                 new bytes(0)
             );
 
+            revert(Strings.toHexString(address(proxy)));
             Initializer(address(proxy)).initialize(
                 deployParams.lpTokenName,
                 deployParams.lpTokenSymbol,
