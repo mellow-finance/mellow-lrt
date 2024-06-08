@@ -52,9 +52,7 @@ abstract contract DeployScript is CommonBase {
         )
     {
         {
-            TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy{
-                salt: bytes32(uint256(15675502))
-            }(
+            TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
                 address(deployParams.initializer),
                 address(deployParams.deployer),
                 new bytes(0)

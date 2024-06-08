@@ -86,11 +86,9 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
 
         vm.stopBroadcast();
         for (uint256 i = 0; i < n; i++) {
-            if (i != index) continue;
             logSetup(setups[i]);
         }
         logDeployParams(deployParams);
-        revert("Success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {
