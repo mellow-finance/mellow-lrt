@@ -2,82 +2,109 @@ DEPLOY_CONTRACTS_DATA = [
     # steakhouse
     {
         'Vault': {
-            'address': '0xa77a8D25cEB4B9F38A711850751edAc70d7b91b0',
-            'creation_block': '20015536'
+            'address': '0xBEEF69Ac7870777598A04B2bd4771c71212E6aBc',
+            'creation_block': '20045981'
         },
         'ProxyAdmin': {
-            'address': '0x638113B8941327E4B0213Eefcb1319EC664DFD16',
+            'address': '0xed792a3fDEB9044C70c951260AaAe974Fb3dB38F',
             'creation_block': '20015536'
         },
         'VaultConfigurator': {
-            'address': '0x7dB7dA79AF0Fe678634A51e1f57a091Fd485f7f8',
-            'creation_block': '20015537'
+            'address': '0xe6180599432767081beA7deB76057Ce5883e73Be',
+            'creation_block': '20045982'
         },
         'ManagedValidator': {
-            'address': '0xd1928e2675a9be18f08d9aCe1A8008aaDEa3d813',
-            'creation_block': '20015628'
+            'address': '0xdB66693845a3f72e932631080Efb1A86536D0EA7',
+            'creation_block': '20046025'
         },
         'DefaultBondStrategy': {
-            'address': '0x378F3AD5F48524bb2cD9A0f88B6AA525BaB2cB62',
-            'creation_block': '20015621'
+            'address': '0x7a14b34a9a8EA235C66528dc3bF3aeFC36DFc268',
+            'creation_block': '20046017'
         },
         'DepositWrapper': {
-            'address': '0x9CaA80709b4F9a72b70efc7Db4bE0150Bf362126',
-            'creation_block': '20015641'
+            'address': '0x24fee15BC11fF617c042283B58A3Bda6441Da145',
+            'creation_block': '20046039'
         },
     },
     # re7
     {
         'Vault': {
-            'address': '0x20eF170856B8A746Df78406bfC2535b36F35774F',
-            'creation_block': '20015817'
+            'address': '0x84631c0d0081FDe56DeB72F6DE77abBbF6A9f93a',
+            'creation_block': '20046215'
         },
         'ProxyAdmin': {
-            'address': '0x3C6b61a0CFEE415F1Ebc11b095090b9fb21FAcC6',
-            'creation_block': '20015817'
+            'address': '0xF076CF343DCfD01BBA57dFEB5C74F7B015951fcF',
+            'creation_block': '20046215'
         },
         'VaultConfigurator': {
-            'address': '0x3492407B9b8e0619d4fF423265F1cA5BE5198dd8',
-            'creation_block': '20015818'
+            'address': '0x214d66d110060dA2848038CA0F7573486363cAe4',
+            'creation_block': '20046216'
         },
         'ManagedValidator': {
-            'address': '0xa064e9D2599b7029Bb5d4896812D339ac1aAa111',
-            'creation_block': '20015866'
+            'address': '0x0483B89F632596B24426703E540e373083928a6A',
+            'creation_block': '20046254'
         },
         'DefaultBondStrategy': {
-            'address': '0x6c4Aa164e733292586Fd09b92d86f3e5fa8E0772',
-            'creation_block': '20015859'
+            'address': '0xcE3A8820265AD186E8C1CeAED16ae97176D020bA',
+            'creation_block': '20046246'
         },
         'DepositWrapper': {
-            'address': '0x9d9d932Ff608F505EAd156E79C87A98Eb0527A1c',
-            'creation_block': '20015896'
+            'address': '0x70cD3464A41B6692413a1Ba563b9D53955D5DE0d',
+            'creation_block': '20046274'
         },
     },
-    # mev
+    # p2p
     {
         'Vault': {
-            'address': '0xbF0311DF31aF8b027A12051c00d02aA85A322594',
-            'creation_block': '20016019'
+            'address': '0x7a4EffD87C2f3C55CA251080b1343b605f327E3a',
+            'creation_block': '20046493'
         },
         'ProxyAdmin': {
-            'address': '0xaD09f49E43237f02Ad8b037805243fFb635Da796',
-            'creation_block': '20016019'
+            'address': '0x17AC6A90eD880F9cE54bB63DAb071F2BD3FE3772',
+            'creation_block': '20046493'
         },
         'VaultConfigurator': {
-            'address': '0x63B844b3b0E6774403812652A0c4f65f9Dd8CdEc',
-            'creation_block': '20016020'
+            'address': '0x84b240E99d4C473b5E3dF1256300E2871412dDfe',
+            'creation_block': '20046494'
         },
         'ManagedValidator': {
-            'address': '0x819ed5ff31bAc8388C32182115517da660Cd7049',
-            'creation_block': '20016052'
+            'address': '0x6AB116ac709c89D90Cc1F8cD0323617A9996bA7c',
+            'creation_block': '20046522'
         },
         'DefaultBondStrategy': {
-            'address': '0xEA872051b66C72136d07b8c53ed03539fCB6C3d6',
-            'creation_block': '20016045'
+            'address': '0xA0ea6d4fe369104eD4cc18951B95C3a43573C0F6',
+            'creation_block': '20046515'
         },
         'DepositWrapper': {
-            'address': '0x33757bE32998e524bbA895F2eA53D2e3Dc65cdf0',
-            'creation_block': '20016065'
+            'address': '0x41A1FBEa7Ace3C3a6B66a73e96E5ED07CDB2A34d',
+            'creation_block': '20046547'
+        },
+    },
+    # amphor
+    {
+        'Vault': {
+            'address': '0x5fD13359Ba15A84B76f7F87568309040176167cd',
+            'creation_block': '20046849'
+        },
+        'ProxyAdmin': {
+            'address': '0xc24891B75ef55fedC377c5e6Ec59A850b12E23ac',
+            'creation_block': '20046849'
+        },
+        'VaultConfigurator': {
+            'address': '0x2dEc4fDC225C1f71161Ea481E23D66fEaAAE2391',
+            'creation_block': '20046850'
+        },
+        'ManagedValidator': {
+            'address': '0xD2635fa0635126bAfdD430b9614c0280d37a76CA',
+            'creation_block': '20046892'
+        },
+        'DefaultBondStrategy': {
+            'address': '0xc3A149b5Ca3f4A5F17F5d865c14AA9DBb570F10A',
+            'creation_block': '20046885'
+        },
+        'DepositWrapper': {
+            'address': '0xdC1741f9bD33DD791942CC9435A90B0983DE8665',
+            'creation_block': '20046903'
         },
     },
 ]
