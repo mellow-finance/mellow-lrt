@@ -69,19 +69,19 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             deployParams.lpTokenName = names[i];
             deployParams.lpTokenSymbol = symbols[i];
 
-            // vm.recordLogs();
+            vm.recordLogs();
             (deployParams, setups[i]) = deploy(deployParams);
-            // validateParameters(deployParams, setups[i], 0);
-            // validateEvents(deployParams, setups[i], vm.getRecordedLogs());
-            // setups[i].depositWrapper.deposit{
-            //     value: deployParams.firstDepositETH
-            // }(
-            //     deployParams.deployer,
-            //     address(0),
-            //     deployParams.firstDepositETH,
-            //     0,
-            //     type(uint256).max
-            // );
+            validateParameters(deployParams, setups[i], 0);
+            validateEvents(deployParams, setups[i], vm.getRecordedLogs());
+            setups[i].depositWrapper.deposit{
+                value: deployParams.firstDepositETH
+            }(
+                deployParams.deployer,
+                address(0),
+                deployParams.firstDepositETH,
+                0,
+                type(uint256).max
+            );
         }
 
         vm.stopBroadcast();
