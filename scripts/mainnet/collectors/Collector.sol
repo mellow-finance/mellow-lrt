@@ -30,9 +30,13 @@ contract Collector is DefaultAccessControl {
         uint256 userBalanceUSDC; // user vault balance in USDC
         uint256 totalValueETH; // total value of the vault in ETH
         uint256 totalValueUSDC; // total value of the vault in USDC
+        uint256 totalValueWSTETH; // total value of the vault in WSTETH
         uint256 maximalTotalSupplyETH; // eth value for max limit total supply
         uint256 maximalTotalSupplyUSDC; // usdc value for max limit total supply
+        uint256 maximalTotalSupplyWSTETH; // wsteth value for max limit total supply
         uint256 lpPriceD18; // LP price in USDC weis 1e8 (due to chainlink decimals)
+        uint256 lpPriceETHD18; // LP price in ETH weis 1e8 (due to chainlink decimals)
+        uint256 lpPriceWSTETHD18; // LP price in WSTETH weis 1e8 (due to chainlink decimals)
         bool shouldCloseWithdrawalRequest; // if the withdrawal request should be closed
         IVault.WithdrawalRequest withdrawalRequest; // withdrawal request
         bool isDefi; // if the vault address is an address of some DeFi pool
@@ -126,7 +130,6 @@ contract Collector is DefaultAccessControl {
                     D18,
                     responses[i].totalSupply
                 );
-
                 responses[i].maximalTotalSupply = vault
                     .configurator()
                     .maximalTotalSupply();
@@ -135,8 +138,22 @@ contract Collector is DefaultAccessControl {
                     responses[i].totalValueETH,
                     responses[i].totalSupply
                 );
+                responses[i].maximalTotalSupplyWSTETH = IWSteth(wsteth)
+                    .getWstETHByStETH(responses[i].maximalTotalSupplyETH);
+                responses[i].totalValueWSTETH = IWSteth(wsteth)
+                    .getWstETHByStETH(responses[i].totalValueETH);
                 responses[i].maximalTotalSupplyUSDC = convertWethToUSDC(
                     responses[i].maximalTotalSupplyETH
+                );
+                responses[i].lpPriceETHD18 = FullMath.mulDiv(
+                    responses[i].totalValueETH,
+                    D18,
+                    responses[i].totalSupply
+                );
+                responses[i].lpPriceWSTETHD18 = FullMath.mulDiv(
+                    responses[i].totalValueWSTETH,
+                    D18,
+                    responses[i].totalSupply
                 );
             }
 
