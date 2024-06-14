@@ -35,19 +35,9 @@ contract VaultRateOracle is IAggregatorV3 {
             );
     }
 
-    function fetchParams()
-        public
-        view
-        returns (uint256 totalValue, uint256 totalSupply)
-    {
-        IVault.ProcessWithdrawalsStack memory stack = vault.calculateStack();
-        totalValue = stack.totalValue;
-        totalSupply = stack.totalSupply;
-    }
-
     function getRate() public view returns (uint256) {
-        (uint256 totalValue, uint256 totalSupply) = fetchParams();
-        return Math.mulDiv(totalValue, D18, totalSupply);
+        IVault.ProcessWithdrawalsStack memory stack = vault.calculateStack();
+        return Math.mulDiv(stack.totalValue, D18, stack.totalSupply);
     }
 
     function latestRoundData()
