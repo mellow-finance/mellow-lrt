@@ -28,7 +28,9 @@ abstract contract DeployScript is CommonBase {
         if (address(deployParams.priceOracle) == address(0))
             deployParams.priceOracle = new ChainlinkOracle();
         if (address(deployParams.constantAggregatorV3) == address(0))
-            deployParams.constantAggregatorV3 = new ConstantAggregatorV3(1 ether);
+            deployParams.constantAggregatorV3 = new ConstantAggregatorV3(
+                1 ether
+            );
         if (address(deployParams.defaultProxyImplementation) == address(0))
             deployParams
                 .defaultProxyImplementation = new DefaultProxyImplementation(
@@ -274,10 +276,12 @@ abstract contract DeployScript is CommonBase {
                 deployParams.initialDeposit > 0,
                 "Invalid deploy params. Initial deposit value is 0"
             );
-        
 
             require(
-                deployParams.initialDeposit <= IERC20(deployParams.underlyingToken).balanceOf(deployParams.deployer),
+                deployParams.initialDeposit <=
+                    IERC20(deployParams.underlyingToken).balanceOf(
+                        deployParams.deployer
+                    ),
                 "Insufficient balance for initial deposit"
             );
 

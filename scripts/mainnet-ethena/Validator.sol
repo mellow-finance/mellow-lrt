@@ -78,10 +78,11 @@ abstract contract Validator {
                 "DefaultBondStrategy: more than one has ADMIN_DELEGATE_ROLE"
             );
             require(
-                strategy.getRoleMemberCount(OPERATOR_ROLE) == deployParams.curators.length,
+                strategy.getRoleMemberCount(OPERATOR_ROLE) ==
+                    deployParams.curators.length,
                 "DefaultBondStrategy: OPERATOR_ROLE count is not equal to 1"
             );
-            
+
             for (uint256 i = 0; i < deployParams.curators.length; i++) {
                 require(
                     strategy.hasRole(OPERATOR_ROLE, deployParams.curators[i]),
@@ -257,7 +258,7 @@ abstract contract Validator {
                     underlyingTvlValues.length == 1,
                     "Invalid length of underlyingTvlValues"
                 );
-            
+
                 require(
                     underlyingTvlValues[0] == deployParams.initialDeposit,
                     "Invalid initial underlying tvl"
@@ -284,7 +285,8 @@ abstract contract Validator {
                     : 1;
 
                 require(
-                    baseTvlTokens[underlyingTokenIndex] == deployParams.underlyingToken,
+                    baseTvlTokens[underlyingTokenIndex] ==
+                        deployParams.underlyingToken,
                     "BaseTvlTokens is not wsteth"
                 );
                 require(
@@ -294,7 +296,9 @@ abstract contract Validator {
                 );
 
                 require(
-                    baseTvlValues[underlyingTokenIndex] +  baseTvlValues[underlyingTokenIndex ^ 1] == deployParams.initialDeposit,
+                    baseTvlValues[underlyingTokenIndex] +
+                        baseTvlValues[underlyingTokenIndex ^ 1] ==
+                        deployParams.initialDeposit,
                     "Invalid initial total value"
                 );
 
@@ -305,7 +309,8 @@ abstract contract Validator {
                     require(baseTvlValues[underlyingTokenIndex] == 0);
                 } else {
                     require(
-                        baseTvlValues[underlyingTokenIndex] == deployParams.initialDeposit
+                        baseTvlValues[underlyingTokenIndex] ==
+                            deployParams.initialDeposit
                     );
                 }
             }
@@ -343,7 +348,7 @@ abstract contract Validator {
                         "Invalid total supply"
                     );
                     require(
-                            stack.totalValue == deployParams.initialDeposit,
+                        stack.totalValue == deployParams.initialDeposit,
                         "Invalid total value"
                     );
                 }
@@ -491,13 +496,19 @@ abstract contract Validator {
             require(
                 deployParams
                     .priceOracle
-                    .aggregatorsData(address(setup.vault), deployParams.underlyingToken)
+                    .aggregatorsData(
+                        address(setup.vault),
+                        deployParams.underlyingToken
+                    )
                     .aggregatorV3 == address(deployParams.constantAggregatorV3)
             );
             require(
                 deployParams
                     .priceOracle
-                    .aggregatorsData(address(setup.vault), deployParams.underlyingToken)
+                    .aggregatorsData(
+                        address(setup.vault),
+                        deployParams.underlyingToken
+                    )
                     .maxAge == 0
             );
 

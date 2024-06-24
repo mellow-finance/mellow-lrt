@@ -29,7 +29,6 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
 
         deployParams.maximalTotalSupply = 100 ether;
         deployParams.initialDeposit = 1 ether;
-        deployParams.firstDeposit = 0;
         deployParams = commonContractsDeploy(deployParams);
         deployParams.curators = new address[](3);
         deployParams.curators[0] = DeployConstants.ETHENA_CURATOR_MEV;
@@ -112,7 +111,6 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
 
         deployParams.maximalTotalSupply = 100 ether;
         deployParams.initialDeposit = 1 ether;
-        deployParams.firstDeposit = 0;
         deployParams = commonContractsDeploy(deployParams);
         deployParams.curators = new address[](3);
         deployParams.curators[0] = DeployConstants.ETHENA_CURATOR_MEV;

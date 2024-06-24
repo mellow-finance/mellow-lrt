@@ -15,12 +15,14 @@ library DeployConstants {
     uint256 public constant ENA_VAULT_LIMIT = 50_000_000 ether;
 
     address public constant SUSDE = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
-    uint256 public constant SUSDE_VAULT_LIMIT = 50_000_000 ether;  // 46296296 ether;
+    uint256 public constant SUSDE_VAULT_LIMIT = 50_000_000 ether;
 
     address public constant DEFAULT_BOND_FACTORY =
         0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
-    address public constant ENA_DEFAULT_BOND = 0xe39B5f5638a209c1A6b6cDFfE5d37F7Ac99fCC84;
-    address public constant SUSDE_DEFAULT_BOND = 0x19d0D8e6294B7a04a2733FE433444704B791939A;
+    address public constant ENA_DEFAULT_BOND =
+        0xe39B5f5638a209c1A6b6cDFfE5d37F7Ac99fCC84;
+    address public constant SUSDE_DEFAULT_BOND =
+        0x19d0D8e6294B7a04a2733FE433444704B791939A;
 
     address public constant MAINNET_DEPLOYER =
         0x188858AC61a74350116d1CB6958fBc509FD6afA1;
