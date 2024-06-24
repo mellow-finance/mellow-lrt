@@ -12,10 +12,12 @@ library DeployConstants {
     uint8 public constant ADMIN_ROLE_BIT = 255;
 
     address public constant ENA = 0x57e114B691Db790C35207b2e685D4A43181e6061;
-    uint256 public constant ENA_VAULT_LIMIT = 50_000_000 ether;
+    uint256 public constant ENA_VAULT_LIMIT = 67_500_000 ether;
 
     address public constant SUSDE = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
-    uint256 public constant SUSDE_VAULT_LIMIT = 50_000_000 ether;
+    uint256 public constant SUSDE_VAULT_LIMIT = 37_500_000 ether;
+
+    uint256 public constant INITIAL_DEPOSIT = 1 gwei;
 
     address public constant DEFAULT_BOND_FACTORY =
         0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;

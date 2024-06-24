@@ -35,10 +35,6 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         maximalTotalSupplies[0] = DeployConstants.ENA_VAULT_LIMIT;
         maximalTotalSupplies[1] = DeployConstants.SUSDE_VAULT_LIMIT;
 
-        uint256[] memory initialDeposits = new uint256[](n);
-        initialDeposits[0] = 1 gwei;
-        initialDeposits[1] = 1 gwei;
-
         DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
             .DeployParameters({
                 deployer: DeployConstants.MAINNET_DEPLOYER,
@@ -51,7 +47,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
                 defaultBondFactory: DeployConstants.DEFAULT_BOND_FACTORY,
                 underlyingToken: address(0),
                 maximalTotalSupply: 0,
-                initialDeposit: 0,
+                initialDeposit: DeployConstants.INITIAL_DEPOSIT,
                 initializer: Initializer(
                     0x39c62c6308BeD7B0832CAfc2BeA0C0eDC7f2060c
                 ),
@@ -87,14 +83,14 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
 
         deployParams = commonContractsDeploy(deployParams);
+        uint256 index = 0;
         for (uint256 i = 0; i < n; i++) {
+            if (i != index) continue;
             deployParams.lpTokenName = names[i];
             deployParams.lpTokenSymbol = symbols[i];
-            deployParams.underlyingToken = underlyingTokens[i];
-
             deployParams.defaultBond = bonds[i];
+            deployParams.underlyingToken = underlyingTokens[i];
             deployParams.maximalTotalSupply = maximalTotalSupplies[i];
-            deployParams.initialDeposit = initialDeposits[i];
 
             vm.recordLogs();
             (deployParams, setups[i]) = deploy(deployParams);
@@ -104,11 +100,12 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
 
         vm.stopBroadcast();
         for (uint256 i = 0; i < n; i++) {
+            if (i != index) continue;
             logSetup(setups[i]);
         }
         logDeployParams(deployParams);
 
-        revert("success");
+        // revert("success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {

@@ -390,7 +390,7 @@ abstract contract Validator {
             require(setup.configurator.depositCallbackDelay() == 1 days);
             require(setup.configurator.withdrawalCallbackDelay() == 1 days);
             require(setup.configurator.withdrawalFeeD9Delay() == 30 days);
-            require(setup.configurator.maximalTotalSupplyDelay() == 1 days);
+            require(setup.configurator.maximalTotalSupplyDelay() == 1 hours); // NOTE: 1 hour delay for changing maximalTotalSupply
             require(setup.configurator.isDepositLockedDelay() == 1 hours);
             require(setup.configurator.areTransfersLockedDelay() == 365 days);
             require(setup.configurator.delegateModuleApprovalDelay() == 1 days);

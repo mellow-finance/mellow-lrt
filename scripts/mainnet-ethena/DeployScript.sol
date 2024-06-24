@@ -242,7 +242,7 @@ abstract contract DeployScript is CommonBase {
             s.configurator.stageWithdrawalFeeD9Delay(30 days);
             s.configurator.commitWithdrawalFeeD9Delay();
 
-            s.configurator.stageMaximalTotalSupplyDelay(1 days);
+            s.configurator.stageMaximalTotalSupplyDelay(1 hours);
             s.configurator.commitMaximalTotalSupplyDelay();
 
             s.configurator.stageDepositsLockedDelay(1 hours);
