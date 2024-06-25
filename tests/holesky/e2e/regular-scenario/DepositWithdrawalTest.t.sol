@@ -78,15 +78,15 @@ contract RegularDepositWithdrawalScenario is DeployScript {
         uint256 depositAmountETH
     ) private returns (uint256 lpAmount, uint256 depositAmount) {
         vm.startPrank(from);
-        ISteth(DeployConstants.STETH).submit{value: depositAmountETH}(address(0));
+        ISteth(DeployConstants.STETH).submit{value: depositAmountETH}(
+            address(0)
+        );
         IERC20(DeployConstants.STETH).safeIncreaseAllowance(
             address(DeployConstants.WSTETH),
             depositAmountETH
         );
         IWSteth(DeployConstants.WSTETH).wrap(depositAmountETH);
-        depositAmount = IERC20(DeployConstants.WSTETH).balanceOf(
-            from
-        );
+        depositAmount = IERC20(DeployConstants.WSTETH).balanceOf(from);
         IERC20(DeployConstants.WSTETH).safeIncreaseAllowance(
             address(setup.vault),
             depositAmount
@@ -103,7 +103,9 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             );
         }
         updateSystemState();
-        assertTrue(lpAmount >= depositAmountETH - MAX_ROUNDING_ERROR_PER_DEPOSIT); // rounding errors
+        assertTrue(
+            lpAmount >= depositAmountETH - MAX_ROUNDING_ERROR_PER_DEPOSIT
+        ); // rounding errors
         vm.stopPrank();
     }
 
@@ -174,15 +176,15 @@ contract RegularDepositWithdrawalScenario is DeployScript {
         uint256 depositAmountETH
     ) private returns (uint256 lpAmount) {
         vm.startPrank(from);
-        ISteth(DeployConstants.STETH).submit{value: depositAmountETH}(address(0));
+        ISteth(DeployConstants.STETH).submit{value: depositAmountETH}(
+            address(0)
+        );
         IERC20(DeployConstants.STETH).safeIncreaseAllowance(
             address(DeployConstants.WSTETH),
             depositAmountETH
         );
         IWSteth(DeployConstants.WSTETH).wrap(depositAmountETH);
-        uint256 depositAmount = IERC20(DeployConstants.WSTETH).balanceOf(
-            from
-        );
+        uint256 depositAmount = IERC20(DeployConstants.WSTETH).balanceOf(from);
         IERC20(DeployConstants.WSTETH).safeIncreaseAllowance(
             address(setup.vault),
             depositAmount
@@ -198,7 +200,9 @@ contract RegularDepositWithdrawalScenario is DeployScript {
                 0
             );
         }
-        assertTrue(lpAmount >= depositAmountETH - MAX_ROUNDING_ERROR_PER_DEPOSIT); // rounding errors
+        assertTrue(
+            lpAmount >= depositAmountETH - MAX_ROUNDING_ERROR_PER_DEPOSIT
+        ); // rounding errors
         vm.stopPrank();
     }
 
@@ -207,15 +211,15 @@ contract RegularDepositWithdrawalScenario is DeployScript {
         uint256 depositAmountETH
     ) private returns (uint256 lpAmount) {
         vm.startPrank(from);
-        ISteth(DeployConstants.STETH).submit{value: depositAmountETH}(address(0));
+        ISteth(DeployConstants.STETH).submit{value: depositAmountETH}(
+            address(0)
+        );
         IERC20(DeployConstants.STETH).safeIncreaseAllowance(
             address(DeployConstants.WSTETH),
             depositAmountETH
         );
         IWSteth(DeployConstants.WSTETH).wrap(depositAmountETH);
-        uint256 depositAmount = IERC20(DeployConstants.WSTETH).balanceOf(
-            from
-        );
+        uint256 depositAmount = IERC20(DeployConstants.WSTETH).balanceOf(from);
         IERC20(DeployConstants.WSTETH).safeIncreaseAllowance(
             address(setup.depositWrapper),
             depositAmount
@@ -228,7 +232,9 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             type(uint256).max,
             0
         );
-        assertTrue(lpAmount >= depositAmountETH - MAX_ROUNDING_ERROR_PER_DEPOSIT); // rounding errors
+        assertTrue(
+            lpAmount >= depositAmountETH - MAX_ROUNDING_ERROR_PER_DEPOSIT
+        ); // rounding errors
         vm.stopPrank();
     }
 
@@ -237,7 +243,11 @@ contract RegularDepositWithdrawalScenario is DeployScript {
         address[] memory token,
         uint256[] memory depositAmount
     ) private returns (uint256 lpAmount) {
-        assertEq(token.length, depositAmount.length, "depositMulti: length mismatch");
+        assertEq(
+            token.length,
+            depositAmount.length,
+            "depositMulti: length mismatch"
+        );
 
         for (uint256 i = 0; i < token.length; ++i) {
             if (depositAmount[i] > 0) {
@@ -299,9 +309,7 @@ contract RegularDepositWithdrawalScenario is DeployScript {
         uint256 lpAmount
     ) private view {
         UserState memory userStateAfter = usersSystemState[epoch - 1][user];
-        UserState memory userStateBefore = usersSystemState[epoch - 2][
-            user
-        ];
+        UserState memory userStateBefore = usersSystemState[epoch - 2][user];
         assertEq(
             userStateAfter.lpBalance,
             0,
@@ -324,10 +332,7 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             "Invalid lp balance before withdrawal request"
         );
 
-        assertEq(
-            userStateAfter.wstethBalance,
-            userStateBefore.wstethBalance
-        );
+        assertEq(userStateAfter.wstethBalance, userStateBefore.wstethBalance);
     }
 
     function _checkUserStateAfterWithdrawalProcessing(
@@ -336,9 +341,7 @@ contract RegularDepositWithdrawalScenario is DeployScript {
         uint256 lpAmount
     ) private view {
         UserState memory userStateAfter = usersSystemState[epoch - 1][user];
-        UserState memory userStateBefore = usersSystemState[epoch - 2][
-            user
-        ];
+        UserState memory userStateBefore = usersSystemState[epoch - 2][user];
         assertEq(
             userStateBefore.withdrawalRequest.lpAmount,
             lpAmount,
@@ -375,8 +378,10 @@ contract RegularDepositWithdrawalScenario is DeployScript {
         );
     }
 
-    function _processWithdrawalAndCheck(address user, uint256 lpAmount) private  {
-
+    function _processWithdrawalAndCheck(
+        address user,
+        uint256 lpAmount
+    ) private {
         vm.prank(user);
         setup.vault.registerWithdrawal(
             user,
@@ -398,11 +403,7 @@ contract RegularDepositWithdrawalScenario is DeployScript {
 
         updateSystemState();
 
-        _checkUserStateAfterWithdrawalProcessing(
-            user,
-            baseTvlBefore,
-            lpAmount
-        );
+        _checkUserStateAfterWithdrawalProcessing(user, baseTvlBefore, lpAmount);
         vm.stopPrank();
     }
 
@@ -447,7 +448,10 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             .calculateStack();
 
         deal(depositor1, TEST_DEPOSIT_AMOUNT_ETH);
-        uint256 lpAmount = _depositWrapperWETH(depositor1, TEST_DEPOSIT_AMOUNT_ETH);
+        uint256 lpAmount = _depositWrapperWETH(
+            depositor1,
+            TEST_DEPOSIT_AMOUNT_ETH
+        );
 
         updateSystemState();
 
@@ -475,7 +479,10 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             .calculateStack();
 
         deal(depositor1, TEST_DEPOSIT_AMOUNT_ETH);
-        uint256 lpAmount = _depositWrapperSETH(depositor1, TEST_DEPOSIT_AMOUNT_ETH);
+        uint256 lpAmount = _depositWrapperSETH(
+            depositor1,
+            TEST_DEPOSIT_AMOUNT_ETH
+        );
 
         updateSystemState();
 
@@ -503,7 +510,10 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             .calculateStack();
 
         deal(depositor1, TEST_DEPOSIT_AMOUNT_ETH);
-        uint256 lpAmount = _depositWrapperWSTETH(depositor1, TEST_DEPOSIT_AMOUNT_ETH);
+        uint256 lpAmount = _depositWrapperWSTETH(
+            depositor1,
+            TEST_DEPOSIT_AMOUNT_ETH
+        );
 
         updateSystemState();
 
@@ -520,7 +530,7 @@ contract RegularDepositWithdrawalScenario is DeployScript {
 
         _processWithdrawalAndCheck(depositor1, lpAmount);
     }
-    
+
     function testRegularDepositWithdrawalScenario_DepositWithoutWrapper_WSTETH_Withdrawal_WSTETH()
         external
     {
@@ -532,7 +542,10 @@ contract RegularDepositWithdrawalScenario is DeployScript {
 
         deal(depositor1, TEST_DEPOSIT_AMOUNT_ETH);
 
-        (uint256 lpAmount, uint256 depositAmount) = _depositVaultWSTETH(depositor1, TEST_DEPOSIT_AMOUNT_ETH);
+        (uint256 lpAmount, uint256 depositAmount) = _depositVaultWSTETH(
+            depositor1,
+            TEST_DEPOSIT_AMOUNT_ETH
+        );
 
         updateSystemState();
 
@@ -549,7 +562,9 @@ contract RegularDepositWithdrawalScenario is DeployScript {
 
         _processWithdrawalAndCheck(depositor1, lpAmount);
 
-        UserState memory userStateAfter = usersSystemState[epoch - 1][depositor1];
+        UserState memory userStateAfter = usersSystemState[epoch - 1][
+            depositor1
+        ];
         UserState memory userStateBefore = usersSystemState[epoch - 2][
             depositor1
         ];
@@ -559,7 +574,7 @@ contract RegularDepositWithdrawalScenario is DeployScript {
             1 wei
         );
     }
-/*
+    /*
     function testRegularDepositWithdrawalScenario_DepositWithWrapper_ETH_WETH_Withdrawal_WSTETH()
         external
     {

@@ -5,7 +5,5 @@ import "./Imports.sol";
 import "./DeployScript.sol";
 
 contract Deploy is Script, DeployScript {
-    function run() external {
-
-    }
+    function run() external {}
 }
