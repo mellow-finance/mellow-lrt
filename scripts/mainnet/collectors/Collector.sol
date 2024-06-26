@@ -245,7 +245,7 @@ contract Collector is DefaultAccessControl {
         Response memory response = collect(address(0), vaults)[0];
         uint256 value = FullMath.mulDiv(
             lpAmount,
-            response.totalValueETH,
+            response.totalValueBaseToken,
             response.totalSupply
         );
         IVault.ProcessWithdrawalsStack memory s = IVault(vault)
