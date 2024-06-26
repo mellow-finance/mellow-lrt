@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../../../src/interfaces/external/chainlink/IAggregatorV3.sol";
 import "../../../src/interfaces/external/lido/IWSteth.sol";
 import "../../../src/interfaces/IVault.sol";
+import "../../../src/interfaces/oracles/IChainlinkOracle.sol";
 import "./IDefiCollector.sol";
 
 import "../../../src/utils/DefaultAccessControl.sol";
@@ -31,12 +32,15 @@ contract Collector is DefaultAccessControl {
         uint256 totalValueETH; // total value of the vault in ETH
         uint256 totalValueUSDC; // total value of the vault in USDC
         uint256 totalValueWSTETH; // total value of the vault in WSTETH
+        uint256 totalValueBaseToken; // total value of the vault in base token
         uint256 maximalTotalSupplyETH; // eth value for max limit total supply
         uint256 maximalTotalSupplyUSDC; // usdc value for max limit total supply
         uint256 maximalTotalSupplyWSTETH; // wsteth value for max limit total supply
+        uint256 maximalTotalSupplyBaseToken; // base token value for max limit total supply
         uint256 lpPriceD18; // LP price in USDC weis 1e8 (due to chainlink decimals)
         uint256 lpPriceETHD18; // LP price in ETH weis 1e8 (due to chainlink decimals)
         uint256 lpPriceWSTETHD18; // LP price in WSTETH weis 1e8 (due to chainlink decimals)
+        uint256 lpPriceBaseTokenD18; // LP price in Base token weis 1e8 (due to chainlink decimals)
         bool shouldCloseWithdrawalRequest; // if the withdrawal request should be closed
         IVault.WithdrawalRequest withdrawalRequest; // withdrawal request
         bool isDefi; // if the vault address is an address of some DeFi pool
@@ -49,6 +53,8 @@ contract Collector is DefaultAccessControl {
     address public immutable wsteth;
     address public immutable weth;
     address public immutable steth;
+    address public immutable ena;
+    address public immutable susde;
 
     IAggregatorV3 public immutable wstethOracle;
     IAggregatorV3 public immutable wethOracle;
@@ -59,6 +65,8 @@ contract Collector is DefaultAccessControl {
         address wsteth_,
         address weth_,
         address steth_,
+        address ena_,
+        address susde_,
         IAggregatorV3 _wstethOracle,
         IAggregatorV3 _wethToUSDOracle,
         address admin_
@@ -66,6 +74,8 @@ contract Collector is DefaultAccessControl {
         wsteth = wsteth_;
         weth = weth_;
         steth = steth_;
+        ena = ena_;
+        susde = susde_;
         wstethOracle = _wstethOracle;
         wethOracle = _wethToUSDOracle;
     }
@@ -101,15 +111,28 @@ contract Collector is DefaultAccessControl {
                     j < responses[i].underlyingTokens.length;
                     j++
                 ) {
-                    responses[i].pricesX96[j] = oracle.priceX96(
+                    uint256 underlyingPriceX96 = oracle.priceX96(
                         address(vault),
                         responses[i].underlyingTokens[j]
+                    );
+                    responses[i].pricesX96[
+                        j
+                    ] = convertBaseTokenPriceToWethPrice(
+                        underlyingPriceX96,
+                        IChainlinkOracle(address(oracle)).baseTokens(
+                            address(vault)
+                        )
                     );
                     responses[i].underlyingTokenDecimals[j] = IERC20Metadata(
                         responses[i].underlyingTokens[j]
                     ).decimals();
                     responses[i].totalValueETH += FullMath.mulDiv(
                         responses[i].pricesX96[j],
+                        responses[i].underlyingAmounts[j],
+                        Q96
+                    );
+                    responses[i].totalValueBaseToken += FullMath.mulDiv(
+                        underlyingPriceX96,
                         responses[i].underlyingAmounts[j],
                         Q96
                     );
@@ -152,6 +175,18 @@ contract Collector is DefaultAccessControl {
                 );
                 responses[i].lpPriceWSTETHD18 = FullMath.mulDiv(
                     responses[i].totalValueWSTETH,
+                    D18,
+                    responses[i].totalSupply
+                );
+
+                responses[i].maximalTotalSupplyBaseToken = FullMath.mulDiv(
+                    responses[i].maximalTotalSupply,
+                    responses[i].totalValueBaseToken,
+                    responses[i].totalSupply
+                );
+
+                responses[i].lpPriceWSTETHD18 = FullMath.mulDiv(
+                    responses[i].totalValueBaseToken,
                     D18,
                     responses[i].totalSupply
                 );
@@ -210,7 +245,7 @@ contract Collector is DefaultAccessControl {
         Response memory response = collect(address(0), vaults)[0];
         uint256 value = FullMath.mulDiv(
             lpAmount,
-            response.totalValueETH,
+            response.totalValueBaseToken,
             response.totalSupply
         );
         IVault.ProcessWithdrawalsStack memory s = IVault(vault)
@@ -517,5 +552,64 @@ contract Collector is DefaultAccessControl {
         return amount;
     }
 
+    function convertBaseTokenPriceToWethPrice(
+        uint256 priceX96,
+        address token
+    ) public view returns (uint256 wethPriceX96) {
+        if (token == weth) return priceX96;
+
+        if (token == ena) {
+            IUniswapV3Pool pool = IUniswapV3Pool(
+                0xc3Db44ADC1fCdFd5671f555236eae49f4A8EEa18
+            );
+            (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
+            uint256 enaToWethPriceX96 = FullMath.mulDiv(
+                sqrtPriceX96,
+                sqrtPriceX96,
+                Q96
+            );
+            return FullMath.mulDiv(priceX96, enaToWethPriceX96, Q96);
+        } else if (token == susde) {
+            IUniswapV3Pool pool = IUniswapV3Pool(
+                0x7C45F7ff7dDeaC1af333E469f4B99bbd75Ee5495
+            );
+            (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
+            uint256 wstethToSusdePriceX96 = FullMath.mulDiv(
+                sqrtPriceX96,
+                sqrtPriceX96,
+                Q96
+            );
+
+            return
+                convertBaseTokenPriceToWethPrice(
+                    FullMath.mulDiv(priceX96, Q96, wstethToSusdePriceX96),
+                    wsteth
+                );
+        } else if (token == wsteth) {
+            return IWSteth(wsteth).getStETHByWstETH(priceX96);
+        } else {
+            revert("Unsupported token");
+        }
+    }
+
     function test() external pure {}
+}
+
+interface IUniswapV3Pool {
+    function slot0()
+        external
+        view
+        returns (
+            uint160 sqrtPriceX96,
+            int24 tick,
+            uint16 observationIndex,
+            uint16 observationCardinality,
+            uint16 observationCardinalityNext,
+            uint8 feeProtocol,
+            bool unlocked
+        );
+
+    function token0() external view returns (address);
+
+    function token1() external view returns (address);
 }
