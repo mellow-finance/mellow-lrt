@@ -10,22 +10,22 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
     function run() external {
         uint256 n = 4;
         address[] memory curators = new address[](n);
-        curators[0] = DeployConstants.STEAKHOUSE_MULTISIG;
-        curators[1] = DeployConstants.RE7_MULTISIG;
-        curators[2] = DeployConstants.AMPHOR_MULTISIG;
-        curators[3] = DeployConstants.P2P_MULTISIG;
+        curators[0] = DeployConstants.INFSTONES_MULTISIG;
+        curators[1] = DeployConstants.RENZO_MULTISIG;
+        curators[2] = DeployConstants.CHORUS_ONE_MULTISIG;
+        curators[3] = DeployConstants.LUGANODES_MULTISIG;
 
         string[] memory names = new string[](n);
-        names[0] = DeployConstants.STEAKHOUSE_VAULT_NAME;
-        names[1] = DeployConstants.RE7_VAULT_NAME;
-        names[2] = DeployConstants.AMPHOR_VAULT_NAME;
-        names[3] = DeployConstants.P2P_VAULT_NAME;
+        names[0] = DeployConstants.INFSTONES_VAULT_NAME;
+        names[1] = DeployConstants.RENZO_VAULT_NAME;
+        names[2] = DeployConstants.CHORUS_ONE_VAULT_NAME;
+        names[3] = DeployConstants.LUGANODES_VAULT_NAME;
 
         string[] memory symbols = new string[](n);
-        symbols[0] = DeployConstants.STEAKHOUSE_VAULT_SYMBOL;
-        symbols[1] = DeployConstants.RE7_VAULT_SYMBOL;
-        symbols[2] = DeployConstants.AMPHOR_VAULT_SYMBOL;
-        symbols[3] = DeployConstants.P2P_VAULT_SYMBOL;
+        symbols[0] = DeployConstants.INFSTONES_VAULT_SYMBOL;
+        symbols[1] = DeployConstants.RENZO_VAULT_SYMBOL;
+        symbols[2] = DeployConstants.CHORUS_ONE_VAULT_SYMBOL;
+        symbols[3] = DeployConstants.LUGANODES_VAULT_SYMBOL;
 
         DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
             .DeployParameters({
@@ -44,17 +44,35 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
                 maximalTotalSupply: DeployConstants.MAXIMAL_TOTAL_SUPPLY,
                 initialDepositETH: DeployConstants.INITIAL_DEPOSIT_ETH,
                 firstDepositETH: DeployConstants.FIRST_DEPOSIT_ETH,
-                initializer: Initializer(address(0)),
-                initialImplementation: Vault(payable(address(0))),
-                erc20TvlModule: ERC20TvlModule(address(0)),
-                defaultBondTvlModule: DefaultBondTvlModule(address(0)),
-                defaultBondModule: DefaultBondModule(address(0)),
-                ratiosOracle: ManagedRatiosOracle(address(0)),
-                priceOracle: ChainlinkOracle(address(0)),
-                wethAggregatorV3: IAggregatorV3(address(0)),
-                wstethAggregatorV3: IAggregatorV3(address(0)),
+                initializer: Initializer(
+                    address(0x39c62c6308BeD7B0832CAfc2BeA0C0eDC7f2060c)
+                ),
+                initialImplementation: Vault(
+                    payable(address(0xaf108ae0AD8700ac41346aCb620e828c03BB8848))
+                ),
+                erc20TvlModule: ERC20TvlModule(
+                    address(0x1EB0e946D7d757d7b085b779a146427e40ABBCf8)
+                ),
+                defaultBondTvlModule: DefaultBondTvlModule(
+                    address(0x1E1d1eD64e4F5119F60BF38B322Da7ea5A395429)
+                ),
+                defaultBondModule: DefaultBondModule(
+                    address(0xD8619769fed318714d362BfF01CA98ac938Bdf9b)
+                ),
+                ratiosOracle: ManagedRatiosOracle(
+                    address(0x955Ff4Cc738cDC009d2903196d1c94C8Cfb4D55d)
+                ),
+                priceOracle: ChainlinkOracle(
+                    address(0x1Dc89c28e59d142688D65Bd7b22C4Fd40C2cC06d)
+                ),
+                wethAggregatorV3: IAggregatorV3(
+                    address(0x6A8d8033de46c68956CCeBA28Ba1766437FF840F)
+                ),
+                wstethAggregatorV3: IAggregatorV3(
+                    address(0x94336dF517036f2Bf5c620a1BC75a73A37b7bb16)
+                ),
                 defaultProxyImplementation: DefaultProxyImplementation(
-                    address(0)
+                    address(0x02BB349832c58E892a20178b9696e2b93A3a9b0f)
                 )
             });
 
