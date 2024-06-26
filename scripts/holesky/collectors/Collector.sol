@@ -1,42 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import "../../src/Vault.sol";
-import "../../src/VaultConfigurator.sol";
-import "../../src/validators/AllowAllValidator.sol";
-import "../../src/validators/ManagedValidator.sol";
-import "../../src/validators/DefaultBondValidator.sol";
-import "../../src/validators/ERC20SwapValidator.sol";
-import "../../src/utils/DefaultAccessControl.sol";
-import "../../src/utils/DepositWrapper.sol";
-import "../../src/strategies/SimpleDVTStakingStrategy.sol";
-import "../../src/strategies/DefaultBondStrategy.sol";
-import "../../src/oracles/ChainlinkOracle.sol";
-import "../../src/oracles/ManagedRatiosOracle.sol";
-import "../../src/modules/erc20/ERC20TvlModule.sol";
-import "../../src/modules/erc20/ERC20SwapModule.sol";
-import "../../src/modules/erc20/ManagedTvlModule.sol";
-import "../../src/modules/obol/StakingModule.sol";
-
-import "../../src/modules/symbiotic/DefaultBondModule.sol";
-import "../../src/modules/symbiotic/DefaultBondTvlModule.sol";
-
-import "../../src/libraries/external/FullMath.sol";
-
-import "../../src/interfaces/external/lido/ISteth.sol";
-import "../../src/interfaces/external/lido/IWSteth.sol";
-import "../../src/interfaces/external/lido/IStakingRouter.sol";
-import "../../src/interfaces/external/lido/IDepositContract.sol";
-import "../../src/interfaces/external/uniswap/ISwapRouter.sol";
-
-import "../../src/oracles/WStethRatiosAggregatorV3.sol";
-import "../../src/oracles/ConstantAggregatorV3.sol";
-
+import "../../../src/interfaces/external/chainlink/IAggregatorV3.sol";
+import "../../../src/interfaces/external/lido/IWSteth.sol";
+import "../../../src/interfaces/IVault.sol";
 import "./IDefiCollector.sol";
+
+import "../../../src/utils/DefaultAccessControl.sol";
+
+import "../../../src/libraries/external/FullMath.sol";
 
 contract Collector is DefaultAccessControl {
     using EnumerableSet for EnumerableSet.AddressSet;

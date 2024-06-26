@@ -1,22 +1,59 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./DeployLibrary.sol";
+import "./DeployInterfaces.sol";
 
-contract DeployScript is Test {
+abstract contract DeployScript is CommonBase {
     using SafeERC20 for IERC20;
 
-    function test() external pure {}
+    function commonContractsDeploy(
+        DeployInterfaces.DeployParameters memory deployParams
+    ) public returns (DeployInterfaces.DeployParameters memory) {
+        if (address(deployParams.initializer) == address(0))
+            deployParams.initializer = new Initializer();
+        if (address(deployParams.initialImplementation) == address(0))
+            deployParams.initialImplementation = new Vault(
+                "",
+                "",
+                address(this)
+            );
+        if (address(deployParams.erc20TvlModule) == address(0))
+            deployParams.erc20TvlModule = new ERC20TvlModule();
+        if (address(deployParams.defaultBondModule) == address(0))
+            deployParams.defaultBondModule = new DefaultBondModule();
+        if (address(deployParams.defaultBondTvlModule) == address(0))
+            deployParams.defaultBondTvlModule = new DefaultBondTvlModule();
+        if (address(deployParams.ratiosOracle) == address(0))
+            deployParams.ratiosOracle = new ManagedRatiosOracle();
+        if (address(deployParams.priceOracle) == address(0))
+            deployParams.priceOracle = new ChainlinkOracle();
+        if (address(deployParams.wethAggregatorV3) == address(0))
+            deployParams.wethAggregatorV3 = new ConstantAggregatorV3(1 ether);
+        if (address(deployParams.wstethAggregatorV3) == address(0))
+            deployParams.wstethAggregatorV3 = new WStethRatiosAggregatorV3(
+                deployParams.wsteth
+            );
+        if (address(deployParams.defaultProxyImplementation) == address(0))
+            deployParams
+                .defaultProxyImplementation = new DefaultProxyImplementation(
+                "",
+                ""
+            );
+        return deployParams;
+    }
 
     function deploy(
-        DeployLibrary.DeployParameters memory deployParams
-    ) internal returns (DeployLibrary.DeploySetup memory s) {
-        vm.startPrank(deployParams.deployer);
+        DeployInterfaces.DeployParameters memory deployParams
+    )
+        internal
+        returns (
+            DeployInterfaces.DeployParameters memory,
+            DeployInterfaces.DeploySetup memory s
+        )
+    {
         {
-            s.initializer = new Initializer();
-
             TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-                address(s.initializer),
+                address(deployParams.initializer),
                 address(deployParams.deployer),
                 new bytes(0)
             );
@@ -33,86 +70,87 @@ contract DeployScript is Test {
                 )
             );
 
-            s.initialImplementation = new Vault("", "", address(1));
             ProxyAdmin(immutableProxyAdmin).upgradeAndCall(
                 ITransparentUpgradeableProxy(address(proxy)),
-                address(s.initialImplementation),
+                address(deployParams.initialImplementation),
                 new bytes(0)
             );
 
-            s.defaultProxyImplementation = new DefaultProxyImplementation(
-                deployParams.lpTokenName,
-                deployParams.lpTokenSymbol
-            );
-
-            s.adminProxy = new AdminProxy(
-                address(proxy),
-                immutableProxyAdmin,
-                deployParams.acceptor,
-                deployParams.proposer,
-                deployParams.emergencyOperator,
-                IAdminProxy.Proposal({
-                    implementation: address(s.defaultProxyImplementation),
-                    callData: new bytes(0)
-                })
-            );
-
             ProxyAdmin(immutableProxyAdmin).transferOwnership(
-                address(s.adminProxy)
+                address(deployParams.proxyAdmin)
             );
             s.vault = Vault(payable(proxy));
         }
 
+        // setup timelocked controller
+        {
+            address[] memory proposers = new address[](1);
+            proposers[0] = deployParams.curator;
+            address[] memory executors = new address[](1);
+            executors[0] = deployParams.curator;
+            s.timeLockedCurator = new TimelockController(
+                deployParams.timeLockDelay,
+                proposers,
+                executors,
+                deployParams.admin
+            );
+        }
+
         s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
+        s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
         s.vault.grantRole(
             s.vault.ADMIN_DELEGATE_ROLE(),
-            address(s.restrictingKeeper)
+            address(s.timeLockedCurator)
         );
-        s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
-        s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.curator);
 
         s.configurator = s.vault.configurator();
 
-        s.erc20TvlModule = new ERC20TvlModule();
-        s.defaultBondTvlModule = new DefaultBondTvlModule();
-
-        s.vault.addTvlModule(address(s.erc20TvlModule));
-        s.vault.addTvlModule(address(s.defaultBondTvlModule));
+        s.vault.addTvlModule(address(deployParams.erc20TvlModule));
+        s.vault.addTvlModule(address(deployParams.defaultBondTvlModule));
 
         s.vault.addToken(deployParams.wsteth);
         // oracles setup
         {
-            s.ratiosOracle = new ManagedRatiosOracle();
             uint128[] memory ratiosX96 = new uint128[](1);
             ratiosX96[0] = 2 ** 96; // WSTETH deposit
-            s.ratiosOracle.updateRatios(address(s.vault), true, ratiosX96);
-            ratiosX96[0] = 2 ** 96; // WSTETH withdrawal
-            s.ratiosOracle.updateRatios(address(s.vault), false, ratiosX96);
-
-            s.configurator.stageRatiosOracle(address(s.ratiosOracle));
-            s.configurator.commitRatiosOracle();
-
-            s.priceOracle = new ChainlinkOracle();
-
-            s.wethAggregatorV3 = new ConstantAggregatorV3(1 ether);
-            s.wstethAggregatorV3 = new WStethRatiosAggregatorV3(
-                deployParams.wsteth
+            deployParams.ratiosOracle.updateRatios(
+                address(s.vault),
+                true,
+                ratiosX96
             );
+            ratiosX96[0] = 2 ** 96; // WSTETH withdrawal
+            deployParams.ratiosOracle.updateRatios(
+                address(s.vault),
+                false,
+                ratiosX96
+            );
+
+            s.configurator.stageRatiosOracle(
+                address(deployParams.ratiosOracle)
+            );
+            s.configurator.commitRatiosOracle();
 
             address[] memory tokens = new address[](2);
             tokens[0] = deployParams.weth;
             tokens[1] = deployParams.wsteth;
             IChainlinkOracle.AggregatorData[]
                 memory data = new IChainlinkOracle.AggregatorData[](2);
-            data[0].aggregatorV3 = address(s.wethAggregatorV3);
+            data[0].aggregatorV3 = address(deployParams.wethAggregatorV3);
             data[0].maxAge = 0;
-            data[1].aggregatorV3 = address(s.wstethAggregatorV3);
+            data[1].aggregatorV3 = address(deployParams.wstethAggregatorV3);
             data[1].maxAge = 0;
 
-            s.priceOracle.setBaseToken(address(s.vault), deployParams.weth);
-            s.priceOracle.setChainlinkOracles(address(s.vault), tokens, data);
+            deployParams.priceOracle.setBaseToken(
+                address(s.vault),
+                deployParams.weth
+            );
+            deployParams.priceOracle.setChainlinkOracles(
+                address(s.vault),
+                tokens,
+                data
+            );
 
-            s.configurator.stagePriceOracle(address(s.priceOracle));
+            s.configurator.stagePriceOracle(address(deployParams.priceOracle));
             s.configurator.commitPriceOracle();
         }
 
@@ -128,38 +166,38 @@ contract DeployScript is Test {
         {
             address[] memory supportedBonds = new address[](1);
             supportedBonds[0] = deployParams.wstethDefaultBond;
-            s.defaultBondTvlModule.setParams(address(s.vault), supportedBonds);
+            deployParams.defaultBondTvlModule.setParams(
+                address(s.vault),
+                supportedBonds
+            );
         }
 
-        s.defaultBondModule = new DefaultBondModule();
-
         s.configurator.stageDelegateModuleApproval(
-            address(s.defaultBondModule)
+            address(deployParams.defaultBondModule)
         );
         s.configurator.commitDelegateModuleApproval(
-            address(s.defaultBondModule)
+            address(deployParams.defaultBondModule)
         );
 
         s.defaultBondStrategy = new DefaultBondStrategy(
             deployParams.deployer,
             s.vault,
-            s.erc20TvlModule,
-            s.defaultBondModule
+            deployParams.erc20TvlModule,
+            deployParams.defaultBondModule
         );
 
+        s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.ADMIN_ROLE(),
+            deployParams.admin
+        );
         s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
             deployParams.deployer
         );
         s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.OPERATOR(),
-            deployParams.operator
+            address(deployParams.curator)
         );
-        s.defaultBondStrategy.grantRole(
-            s.defaultBondStrategy.ADMIN_ROLE(),
-            deployParams.curator
-        );
-
         {
             s.configurator.stageDepositCallback(address(s.defaultBondStrategy));
             s.configurator.commitDepositCallback();
@@ -179,10 +217,6 @@ contract DeployScript is Test {
             deployParams.admin,
             DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
         );
-        s.validator.grantRole(
-            deployParams.curator,
-            DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
-        );
         {
             s.validator.grantRole(
                 address(s.defaultBondStrategy),
@@ -198,7 +232,7 @@ contract DeployScript is Test {
                 DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
             );
             s.validator.grantContractRole(
-                address(s.defaultBondModule),
+                address(deployParams.defaultBondModule),
                 DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
             );
 
@@ -263,15 +297,18 @@ contract DeployScript is Test {
 
         // initial deposit
         {
-            assertTrue(
+            require(
                 deployParams.initialDepositETH > 0,
                 "Invalid deploy params. Initial deposit value is 0"
             );
-            assertTrue(
+            require(
                 deployParams.deployer.balance >= deployParams.initialDepositETH,
                 "Insufficient ETH amount for deposit"
             );
             // eth -> steth -> wsteth
+            uint256 initialWstethAmount = IERC20(deployParams.wsteth).balanceOf(
+                deployParams.deployer
+            );
             ISteth(deployParams.steth).submit{
                 value: deployParams.initialDepositETH
             }(address(0));
@@ -282,12 +319,12 @@ contract DeployScript is Test {
             IWSteth(deployParams.wsteth).wrap(deployParams.initialDepositETH);
             uint256 wstethAmount = IERC20(deployParams.wsteth).balanceOf(
                 deployParams.deployer
-            );
+            ) - initialWstethAmount;
             IERC20(deployParams.wsteth).safeIncreaseAllowance(
                 address(s.vault),
                 wstethAmount
             );
-            assertTrue(wstethAmount > 0, "No wsteth received");
+            require(wstethAmount > 0, "No wsteth received");
             address[] memory tokens = new address[](1);
             tokens[0] = deployParams.wsteth;
             uint256[] memory amounts = new uint256[](1);
@@ -296,8 +333,7 @@ contract DeployScript is Test {
                 address(s.vault),
                 amounts,
                 deployParams.initialDepositETH,
-                type(uint256).max,
-                0
+                type(uint256).max
             );
             s.wstethAmountDeposited = wstethAmount;
         }
@@ -326,23 +362,6 @@ contract DeployScript is Test {
             DeployConstants.ADMIN_ROLE_BIT
         );
 
-        vm.stopPrank();
-    }
-
-    function validateChainId() internal view {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
-        if (chainId != 1) {
-            revert(
-                string(
-                    abi.encodePacked(
-                        "Wrong chain id. Expected chain id: 1, actual: %d",
-                        Strings.toString(chainId)
-                    )
-                )
-            );
-        }
+        return (deployParams, s);
     }
 }

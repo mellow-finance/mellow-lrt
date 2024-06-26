@@ -13,7 +13,6 @@
    27 ./src/oracles/WStethRatiosAggregatorV3.sol
   164 ./src/security/AdminProxy.sol
    17 ./src/security/DefaultProxyImplementation.sol
-   40 ./src/security/Initializer.sol
   122 ./src/strategies/DefaultBondStrategy.sol
    85 ./src/strategies/SimpleDVTStakingStrategy.sol
    64 ./src/utils/DefaultAccessControl.sol
@@ -23,4 +22,4 @@
    37 ./src/validators/DefaultBondValidator.sol
    57 ./src/validators/ERC20SwapValidator.sol
   176 ./src/validators/ManagedValidator.sol
- 2587 total
+ 2547 total

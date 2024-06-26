@@ -110,4 +110,7 @@ broadcast/
 cache/
 out/
 
-.idea
+# foundry magic
+/src/tmp
+
+__pycache__/

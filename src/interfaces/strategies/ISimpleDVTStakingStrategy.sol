@@ -38,6 +38,7 @@ interface ISimpleDVTStakingStrategy {
 
     /**
      * @notice Converts and deposits into specific staking module.
+     * @param amount The amount of tokens to convert and deposit.
      * @param blockNumber The block number at the time of the operation for verification.
      * @param blockHash The block hash at the time of the operation for additional verification.
      * @param depositRoot The root hash of the deposit records for verification.
@@ -48,6 +49,7 @@ interface ISimpleDVTStakingStrategy {
      * @notice The function can be called by anyone.
      */
     function convertAndDeposit(
+        uint256 amount,
         uint256 blockNumber,
         bytes32 blockHash,
         bytes32 depositRoot,

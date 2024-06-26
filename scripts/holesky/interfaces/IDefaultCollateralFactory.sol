@@ -7,4 +7,6 @@ interface IDefaultCollateralFactory {
         uint256 initialLimit,
         address limitIncreaser
     ) external returns (address);
+
+    function isEntity(address entity_) external view returns (bool);
 }

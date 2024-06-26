@@ -44,4 +44,6 @@ interface IDefaultBond is IBond {
      * @param amount amount of the underlying asset
      */
     function withdraw(address recipient, uint256 amount) external;
+
+    function limit() external view returns (uint256);
 }

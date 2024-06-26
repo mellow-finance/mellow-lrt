@@ -1,16 +1,22 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "./DeployLibrary.sol";
+import "./DeployInterfaces.sol";
 
-contract DeployScript is CommonBase {
+abstract contract DeployScript is CommonBase {
     using SafeERC20 for IERC20;
 
     function commonContractsDeploy(
-        DeployLibrary.DeployParameters memory deployParams
-    ) public returns (DeployLibrary.DeployParameters memory) {
+        DeployInterfaces.DeployParameters memory deployParams
+    ) public returns (DeployInterfaces.DeployParameters memory) {
         if (address(deployParams.initializer) == address(0))
             deployParams.initializer = new Initializer();
+        if (address(deployParams.initialImplementation) == address(0))
+            deployParams.initialImplementation = new Vault(
+                "",
+                "",
+                address(0xdead)
+            );
         if (address(deployParams.erc20TvlModule) == address(0))
             deployParams.erc20TvlModule = new ERC20TvlModule();
         if (address(deployParams.defaultBondModule) == address(0))
@@ -37,16 +43,14 @@ contract DeployScript is CommonBase {
     }
 
     function deploy(
-        DeployLibrary.DeployParameters memory deployParams
+        DeployInterfaces.DeployParameters memory deployParams
     )
         internal
         returns (
-            DeployLibrary.DeployParameters memory,
-            DeployLibrary.DeploySetup memory s
+            DeployInterfaces.DeployParameters memory,
+            DeployInterfaces.DeploySetup memory s
         )
     {
-        deployParams = commonContractsDeploy(deployParams);
-
         {
             TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
                 address(deployParams.initializer),
@@ -60,45 +64,27 @@ contract DeployScript is CommonBase {
                 deployParams.deployer
             );
 
-            address immutableProxyAdmin = address(
-                uint160(
-                    uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT))
+            s.proxyAdmin = ProxyAdmin(
+                address(
+                    uint160(
+                        uint256(
+                            vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT)
+                        )
+                    )
                 )
             );
-
-            s.initialImplementation = new Vault("", "", address(1));
-            ProxyAdmin(immutableProxyAdmin).upgradeAndCall(
+            s.proxyAdmin.upgradeAndCall(
                 ITransparentUpgradeableProxy(address(proxy)),
-                address(s.initialImplementation),
+                address(deployParams.initialImplementation),
                 new bytes(0)
             );
 
-            ProxyAdmin(immutableProxyAdmin).transferOwnership(
-                address(deployParams.proxyAdmin)
-            );
+            s.proxyAdmin.transferOwnership(address(deployParams.proxyAdmin));
             s.vault = Vault(payable(proxy));
-        }
-
-        // setup timelocked controller
-        {
-            address[] memory proposers = new address[](1);
-            proposers[0] = deployParams.curator;
-            address[] memory executors = new address[](1);
-            executors[0] = deployParams.curator;
-            s.timeLockedCurator = new TimelockController(
-                deployParams.timeLockDelay,
-                proposers,
-                executors,
-                deployParams.admin
-            );
         }
 
         s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
         s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
-        s.vault.grantRole(
-            s.vault.ADMIN_DELEGATE_ROLE(),
-            address(s.timeLockedCurator)
-        );
 
         s.configurator = s.vault.configurator();
 
@@ -184,12 +170,16 @@ contract DeployScript is CommonBase {
         );
 
         s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.ADMIN_ROLE(),
+            deployParams.admin
+        );
+        s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
             deployParams.deployer
         );
         s.defaultBondStrategy.grantRole(
             s.defaultBondStrategy.OPERATOR(),
-            address(s.timeLockedCurator)
+            address(deployParams.curator)
         );
         {
             s.configurator.stageDepositCallback(address(s.defaultBondStrategy));
@@ -208,10 +198,6 @@ contract DeployScript is CommonBase {
         s.validator = new ManagedValidator(deployParams.deployer);
         s.validator.grantRole(
             deployParams.admin,
-            DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
-        );
-        s.validator.grantRole(
-            address(s.timeLockedCurator),
             DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
         );
         {
@@ -303,6 +289,9 @@ contract DeployScript is CommonBase {
                 "Insufficient ETH amount for deposit"
             );
             // eth -> steth -> wsteth
+            uint256 initialWstethAmount = IERC20(deployParams.wsteth).balanceOf(
+                deployParams.deployer
+            );
             ISteth(deployParams.steth).submit{
                 value: deployParams.initialDepositETH
             }(address(0));
@@ -313,7 +302,7 @@ contract DeployScript is CommonBase {
             IWSteth(deployParams.wsteth).wrap(deployParams.initialDepositETH);
             uint256 wstethAmount = IERC20(deployParams.wsteth).balanceOf(
                 deployParams.deployer
-            );
+            ) - initialWstethAmount;
             IERC20(deployParams.wsteth).safeIncreaseAllowance(
                 address(s.vault),
                 wstethAmount
@@ -326,9 +315,8 @@ contract DeployScript is CommonBase {
             s.vault.deposit(
                 address(s.vault),
                 amounts,
-                deployParams.initialDepositETH,
-                type(uint256).max,
-                0
+                wstethAmount,
+                type(uint256).max
             );
             s.wstethAmountDeposited = wstethAmount;
         }
@@ -360,17 +348,5 @@ contract DeployScript is CommonBase {
         return (deployParams, s);
     }
 
-    function validateChainId() internal view {
-        uint256 chainId = block.chainid;
-        if (chainId != 1) {
-            revert(
-                string(
-                    abi.encodePacked(
-                        "Wrong chain id. Expected chain id: 1, actual: %d",
-                        Strings.toString(chainId)
-                    )
-                )
-            );
-        }
-    }
+    function testDeployScript() external pure {}
 }

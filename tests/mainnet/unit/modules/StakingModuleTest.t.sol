@@ -58,6 +58,7 @@ contract Unit is Test {
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
         module.convertAndDeposit(
             0,
+            0,
             bytes32(0),
             bytes32(0),
             0,
@@ -219,6 +220,7 @@ contract Unit is Test {
         (bool success, bytes memory response) = address(module).delegatecall(
             abi.encodeWithSelector(
                 module.convertAndDeposit.selector,
+                1 ether,
                 blockNumber,
                 blockHash,
                 depositRoot,
@@ -277,51 +279,7 @@ contract Unit is Test {
         (bool success, bytes memory response) = address(module).delegatecall(
             abi.encodeWithSelector(
                 module.convertAndDeposit.selector,
-                blockNumber,
-                blockHash,
-                depositRoot,
-                nonce,
-                depositCalldata,
-                sortedGuardianSignatures
-            )
-        );
-
-        assertTrue(success);
-
-        // assertEq(IERC20(Constants.WETH).balanceOf(address(this)), 1 ether);
-        // assertEq(IERC20(Constants.STETH).balanceOf(address(this)), 0);
-        // assertEq(IERC20(Constants.WSTETH).balanceOf(address(this)), 0);
-        // assertEq(abi.encodeWithSignature("NotEnoughWeth()"), response);
-        vm.stopPrank();
-    }
-
-    function testConvertAndDepositFailsWithInvalidAmount() external {
-        StakingModule module = new StakingModule(
-            Constants.WETH,
-            Constants.STETH,
-            Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
-            IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
-            Constants.SIMPLE_DVT_MODULE_ID
-        );
-
-        uint256 blockNumber = block.number - 1;
-        Vm.Wallet memory guardian = vm.createWallet("guardian");
-
-        simplifyDepositSecurityModule(guardian);
-        (
-            bytes32 blockHash,
-            bytes32 depositRoot,
-            uint256 nonce,
-            bytes memory depositCalldata,
-            IDepositSecurityModule.Signature[] memory sortedGuardianSignatures
-        ) = getAllDepositParams(blockNumber, guardian);
-
-        deal(Constants.WETH, address(this), 0 ether);
-
-        (bool success, bytes memory response) = address(module).delegatecall(
-            abi.encodeWithSelector(
-                module.convertAndDeposit.selector,
+                2 ether,
                 blockNumber,
                 blockHash,
                 depositRoot,
@@ -332,7 +290,12 @@ contract Unit is Test {
         );
 
         assertFalse(success);
-        assertEq(abi.encodeWithSignature("InvalidAmount()"), response);
+
+        assertEq(IERC20(Constants.WETH).balanceOf(address(this)), 1 ether);
+        assertEq(IERC20(Constants.STETH).balanceOf(address(this)), 0);
+        assertEq(IERC20(Constants.WSTETH).balanceOf(address(this)), 0);
+
+        assertEq(abi.encodeWithSignature("NotEnoughWeth()"), response);
         vm.stopPrank();
     }
 
@@ -371,6 +334,7 @@ contract Unit is Test {
         (bool success, bytes memory response) = address(module).delegatecall(
             abi.encodeWithSelector(
                 module.convertAndDeposit.selector,
+                1 ether,
                 blockNumber,
                 blockHash,
                 depositRoot,

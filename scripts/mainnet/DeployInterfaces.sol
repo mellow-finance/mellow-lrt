@@ -2,13 +2,18 @@
 pragma solidity 0.8.25;
 
 import "forge-std/Test.sol";
+import {stdStorage, StdStorage} from "forge-std/Test.sol";
+import {StdAssertions} from "forge-std/StdAssertions.sol";
+import "forge-std/Script.sol";
 import "forge-std/Base.sol";
 import "forge-std/Vm.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/governance/TimelockController.sol";
 
 import "../../src/Vault.sol";
 import "../../src/VaultConfigurator.sol";
@@ -46,4 +51,47 @@ import "../../src/security/Initializer.sol";
 
 import "../../src/utils/RestrictingKeeper.sol";
 
-interface Imports {}
+import "./interfaces/IDefaultCollateralFactory.sol";
+
+import "./collectors/Collector.sol";
+
+import "./DeployConstants.sol";
+
+interface DeployInterfaces {
+    struct DeployParameters {
+        address deployer;
+        address proxyAdmin;
+        address admin;
+        address curator;
+        address wstethDefaultBondFactory;
+        address wstethDefaultBond;
+        address wsteth;
+        address steth;
+        address weth;
+        uint256 maximalTotalSupply;
+        string lpTokenName;
+        string lpTokenSymbol;
+        uint256 initialDepositETH;
+        uint256 firstDepositETH;
+        Vault initialImplementation;
+        Initializer initializer;
+        ERC20TvlModule erc20TvlModule;
+        DefaultBondTvlModule defaultBondTvlModule;
+        DefaultBondModule defaultBondModule;
+        ManagedRatiosOracle ratiosOracle;
+        ChainlinkOracle priceOracle;
+        IAggregatorV3 wethAggregatorV3;
+        IAggregatorV3 wstethAggregatorV3;
+        DefaultProxyImplementation defaultProxyImplementation;
+    }
+
+    struct DeploySetup {
+        Vault vault; // TransparantUpgradeableProxy
+        ProxyAdmin proxyAdmin;
+        IVaultConfigurator configurator;
+        ManagedValidator validator;
+        DefaultBondStrategy defaultBondStrategy;
+        DepositWrapper depositWrapper;
+        uint256 wstethAmountDeposited;
+    }
+}

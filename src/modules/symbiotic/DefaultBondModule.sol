@@ -13,6 +13,11 @@ contract DefaultBondModule is IDefaultBondModule, DefaultModule {
         uint256 amount
     ) external onlyDelegateCall returns (uint256) {
         if (amount == 0) return 0;
+        amount = Math.min(
+            amount,
+            IDefaultBond(bond).limit() - IBond(bond).totalSupply()
+        );
+        if (amount == 0) return 0;
         IERC20(IBond(bond).asset()).safeIncreaseAllowance(bond, amount);
         emit DefaultBondModuleDeposit(bond, amount, block.timestamp);
         return IDefaultBond(bond).deposit(address(this), amount);

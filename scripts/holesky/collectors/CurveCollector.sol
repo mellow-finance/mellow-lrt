@@ -2,11 +2,9 @@
 pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
-import "../../src/utils/DefaultAccessControl.sol";
-
 import "./IDefiCollector.sol";
+
+import "../../../src/utils/DefaultAccessControl.sol";
 
 interface ICurvePool is IERC20 {
     function N_COINS() external view returns (uint256);
