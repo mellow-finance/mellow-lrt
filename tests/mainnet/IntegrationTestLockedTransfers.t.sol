@@ -98,7 +98,7 @@ contract Integration is Fixture {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
         _setupDepositPermissions(vault);
-        vault.deposit(address(vault), amounts, amount, type(uint256).max, 0);
+        vault.deposit(address(vault), amounts, amount, type(uint256).max);
     }
 
     function testPrimitiveOperations() external {
@@ -117,8 +117,7 @@ contract Integration is Fixture {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max,
-                0
+                type(uint256).max
             );
 
             uint256 balance = vault.balanceOf(Constants.DEPOSITOR);
@@ -198,8 +197,7 @@ contract Integration is Fixture {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max,
-                0
+                type(uint256).max
             );
         }
         console2.log(
@@ -286,8 +284,7 @@ contract Integration is Fixture {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max,
-                0
+                type(uint256).max
             );
         }
         console2.log(

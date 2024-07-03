@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import "forge-std/Test.sol";
 import "forge-std/Vm.sol";
+import "forge-std/StdStorage.sol";
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
@@ -95,4 +96,190 @@ library Constants {
         0x00000000219ab540356cBB839Cbe05303d7705Fa;
     address public constant STAKING_ROUTER =
         0xFdDf38947aFB03C621C71b06C9C70bce73f12999;
+
+    bytes32 public constant CONFIGURATOR_VALIDATOR_SLOT = bytes32(uint256(61));
+
+    function calculateLogsForDeal(
+        address msgSender,
+        address token,
+        address to,
+        uint256 amount
+    ) internal pure returns (Vm.Log memory firstLog, Vm.Log memory secondLog) {
+        return calculateLogsForDeal(msgSender, token, to, amount, 0);
+    }
+
+    function calculateLogsForDeal(
+        address msgSender,
+        address token,
+        address to,
+        uint256,
+        uint256 storageSlot_
+    ) internal pure returns (Vm.Log memory firstLog, Vm.Log memory secondLog) {
+        firstLog.emitter = address(msgSender);
+        firstLog.topics = new bytes32[](1);
+        firstLog.data = abi.encode(
+            token,
+            keccak256(abi.encode(address(to), uint256(storageSlot_)))
+        );
+        firstLog.topics[0] = stdStorageSafe.WARNING_UninitedSlot.selector;
+
+        secondLog.emitter = address(msgSender);
+        secondLog.topics = new bytes32[](1);
+        secondLog.data = abi.encode(
+            token,
+            IERC20.balanceOf.selector,
+            keccak256(abi.encode(address(to), uint256(0))),
+            keccak256(abi.encode(address(to), uint256(storageSlot_)))
+        );
+        secondLog.topics[0] = stdStorageSafe.SlotFound.selector;
+    }
+
+    function calculateLogsForApproval(
+        address from,
+        address token,
+        address to,
+        uint256 amount
+    ) internal pure returns (Vm.Log memory log) {
+        log.emitter = token;
+        log.topics = new bytes32[](3);
+        log.data = abi.encode(amount);
+
+        log.topics[0] = IERC20.Approval.selector;
+        log.topics[1] = bytes32(uint256(uint160(address(from))));
+        log.topics[2] = bytes32(uint256(uint160(address(to))));
+    }
+
+    function calculateLogsForTransfer(
+        address from,
+        address token,
+        address to,
+        uint256 amount
+    ) internal pure returns (Vm.Log memory log) {
+        log.emitter = token;
+        log.topics = new bytes32[](3);
+        log.data = abi.encode(amount);
+
+        log.topics[0] = IERC20.Transfer.selector;
+        log.topics[1] = bytes32(uint256(uint160(address(from))));
+        log.topics[2] = bytes32(uint256(uint160(address(to))));
+    }
+
+    function calculateLogsForTransferShares(
+        address from,
+        address token,
+        address to,
+        uint256 amount
+    ) internal pure returns (Vm.Log memory log) {
+        log.emitter = token;
+        log.topics = new bytes32[](3);
+        log.data = abi.encode(amount);
+
+        log.topics[0] = keccak256("TransferShares(address,address,uint256)");
+        log.topics[1] = bytes32(uint256(uint160(address(from))));
+        log.topics[2] = bytes32(uint256(uint160(address(to))));
+    }
+
+    function validateDealLogs(
+        Vm.Log memory e0,
+        Vm.Log memory e1,
+        address msgSender,
+        address token,
+        address to,
+        uint256 amount
+    ) internal pure {
+        validateDealLogs(e0, e1, msgSender, token, to, amount, 0);
+    }
+
+    function validateDealLogs(
+        Vm.Log memory e0,
+        Vm.Log memory e1,
+        address msgSender,
+        address token,
+        address to,
+        uint256 amount,
+        uint256 storageSlot_
+    ) internal pure {
+        (
+            Vm.Log memory firstLog,
+            Vm.Log memory secondLog
+        ) = calculateLogsForDeal(msgSender, token, to, amount, storageSlot_);
+        require(e0.emitter == firstLog.emitter, "emitter");
+        require(
+            e0.topics.length == firstLog.topics.length,
+            "first topics length"
+        );
+        require(e0.topics[0] == firstLog.topics[0], "topics[0]");
+        require(
+            keccak256(e0.data) == keccak256(firstLog.data),
+            "invalid first data"
+        );
+        require(
+            e1.topics.length == secondLog.topics.length,
+            "second topics length"
+        );
+        require(e1.emitter == secondLog.emitter, "invalid second emitter");
+        require(
+            e1.topics[0] == secondLog.topics[0],
+            "invalid second topics[0]"
+        );
+        require(
+            keccak256(e1.data) == keccak256(secondLog.data),
+            "invalid second data"
+        );
+    }
+
+    function validateApprovalLogs(
+        Vm.Log memory e0,
+        address from,
+        address token,
+        address to,
+        uint256 amount
+    ) internal pure {
+        Vm.Log memory log = calculateLogsForApproval(from, token, to, amount);
+        require(e0.emitter == log.emitter, "emitter");
+        require(e0.topics.length == log.topics.length, "topics length");
+        require(e0.topics[0] == log.topics[0], "topics[0]");
+        require(e0.topics[1] == log.topics[1], "topics[1]");
+        require(e0.topics[2] == log.topics[2], "topics[2]");
+        require(keccak256(e0.data) == keccak256(log.data), "data");
+    }
+
+    function validateTransferLogs(
+        Vm.Log memory e0,
+        address from,
+        address token,
+        address to,
+        uint256 amount
+    ) internal pure {
+        Vm.Log memory log = calculateLogsForTransfer(from, token, to, amount);
+        require(e0.emitter == log.emitter, "emitter");
+        require(e0.topics.length == log.topics.length, "topics length");
+        require(e0.topics[0] == log.topics[0], "topics[0]");
+        require(e0.topics[1] == log.topics[1], "topics[1]");
+        require(e0.topics[2] == log.topics[2], "topics[2]");
+        require(keccak256(e0.data) == keccak256(log.data), "data");
+    }
+
+    function validateTransferSharesLogs(
+        Vm.Log memory e0,
+        address from,
+        address token,
+        address to,
+        uint256 amount
+    ) internal pure {
+        Vm.Log memory log = calculateLogsForTransferShares(
+            from,
+            token,
+            to,
+            amount
+        );
+        require(e0.emitter == log.emitter, "emitter");
+        require(e0.topics.length == log.topics.length, "topics length");
+        require(e0.topics[0] == log.topics[0], "topics[0]");
+        require(e0.topics[1] == log.topics[1], "topics[1]");
+        require(e0.topics[2] == log.topics[2], "topics[2]");
+        require(keccak256(e0.data) == keccak256(log.data), "data");
+    }
+
+    function test() public pure {}
 }

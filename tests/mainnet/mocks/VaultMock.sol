@@ -38,7 +38,6 @@ contract VaultMock is DefaultAccessControl, ERC20 {
         address to,
         uint256[] memory amounts,
         uint256 minLpAmount,
-        uint256,
         uint256
     ) external returns (uint256[] memory, uint256) {
         _mint(to, (minLpAmount * coefD9) / 1e9);

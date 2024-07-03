@@ -46,6 +46,7 @@ contract StakingModule is IStakingModule, DefaultModule {
 
     /// @inheritdoc IStakingModule
     function convertAndDeposit(
+        uint256 amount,
         uint256 blockNumber,
         bytes32 blockHash,
         bytes32 depositRoot,
@@ -53,21 +54,14 @@ contract StakingModule is IStakingModule, DefaultModule {
         bytes calldata depositCalldata,
         IDepositSecurityModule.Signature[] calldata sortedGuardianSignatures
     ) external onlyDelegateCall {
-        uint256 wethBalance = IERC20(weth).balanceOf(address(this));
+        if (IERC20(weth).balanceOf(address(this)) < amount)
+            revert NotEnoughWeth();
+
         uint256 unfinalizedStETH = withdrawalQueue.unfinalizedStETH();
         uint256 bufferedEther = ISteth(steth).getBufferedEther();
         if (bufferedEther < unfinalizedStETH)
             revert InvalidWithdrawalQueueState();
-        uint256 maxDepositsCount = Math.min(
-            IStakingRouter(depositSecurityModule.STAKING_ROUTER())
-                .getStakingModuleMaxDepositsCount(
-                    stakingModuleId,
-                    wethBalance + bufferedEther - unfinalizedStETH
-                ),
-            depositSecurityModule.getMaxDeposits()
-        );
-        uint256 amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
-        if (amount == 0) revert InvalidAmount();
+
         _wethToWSteth(amount);
         depositSecurityModule.depositBufferedEther(
             blockNumber,
@@ -78,7 +72,6 @@ contract StakingModule is IStakingModule, DefaultModule {
             depositCalldata,
             sortedGuardianSignatures
         );
-        emit DepositCompleted(amount, blockNumber);
     }
 
     function _wethToWSteth(uint256 amount) private {
@@ -86,6 +79,5 @@ contract StakingModule is IStakingModule, DefaultModule {
         ISteth(steth).submit{value: amount}(address(0));
         IERC20(steth).safeIncreaseAllowance(address(wsteth), amount);
         IWSteth(wsteth).wrap(amount);
-        emit Converted(amount);
     }
 }

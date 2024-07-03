@@ -5,6 +5,8 @@ test = 'tests'
 libs = ['lib']
 optimizer = true
 
+fs_permissions = [{ access = "read", path = "./scripts/mainnet/events_parser/"}]
+
 [profile.default.optimizer_details]
 yul = true
 

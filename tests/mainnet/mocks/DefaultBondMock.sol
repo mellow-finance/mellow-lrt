@@ -10,6 +10,12 @@ contract DefaultBondMock is IDefaultBond, ERC20 {
 
     function testMock() public {}
 
+    uint256 public limit = type(uint256).max;
+
+    function setLimit(uint256 newLimit) external {
+        limit = newLimit;
+    }
+
     constructor(address asset_) ERC20("mock", "mock") {
         asset = asset_;
     }
