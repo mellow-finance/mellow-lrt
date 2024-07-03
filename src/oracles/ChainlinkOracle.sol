@@ -91,15 +91,25 @@ contract ChainlinkOracle is IChainlinkOracle {
             vault,
             baseToken
         );
-        priceX96_ = FullMath.mulDiv(
-            tokenPrice,
-            Q96,
-            10 ** (decimals + IERC20Metadata(token).decimals())
-        );
-        priceX96_ = FullMath.mulDiv(
-            priceX96_,
-            10 ** (baseDecimals + IERC20Metadata(baseToken).decimals()),
-            baseTokenPrice
-        );
+
+        uint8 totalTokenDecimals = decimals + IERC20Metadata(token).decimals();
+        uint8 totalBaseTokenDecimals = baseDecimals +
+            IERC20Metadata(baseToken).decimals();
+
+        if (totalTokenDecimals < totalBaseTokenDecimals) {
+            priceX96_ = FullMath.mulDiv(
+                tokenPrice *
+                    10 ** (totalBaseTokenDecimals - totalTokenDecimals),
+                Q96,
+                baseTokenPrice
+            );
+        } else {
+            priceX96_ = FullMath.mulDiv(
+                tokenPrice,
+                Q96,
+                baseTokenPrice *
+                    10 ** (totalTokenDecimals - totalBaseTokenDecimals)
+            );
+        }
     }
 }
