@@ -17,8 +17,10 @@
     "test": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./tests/mainnet/\\*",
     "test:acceptance": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 19845261 --match-path ./tests/mainnet/e2e/AcceptanceTest.t.sol",
     "test:holesky": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./tests/holesky/\\*",
+    "test:obol": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./tests/holesky-obol/*",
     "size": "forge build --sizes --force",
     "deploy:holesky": "forge script --use 0.8.25 scripts/holesky/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
+    "deploy:holesky:obol": "forge script --use 0.8.25 scripts/holesky-obol/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:holesky:symbiotic": "forge script --use 0.8.25 scripts/holesky/DeploySymbiotic.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
     "deploy:mainnet:symbiotic": "forge script --use 0.8.25 scripts/mainnet/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
     "compile": "forge build",
@@ -30,5 +32,6 @@
   },
   "dependencies": {
     "solidity-code-metrics": "^0.0.26"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
