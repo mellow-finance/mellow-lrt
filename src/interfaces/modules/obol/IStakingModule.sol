@@ -9,7 +9,9 @@ import "../../external/lido/ISteth.sol";
 import "../../external/lido/IWSteth.sol";
 import "../../external/lido/IWithdrawalQueue.sol";
 import "../../external/lido/IDepositSecurityModule.sol";
+import "../../external/lido/ILidoLocator.sol";
 import "../../external/lido/IStakingRouter.sol";
+import "../../external/lido/IDepositContract.sol";
 
 /**
  * @title IStakingModule
@@ -23,6 +25,7 @@ interface IStakingModule {
     error NotEnoughWeth();
     error InvalidWithdrawalQueueState();
     error InvalidAmount();
+    error InvalidDepositRoot();
 
     /**
      * @return Address of the WETH token.
@@ -40,13 +43,10 @@ interface IStakingModule {
     function wsteth() external view returns (address);
 
     /**
-     * @notice Interface to the Deposit Security Module of Lido.
-     * @return IDepositSecurityModule The deposit security module address.
+     * @dev LidoLocator is the universal address book for the Lido protocol.
+     * @return Address of the Lido Locator module.`
      */
-    function depositSecurityModule()
-        external
-        view
-        returns (IDepositSecurityModule);
+    function lidoLocator() external view returns (ILidoLocator);
 
     /**
      * @notice Interface to the Withdrawal Queue module.

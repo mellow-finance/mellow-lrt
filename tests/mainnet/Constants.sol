@@ -87,6 +87,8 @@ library Constants {
         0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1;
     address public constant DEPOSIT_SECURITY_MODULE =
         0xC77F8768774E1c9244BEed705C4354f2113CFc09;
+    address public constant LIDO_LOCATOR =
+        0xC1d0b3DE6792Bf6b4b37EccdcC24e45978Cfd2Eb;
     uint256 public constant SIMPLE_DVT_MODULE_ID = 1;
 
     bytes32 public constant ATTEST_MESSAGE_PREFIX =

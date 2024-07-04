@@ -31,7 +31,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -68,7 +68,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -90,7 +90,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -189,7 +189,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -231,7 +231,7 @@ contract Unit is Test {
 
         assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 0);
 
-        bool success = strategy.convertAndDeposit(
+        strategy.convertAndDeposit(
             blockNumber,
             blockHash,
             depositRoot,
@@ -239,8 +239,6 @@ contract Unit is Test {
             depositCalldata,
             sigs
         );
-
-        assertTrue(success);
 
         assertEq(IERC20(Constants.WETH).balanceOf(address(vault)), 0);
 
@@ -257,7 +255,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -312,7 +310,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -478,7 +476,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -630,7 +628,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -774,7 +772,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
