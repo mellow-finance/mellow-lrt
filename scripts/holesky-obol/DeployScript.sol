@@ -24,7 +24,7 @@ abstract contract DeployScript is CommonBase {
                 DeployConstants.WETH,
                 DeployConstants.STETH,
                 DeployConstants.WSTETH,
-                IDepositSecurityModule(DeployConstants.DEPOSIT_SECURITY_MODULE),
+                ILidoLocator(DeployConstants.LIDO_LOCATOR),
                 IWithdrawalQueue(DeployConstants.WITHDRAWAL_QUEUE),
                 DeployConstants.SIMPLE_DVT_MODULE_ID
             );

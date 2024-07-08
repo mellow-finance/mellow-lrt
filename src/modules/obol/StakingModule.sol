@@ -69,14 +69,17 @@ contract StakingModule is IStakingModule, DefaultModule {
             uint256 bufferedEther = ISteth(steth).getBufferedEther();
             if (bufferedEther < unfinalizedStETH)
                 revert InvalidWithdrawalQueueState();
-            uint256 maxDepositsCount = Math.min(
-                IStakingRouter(depositSecurityModule.STAKING_ROUTER())
-                    .getStakingModuleMaxDepositsCount(
-                        stakingModuleId,
-                        wethBalance + bufferedEther - unfinalizedStETH
-                    ),
-                depositSecurityModule.getMaxDeposits()
-            );
+            IStakingRouter router = IStakingRouter(depositSecurityModule.STAKING_ROUTER());
+            uint256 maxDepositsCount = 0;
+            try depositSecurityModule.getMaxDeposits() returns (uint256 maxDepositsCount_) {
+                maxDepositsCount = maxDepositsCount_;
+            } catch {
+                maxDepositsCount = router.getStakingModuleMaxDepositsPerBlock(stakingModuleId);
+            }
+            maxDepositsCount = Math.min(maxDepositsCount, router.getStakingModuleMaxDepositsCount(
+                stakingModuleId,
+                wethBalance + bufferedEther - unfinalizedStETH
+            ));
             amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
         }
         if (amount == 0) revert InvalidAmount();

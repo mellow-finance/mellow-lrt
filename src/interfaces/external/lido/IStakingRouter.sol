@@ -23,4 +23,7 @@ interface IStakingRouter {
         uint256 _stakingModuleId,
         uint256 depositableEther
     ) external view returns (uint256);
+    function getStakingModuleMaxDepositsPerBlock(
+        uint256 _stakingModuleId
+    ) external view returns (uint256);
 }

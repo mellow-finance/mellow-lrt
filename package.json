@@ -21,7 +21,7 @@
     "size": "forge build --sizes --force",
     "deploy:holesky": "forge script --use 0.8.25 scripts/holesky/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
     "deploy:holesky:obol": "forge script --use 0.8.25 scripts/holesky-obol/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
-    "deploy:holesky:symbiotic": "forge script --use 0.8.25 scripts/holesky/DeploySymbiotic.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
+    "deploy:holesky:symbiotic": "forge script --use 0.8.25 scripts/holesky/DeploySymbiotic.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:mainnet:symbiotic": "forge script --use 0.8.25 scripts/mainnet/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
     "compile": "forge build",
     "audit_scope": "tree -f -i -I '*interfaces*' -I '*libraries*' | grep '^./src.*sol' | xargs ls -d 2>/dev/null | xargs wc -l > audit_scope.txt && cat audit_scope.txt",

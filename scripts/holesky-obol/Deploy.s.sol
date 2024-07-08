@@ -35,6 +35,9 @@ contract Deploy is Script, DeployScript {
             });
 
         vm.startBroadcast(uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER"))));
+        IWeth(DeployConstants.WETH).deposit{
+            value: deployParams.initialDepositETH * 10
+        }();
         deployParams = commonContractsDeploy(deployParams);
         DeployInterfaces.DeploySetup memory setup;
         (deployParams, setup) = deploy(deployParams);
