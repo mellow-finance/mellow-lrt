@@ -60,9 +60,6 @@ contract SolvencyTest is SolvencyRunner {
             DefaultProxyImplementation(address(0))
         );
 
-    DeployInterfaces.DeployParameters private deployParams;
-    DeployInterfaces.DeploySetup private setup;
-
     function setUp() external {
         if (block.chainid == 1) {
             deployParams = mainnetParams;
@@ -85,6 +82,6 @@ contract SolvencyTest is SolvencyRunner {
         baseActionsList[2] = Actions.REGISTER_WITHDRAWAL;
         baseActionsList[3] = Actions.PROCESS_WITHDRAWALS;
 
-        runSolvencyTest(deployParams, setup, baseActionsList);
+        runSolvencyTest(baseActionsList);
     }
 }

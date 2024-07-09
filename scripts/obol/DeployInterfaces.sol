@@ -83,7 +83,5 @@ interface DeployInterfaces {
         IVaultConfigurator configurator;
         ManagedValidator validator;
         SimpleDVTStakingStrategy strategy;
-        DepositWrapper depositWrapper;
-        uint256 wstethAmountDeposited;
     }
 }
