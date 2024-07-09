@@ -14,29 +14,76 @@ contract SolvencyRunner is Test, DeployScript {
         WITHDRAWAL_QUEUE_EMPTY
     }
 
-    struct SolvencyTestParams {
-        DeployInterfaces.DeployParameters deployParams;
-        Actions[] actions;
+    function runSolvencyTest(
+        DeployInterfaces.DeployParameters memory deployParams,
+        DeployInterfaces.DeploySetup memory setup,
+        Actions[] memory actions
+    ) internal {
+        for (uint256 i = 0; i < actions.length; i++) {
+            if (actions[i] == Actions.DEPOSIT) {
+                deposit(deployParams, setup);
+            } else if (actions[i] == Actions.REGISTER_WITHDRAWAL) {
+                registerWithdrawal(deployParams, setup);
+            } else if (actions[i] == Actions.PROCESS_WITHDRAWALS) {
+                processWithdrawals(deployParams, setup);
+            } else if (actions[i] == Actions.CONVERT_AND_DEPOSIT) {
+                convertAndDeposit(deployParams, setup);
+            } else if (actions[i] == Actions.CONVERT) {
+                convert(deployParams, setup);
+            } else if (actions[i] == Actions.WITHDRAWAL_QUEUE_FULL) {
+                withdrawalQueueFull(deployParams, setup);
+            } else if (actions[i] == Actions.WITHDRAWAL_QUEUE_EMPTY) {
+                withdrawalQueueEmpty(deployParams, setup);
+            } else {
+                revert("Unsupported action");
+            }
+        }
     }
 
-    function runSolvencyTest(
-        SolvencyTestParams memory solvencyParams
-    ) internal {
-        solvencyParams.deployParams = commonContractsDeploy(
-            solvencyParams.deployParams
-        );
-        vm.startPrank(solvencyParams.deployParams.deployer);
-        (
-            DeployInterfaces.DeployParameters memory deployParams,
-            DeployInterfaces.DeploySetup memory setup
-        ) = deploy(solvencyParams.deployParams);
-        vm.stopPrank();
+    function deposit(
+        DeployInterfaces.DeployParameters memory deployParams,
+        DeployInterfaces.DeploySetup memory setup
+    ) internal {}
 
-        /*
-            1. check existing solvency tests for symbiotic
-            2. modify them to make them fit current logic
-            3. add different test for that
-            4. fix validation scripts + remaining tests
-        */
+    function registerWithdrawal(
+        DeployInterfaces.DeployParameters memory deployParams,
+        DeployInterfaces.DeploySetup memory setup
+    ) internal {
+        // registerWithdrawal logic
+    }
+
+    function processWithdrawals(
+        DeployInterfaces.DeployParameters memory deployParams,
+        DeployInterfaces.DeploySetup memory setup
+    ) internal {
+        // processWithdrawals logic
+    }
+
+    function convertAndDeposit(
+        DeployInterfaces.DeployParameters memory deployParams,
+        DeployInterfaces.DeploySetup memory setup
+    ) internal {
+        // convertAndDeposit logic
+    }
+
+    function convert(
+        DeployInterfaces.DeployParameters memory deployParams,
+        DeployInterfaces.DeploySetup memory setup
+    ) internal {
+        // convert logic
+    }
+
+    function withdrawalQueueFull(
+        DeployInterfaces.DeployParameters memory deployParams,
+        DeployInterfaces.DeploySetup memory setup
+    ) internal {
+        // withdrawalQueueFull logic
+    }
+
+    function withdrawalQueueEmpty(
+        DeployInterfaces.DeployParameters memory deployParams,
+        DeployInterfaces.DeploySetup memory setup
+    ) internal {
+        // withdrawalQueueEmpty logic
     }
 }
