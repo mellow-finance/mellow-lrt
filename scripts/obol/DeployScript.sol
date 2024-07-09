@@ -222,6 +222,7 @@ abstract contract DeployScript is CommonBase {
         }
 
         s.vault.grantRole(s.vault.OPERATOR(), address(s.strategy));
+        s.vault.grantRole(s.vault.OPERATOR(), deployParams.curatorAdmin);
 
         // setting all configurator
         {

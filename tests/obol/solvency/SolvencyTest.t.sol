@@ -69,13 +69,14 @@ contract SolvencyTest is SolvencyRunner {
             revert("Unsupported chain");
         }
 
-        deployParams = commonContractsDeploy(deployParams);
-        vm.startPrank(deployParams.deployer);
         deal(
             deployParams.weth,
             deployParams.deployer,
             deployParams.initialDepositWETH
         );
+
+        vm.startPrank(deployParams.deployer);
+        deployParams = commonContractsDeploy(deployParams);
         (deployParams, setup) = deploy(deployParams);
         vm.stopPrank();
     }

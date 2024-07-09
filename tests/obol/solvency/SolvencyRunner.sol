@@ -489,13 +489,13 @@ contract SolvencyRunner is Test, DeployScript {
         );
 
         uint256 full_vault_balance_weth = _tvl_weth(true);
-        assertEq(
-            full_vault_balance_weth +
-                _convert_wsteth_to_weth(
-                    cumulative_processed_withdrawals_weth,
-                    true
-                ),
+        uint256 wsteth_balance = IERC20(deployParams.wsteth).balanceOf(
+            address(setup.vault)
+        );
+        assertApproxEqAbs(
+            full_vault_balance_weth + cumulative_processed_withdrawals_weth,
             cumulative_deposits_weth + deployParams.initialDepositWETH,
+            wsteth_balance / 1 ether + 1 wei,
             "cumulative_deposits_weth + cumulative_processed_withdrawals_weth != cumulative_deposits_wsteth + wstethAmountDeposited"
         );
 
@@ -632,21 +632,71 @@ contract SolvencyRunner is Test, DeployScript {
         );
     }
 
-    /*
-        transition_random_deposit
-        
-        transition_request_random_withdrawal
-        transition_process_random_requested_withdrawals_subset
+    function transition_convert() internal {
+        // random convert
 
-        
+        uint256 weth_balance = IERC20(deployParams.weth).balanceOf(
+            address(setup.vault)
+        );
+
+        uint256 random_ratio = random_float_x96(1, 100) / 100;
+        uint256 weth_amount = Math.mulDiv(weth_balance, random_ratio, Q96);
+        if (weth_amount == 0) return;
+
+        uint256 wsteth_balance = IERC20(deployParams.wsteth).balanceOf(
+            address(setup.vault)
+        );
+
+        vm.startPrank(deployParams.curatorAdmin);
+        (bool success, bytes memory response) = setup.vault.delegateCall(
+            address(deployParams.stakingModule),
+            abi.encodeWithSelector(StakingModule.convert.selector, weth_amount)
+        );
+        vm.stopPrank();
+
+        if (success) {
+            uint256 new_weth_balance = IERC20(deployParams.weth).balanceOf(
+                address(setup.vault)
+            );
+            uint256 new_wsteth_balance = IERC20(deployParams.wsteth).balanceOf(
+                address(setup.vault)
+            );
+
+            assertApproxEqAbs(
+                weth_balance - weth_amount,
+                new_weth_balance,
+                1 wei,
+                "invalid weth balance after conversion"
+            );
+
+            assertApproxEqAbs(
+                wsteth_balance + _convert_weth_to_wsteth(weth_amount, true),
+                new_wsteth_balance,
+                new_wsteth_balance / 1 ether,
+                "invalid wsteth balance after conversion"
+            );
+        } else {
+            uint256 length = response.length;
+            assembly {
+                response := add(response, 4)
+                mstore(response, sub(length, 4)) // Set proper length
+            }
+            string memory reason = abi.decode(response, (string));
+            assertEq(
+                keccak256(abi.encodePacked(reason)),
+                keccak256(abi.encodePacked("STAKE_LIMIT")),
+                "unexpected revert"
+            );
+        }
+    }
+
+    /*
         transition_random_wsteth_price_change
         
         transition_convert
         transition_convert_and_deposit
 
         transition_random_idle_ether_change
-
-
     */
 
     function runSolvencyTest(Actions[] memory) internal {
@@ -656,6 +706,7 @@ contract SolvencyRunner is Test, DeployScript {
             transition_random_deposit();
             transition_request_random_withdrawal();
             transition_process_random_requested_withdrawals_subset();
+            transition_convert();
             validate_invariants();
         }
 
