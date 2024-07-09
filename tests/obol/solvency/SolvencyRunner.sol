@@ -401,15 +401,17 @@ contract SolvencyRunner is Test, DeployScript {
                     true
                 );
 
-                vm.startPrank(deployParams.curatorAdmin);
-                setup.vault.delegateCall(
-                    address(deployParams.stakingModule),
-                    abi.encodeWithSelector(
-                        StakingModule.convert.selector,
-                        weth_required
-                    )
-                );
-                vm.stopPrank();
+                if (weth_required != 0) {
+                    vm.startPrank(deployParams.curatorAdmin);
+                    setup.vault.delegateCall(
+                        address(deployParams.stakingModule),
+                        abi.encodeWithSelector(
+                            StakingModule.convert.selector,
+                            weth_required
+                        )
+                    );
+                    vm.stopPrank();
+                }
                 uint256 new_wsteth_balance = IERC20(deployParams.wsteth)
                     .balanceOf(address(setup.vault));
 

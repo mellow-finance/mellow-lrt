@@ -71,6 +71,11 @@ contract SolvencyTest is SolvencyRunner {
 
         deployParams = commonContractsDeploy(deployParams);
         vm.startPrank(deployParams.deployer);
+        deal(
+            deployParams.weth,
+            deployParams.deployer,
+            deployParams.initialDepositWETH
+        );
         (deployParams, setup) = deploy(deployParams);
         vm.stopPrank();
     }
