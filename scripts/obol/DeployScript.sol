@@ -19,15 +19,21 @@ abstract contract DeployScript is CommonBase {
             );
         if (address(deployParams.erc20TvlModule) == address(0))
             deployParams.erc20TvlModule = new ERC20TvlModule();
-        if (address(deployParams.stakingModule) == address(0))
+        if (address(deployParams.stakingModule) == address(0)) {
+            ILidoLocator lidoLocator = ILidoLocator(deployParams.lidoLocator);
+            (, bytes memory response) = address(lidoLocator).staticcall(
+                abi.encodeWithSignature("withdrawalQueue()")
+            );
+            address withdrawalQueue = abi.decode(response, (address));
             deployParams.stakingModule = new StakingModule(
-                DeployConstants.WETH,
-                DeployConstants.STETH,
-                DeployConstants.WSTETH,
-                ILidoLocator(DeployConstants.LIDO_LOCATOR),
-                IWithdrawalQueue(DeployConstants.WITHDRAWAL_QUEUE),
+                deployParams.weth,
+                deployParams.steth,
+                deployParams.wsteth,
+                lidoLocator,
+                IWithdrawalQueue(withdrawalQueue),
                 DeployConstants.SIMPLE_DVT_MODULE_ID
             );
+        }
         if (address(deployParams.ratiosOracle) == address(0))
             deployParams.ratiosOracle = new ManagedRatiosOracle();
         if (address(deployParams.priceOracle) == address(0))
@@ -259,25 +265,25 @@ abstract contract DeployScript is CommonBase {
         // initial deposit
         {
             require(
-                deployParams.initialDepositETH > 0,
+                deployParams.initialDepositWETH > 0,
                 "Invalid deploy params. Initial deposit value is 0"
             );
             require(
                 IERC20(deployParams.weth).balanceOf(deployParams.deployer) >=
-                    deployParams.initialDepositETH,
+                    deployParams.initialDepositWETH,
                 "Insufficient WETH amount for deposit"
             );
             uint256[] memory amounts = new uint256[](2);
-            amounts[wethIndex] = deployParams.initialDepositETH;
+            amounts[wethIndex] = deployParams.initialDepositWETH;
             IERC20(deployParams.weth).safeIncreaseAllowance(
                 address(s.vault),
-                deployParams.initialDepositETH
+                deployParams.initialDepositWETH
             );
 
             s.vault.deposit(
                 address(s.vault),
                 amounts,
-                deployParams.initialDepositETH,
+                deployParams.initialDepositWETH,
                 type(uint256).max,
                 0
             );

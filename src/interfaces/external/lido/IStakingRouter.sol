@@ -71,8 +71,7 @@ interface IStakingRouter {
         uint256 _minDepositBlockDistance
     ) external;
 
-    function getStakingModule(uint256 _stakingModuleId)
-        external
-        view
-        returns (StakingModule memory);
+    function getStakingModule(
+        uint256 _stakingModuleId
+    ) external view returns (StakingModule memory);
 }
