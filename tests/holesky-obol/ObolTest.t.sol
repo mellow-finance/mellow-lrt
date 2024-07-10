@@ -56,22 +56,22 @@ contract Integration is Test, DeployScript {
             deployParams.stakingModule.lidoLocator().depositSecurityModule()
         );
 
-        {
-            address router = depositSecurityModule.STAKING_ROUTER();
-            IStakingRouter.StakingModule memory module = IStakingRouter(router)
-                .getStakingModule(DeployConstants.SIMPLE_DVT_MODULE_ID);
-            // STAKING_MODULE_MANAGE_ROLE
-            vm.prank(0xE92329EC7ddB11D25e25b3c21eeBf11f15eB325d);
-            IStakingRouter(router).updateStakingModule(
-                DeployConstants.SIMPLE_DVT_MODULE_ID,
-                module.stakeShareLimit,
-                module.priorityExitShareThreshold,
-                module.stakingModuleFee,
-                module.treasuryFee,
-                type(uint256).max,
-                1
-            );
-        }
+        // {
+        //     address router = depositSecurityModule.STAKING_ROUTER();
+        //     IStakingRouter.StakingModule memory module = IStakingRouter(router)
+        //         .getStakingModule(DeployConstants.SIMPLE_DVT_MODULE_ID);
+        //     // STAKING_MODULE_MANAGE_ROLE
+        //     vm.prank(0xE92329EC7ddB11D25e25b3c21eeBf11f15eB325d);
+        //     IStakingRouter(router).updateStakingModule(
+        //         DeployConstants.SIMPLE_DVT_MODULE_ID,
+        //         module.stakeShareLimit,
+        //         module.priorityExitShareThreshold,
+        //         module.stakingModuleFee,
+        //         module.treasuryFee,
+        //         type(uint256).max,
+        //         1
+        //     );
+        // }
 
         vm.startPrank(depositSecurityModule.getOwner());
         // depositSecurityModule.setMinDepositBlockDistance(1);

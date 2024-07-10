@@ -38,13 +38,13 @@ library DeployConstants {
     uint256 public constant MAXIMAL_TOTAL_SUPPLY = 10000 ether;
 
     address public constant HOLESKY_STETH =
-        0x3F1c547b21f65e10480dE3ad8E19fAAC46C95034;
+        0x67a8422c5301358e60209d13884090028FD3B294;
     address public constant HOLESKY_WSTETH =
-        0x8d09a4502Cc8Cf1547aD300E066060D043f6982D;
+        0xC937e208aCd2Ea6126A3B7731C7c72f6E9307D1b;
     address public constant HOLESKY_WETH =
         0x94373a4919B3240D86eA41593D5eBa789FEF3848;
     address public constant HOLESKY_LIDO_LOCATOR =
-        0x28FAB2059C713A7F9D8c86Db49f9bb0e96Af1ef8;
+        0x68A0457845E2b9754A760EE66eddF3d121251802;
 
     address public constant MAINNET_STETH =
         0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
