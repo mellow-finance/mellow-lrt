@@ -5,15 +5,15 @@ library DeployConstants {
     uint256 public constant Q96 = 2 ** 96;
 
     address public constant HOLESKY_PROXY_VAULT_ADMIN =
-        address(bytes20(keccak256("holesky_proxy_vault_admin")));
+        0x3995c5a3A74f3B3049fD5DA7C7D7BaB0b581A6e1;
     address public constant HOLESKY_VAULT_ADMIN =
-        address(bytes20(keccak256("holesky_vault_admin")));
+        0x2C5f98743e4Cb30d8d65e30B8cd748967D7A051e;
     address public constant HOLESKY_CURATOR_ADMIN =
-        address(bytes20(keccak256("holesky_curator_admin")));
+        0x20daa9d68196aa882A856D0aBBEbB6836Dc4B840;
     address public constant HOLESKY_CURATOR_OPERATOR =
-        address(bytes20(keccak256("holesky_curator_operator")));
+        0x73a5ac225B0b345AE95c45a4bBF5D96Ca6f26810;
     address public constant HOLESKY_DEPLOYER =
-        address(bytes20(keccak256("holesky_deployer")));
+        0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 
     address public constant MAINNET_PROXY_VAULT_ADMIN =
         address(bytes20(keccak256("mainnet_proxy_vault_admin")));

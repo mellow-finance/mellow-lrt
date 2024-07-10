@@ -21,6 +21,7 @@ contract DefaultProxyImplementationUnitTest is
             lpTokenNameDefault,
             lpTokenSymbolDefault
         );
+        assertNotEq(address(proxy), address(0));
     }
 
     function testUpdateLockedRevert() external {

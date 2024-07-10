@@ -271,7 +271,7 @@ contract Unit is Test {
 
         deal(Constants.WETH, address(this), 1 ether);
 
-        (bool success, bytes memory response) = address(module).delegatecall(
+        (bool success, ) = address(module).delegatecall(
             abi.encodeWithSelector(
                 module.convertAndDeposit.selector,
                 blockNumber,

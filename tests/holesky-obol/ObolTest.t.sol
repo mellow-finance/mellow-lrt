@@ -213,10 +213,7 @@ contract Integration is Test, DeployScript {
     }
 
     function testObolDeposit() external {
-        (
-            DeployInterfaces.DeployParameters memory deployParams,
-            DeployInterfaces.DeploySetup memory setup
-        ) = dep();
+        (, DeployInterfaces.DeploySetup memory setup) = dep();
 
         for (uint256 i = 0; i < 10; i++) {
             address user = vm.createWallet("random-user-wallet-1234123").addr;
