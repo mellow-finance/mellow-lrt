@@ -6,42 +6,43 @@ import "./DeployInterfaces.sol";
 
 contract Deploy is Script, DeployScript {
     function run() external {
-        DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
-            .DeployParameters({
-                deployer: DeployConstants.HOLESKY_DEPLOYER,
-                proxyAdmin: DeployConstants.PROXY_VAULT_ADMIN,
-                admin: DeployConstants.VAULT_ADMIN,
-                curatorAdmin: DeployConstants.CURATOR_ADMIN,
-                curatorOperator: DeployConstants.CURATOR_ADMIN,
-                lpTokenName: DeployConstants.MELLOW_VAULT_NAME,
-                lpTokenSymbol: DeployConstants.MELLOW_VAULT_SYMBOL,
-                wsteth: DeployConstants.WSTETH,
-                steth: DeployConstants.STETH,
-                weth: DeployConstants.WETH,
-                maximalTotalSupply: DeployConstants.MAXIMAL_TOTAL_SUPPLY,
-                initialDepositETH: DeployConstants.INITIAL_DEPOSIT_ETH,
-                firstDepositETH: DeployConstants.FIRST_DEPOSIT_ETH,
-                initializer: Initializer(address(0)),
-                initialImplementation: Vault(payable(address(0))),
-                erc20TvlModule: ERC20TvlModule(address(0)),
-                stakingModule: StakingModule(address(0)),
-                ratiosOracle: ManagedRatiosOracle(address(0)),
-                priceOracle: ChainlinkOracle(address(0)),
-                wethAggregatorV3: IAggregatorV3(address(0)),
-                wstethAggregatorV3: IAggregatorV3(address(0)),
-                defaultProxyImplementation: DefaultProxyImplementation(
-                    address(0)
-                )
-            });
-
-        vm.startBroadcast(uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER"))));
-        deployParams = commonContractsDeploy(deployParams);
-        DeployInterfaces.DeploySetup memory setup;
-        (deployParams, setup) = deploy(deployParams);
-        vm.stopBroadcast();
-        logSetup(setup);
-        logDeployParams(deployParams);
-
+        // DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
+        //     .DeployParameters({
+        //         deployer: DeployConstants.HOLESKY_DEPLOYER,
+        //         proxyAdmin: DeployConstants._VAULT_ADMIN,
+        //         admin: DeployConstants.VAULT_ADMIN,
+        //         curatorAdmin: DeployConstants.CURATOR_ADMIN,
+        //         curatorOperator: DeployConstants.CURATOR_ADMIN,
+        //         lpTokenName: DeployConstants.MELLOW_VAULT_NAME,
+        //         lpTokenSymbol: DeployConstants.MELLOW_VAULT_SYMBOL,
+        //         wsteth: DeployConstants.WSTETH,
+        //         steth: DeployConstants.STETH,
+        //         weth: DeployConstants.WETH,
+        //         maximalTotalSupply: DeployConstants.MAXIMAL_TOTAL_SUPPLY,
+        //         initialDepositWETH: DeployConstants.INITIAL_DEPOSIT_ETH,
+        //         firstDepositWETH: DeployConstants.FIRST_DEPOSIT_ETH,
+        //         initializer: Initializer(address(0)),
+        //         initialImplementation: Vault(payable(address(0))),
+        //         erc20TvlModule: ERC20TvlModule(address(0)),
+        //         stakingModule: StakingModule(address(0)),
+        //         ratiosOracle: ManagedRatiosOracle(address(0)),
+        //         priceOracle: ChainlinkOracle(address(0)),
+        //         wethAggregatorV3: IAggregatorV3(address(0)),
+        //         wstethAggregatorV3: IAggregatorV3(address(0)),
+        //         defaultProxyImplementation: DefaultProxyImplementation(
+        //             address(0)
+        //         )
+        //     });
+        // vm.startBroadcast(uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER"))));
+        // IWeth(DeployConstants.WETH).deposit{
+        //     value: deployParams.initialDepositWETH * 10
+        // }();
+        // deployParams = commonContractsDeploy(deployParams);
+        // DeployInterfaces.DeploySetup memory setup;
+        // (deployParams, setup) = deploy(deployParams);
+        // vm.stopBroadcast();
+        // logSetup(setup);
+        // logDeployParams(deployParams);
         // revert("success");
     }
 
@@ -76,7 +77,7 @@ contract Deploy is Script, DeployScript {
         console2.log("MaximalTotalSupply: ", deployParams.maximalTotalSupply);
         console2.log("LpTokenName: ", deployParams.lpTokenName);
         console2.log("LpTokenSymbol: ", deployParams.lpTokenSymbol);
-        console2.log("InitialDepositETH: ", deployParams.initialDepositETH);
+        console2.log("initialDepositWETH: ", deployParams.initialDepositWETH);
         console2.log("Initializer: ", address(deployParams.initializer));
         console2.log(
             "InitialImplementation: ",

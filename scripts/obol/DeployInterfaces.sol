@@ -57,14 +57,15 @@ interface DeployInterfaces {
         address admin;
         address curatorAdmin;
         address curatorOperator;
+        address lidoLocator;
         address wsteth;
         address steth;
         address weth;
         uint256 maximalTotalSupply;
         string lpTokenName;
         string lpTokenSymbol;
-        uint256 initialDepositETH;
-        uint256 firstDepositETH;
+        uint256 initialDepositWETH;
+        uint256 firstDepositWETH;
         Vault initialImplementation;
         Initializer initializer;
         ERC20TvlModule erc20TvlModule;
@@ -82,7 +83,5 @@ interface DeployInterfaces {
         IVaultConfigurator configurator;
         ManagedValidator validator;
         SimpleDVTStakingStrategy strategy;
-        DepositWrapper depositWrapper;
-        uint256 wstethAmountDeposited;
     }
 }
