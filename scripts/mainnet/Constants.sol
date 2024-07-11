@@ -14,6 +14,8 @@ library Constants {
 
     address public constant HOLESKY_DEPLOYER =
         0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
+    address public constant HOLESKY_TEST_DEPLOYER =
+        0x7777775b9E6cE9fbe39568E485f5E20D1b0e04EE;
     address public constant DEFAULT_COLLATERAL_FACTORY =
         0x6c8509dbCf264fF1A8F2A9dEEeE5453391B1d2b7;
 

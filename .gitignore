@@ -110,6 +110,10 @@ broadcast/
 cache/
 out/
 
+# foundry magic
+/src/tmp
+
+__pycache__/
 .idea
 yarn.lock
 .vscode/

@@ -15,7 +15,7 @@ abstract contract DeployScript is CommonBase {
             deployParams.initialImplementation = new Vault(
                 "",
                 "",
-                address(0xdead)
+                address(this)
             );
         if (address(deployParams.erc20TvlModule) == address(0))
             deployParams.erc20TvlModule = new ERC20TvlModule();
@@ -64,27 +64,44 @@ abstract contract DeployScript is CommonBase {
                 deployParams.deployer
             );
 
-            s.proxyAdmin = ProxyAdmin(
-                address(
-                    uint160(
-                        uint256(
-                            vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT)
-                        )
-                    )
+            address immutableProxyAdmin = address(
+                uint160(
+                    uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT))
                 )
             );
-            s.proxyAdmin.upgradeAndCall(
+
+            ProxyAdmin(immutableProxyAdmin).upgradeAndCall(
                 ITransparentUpgradeableProxy(address(proxy)),
                 address(deployParams.initialImplementation),
                 new bytes(0)
             );
 
-            s.proxyAdmin.transferOwnership(address(deployParams.proxyAdmin));
+            ProxyAdmin(immutableProxyAdmin).transferOwnership(
+                address(deployParams.proxyAdmin)
+            );
             s.vault = Vault(payable(proxy));
+        }
+
+        // setup timelocked controller
+        {
+            address[] memory proposers = new address[](1);
+            proposers[0] = deployParams.curator;
+            address[] memory executors = new address[](1);
+            executors[0] = deployParams.curator;
+            s.timeLockedCurator = new TimelockController(
+                deployParams.timeLockDelay,
+                proposers,
+                executors,
+                deployParams.admin
+            );
         }
 
         s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
         s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
+        s.vault.grantRole(
+            s.vault.ADMIN_DELEGATE_ROLE(),
+            address(s.timeLockedCurator)
+        );
 
         s.configurator = s.vault.configurator();
 
@@ -315,9 +332,8 @@ abstract contract DeployScript is CommonBase {
             s.vault.deposit(
                 address(s.vault),
                 amounts,
-                wstethAmount,
-                type(uint256).max,
-                0
+                deployParams.initialDepositETH,
+                type(uint256).max
             );
             s.wstethAmountDeposited = wstethAmount;
         }
@@ -348,6 +364,4 @@ abstract contract DeployScript is CommonBase {
 
         return (deployParams, s);
     }
-
-    function testDeployScript() external pure {}
 }

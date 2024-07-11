@@ -27,11 +27,9 @@ abstract contract DeployScript is CommonBase {
             deployParams.ratiosOracle = new ManagedRatiosOracle();
         if (address(deployParams.priceOracle) == address(0))
             deployParams.priceOracle = new ChainlinkOracle();
-        if (address(deployParams.wethAggregatorV3) == address(0))
-            deployParams.wethAggregatorV3 = new ConstantAggregatorV3(1 ether);
-        if (address(deployParams.wstethAggregatorV3) == address(0))
-            deployParams.wstethAggregatorV3 = new WStethRatiosAggregatorV3(
-                deployParams.wsteth
+        if (address(deployParams.constantAggregatorV3) == address(0))
+            deployParams.constantAggregatorV3 = new ConstantAggregatorV3(
+                1 ether
             );
         if (address(deployParams.defaultProxyImplementation) == address(0))
             deployParams
@@ -91,17 +89,17 @@ abstract contract DeployScript is CommonBase {
         s.vault.addTvlModule(address(deployParams.erc20TvlModule));
         s.vault.addTvlModule(address(deployParams.defaultBondTvlModule));
 
-        s.vault.addToken(deployParams.wsteth);
+        s.vault.addToken(deployParams.underlyingToken);
         // oracles setup
         {
             uint128[] memory ratiosX96 = new uint128[](1);
-            ratiosX96[0] = 2 ** 96; // WSTETH deposit
+            ratiosX96[0] = 2 ** 96;
             deployParams.ratiosOracle.updateRatios(
                 address(s.vault),
                 true,
                 ratiosX96
             );
-            ratiosX96[0] = 2 ** 96; // WSTETH withdrawal
+            ratiosX96[0] = 2 ** 96;
             deployParams.ratiosOracle.updateRatios(
                 address(s.vault),
                 false,
@@ -113,19 +111,16 @@ abstract contract DeployScript is CommonBase {
             );
             s.configurator.commitRatiosOracle();
 
-            address[] memory tokens = new address[](2);
-            tokens[0] = deployParams.weth;
-            tokens[1] = deployParams.wsteth;
+            address[] memory tokens = new address[](1);
+            tokens[0] = deployParams.underlyingToken;
             IChainlinkOracle.AggregatorData[]
-                memory data = new IChainlinkOracle.AggregatorData[](2);
-            data[0].aggregatorV3 = address(deployParams.wethAggregatorV3);
+                memory data = new IChainlinkOracle.AggregatorData[](1);
+            data[0].aggregatorV3 = address(deployParams.constantAggregatorV3);
             data[0].maxAge = 0;
-            data[1].aggregatorV3 = address(deployParams.wstethAggregatorV3);
-            data[1].maxAge = 0;
 
             deployParams.priceOracle.setBaseToken(
                 address(s.vault),
-                deployParams.weth
+                deployParams.underlyingToken
             );
             deployParams.priceOracle.setChainlinkOracles(
                 address(s.vault),
@@ -148,7 +143,7 @@ abstract contract DeployScript is CommonBase {
         // setting params for wsteth default bond in defaultBondTvlModule
         {
             address[] memory supportedBonds = new address[](1);
-            supportedBonds[0] = deployParams.wstethDefaultBond;
+            supportedBonds[0] = deployParams.defaultBond;
             deployParams.defaultBondTvlModule.setParams(
                 address(s.vault),
                 supportedBonds
@@ -177,10 +172,14 @@ abstract contract DeployScript is CommonBase {
             s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
             deployParams.deployer
         );
-        s.defaultBondStrategy.grantRole(
-            s.defaultBondStrategy.OPERATOR(),
-            address(deployParams.curator)
-        );
+
+        for (uint256 i = 0; i < deployParams.curators.length; i++) {
+            address curator = deployParams.curators[i];
+            s.defaultBondStrategy.grantRole(
+                s.defaultBondStrategy.OPERATOR(),
+                curator
+            );
+        }
         {
             s.configurator.stageDepositCallback(address(s.defaultBondStrategy));
             s.configurator.commitDepositCallback();
@@ -189,9 +188,9 @@ abstract contract DeployScript is CommonBase {
         {
             IDefaultBondStrategy.Data[]
                 memory data = new IDefaultBondStrategy.Data[](1);
-            data[0].bond = deployParams.wstethDefaultBond;
+            data[0].bond = deployParams.defaultBond;
             data[0].ratioX96 = DeployConstants.Q96;
-            s.defaultBondStrategy.setData(deployParams.wsteth, data);
+            s.defaultBondStrategy.setData(deployParams.underlyingToken, data);
         }
 
         // validators setup
@@ -232,13 +231,6 @@ abstract contract DeployScript is CommonBase {
 
         s.vault.grantRole(s.vault.OPERATOR(), address(s.defaultBondStrategy));
 
-        s.depositWrapper = new DepositWrapper(
-            s.vault,
-            deployParams.weth,
-            deployParams.steth,
-            deployParams.wsteth
-        );
-
         // setting all configurator
         {
             s.configurator.stageDepositCallbackDelay(1 days);
@@ -250,7 +242,7 @@ abstract contract DeployScript is CommonBase {
             s.configurator.stageWithdrawalFeeD9Delay(30 days);
             s.configurator.commitWithdrawalFeeD9Delay();
 
-            s.configurator.stageMaximalTotalSupplyDelay(1 days);
+            s.configurator.stageMaximalTotalSupplyDelay(1 hours);
             s.configurator.commitMaximalTotalSupplyDelay();
 
             s.configurator.stageDepositsLockedDelay(1 hours);
@@ -281,45 +273,32 @@ abstract contract DeployScript is CommonBase {
         // initial deposit
         {
             require(
-                deployParams.initialDepositETH > 0,
+                deployParams.initialDeposit > 0,
                 "Invalid deploy params. Initial deposit value is 0"
             );
+
             require(
-                deployParams.deployer.balance >= deployParams.initialDepositETH,
-                "Insufficient ETH amount for deposit"
+                deployParams.initialDeposit <=
+                    IERC20(deployParams.underlyingToken).balanceOf(
+                        deployParams.deployer
+                    ),
+                "Insufficient balance for initial deposit"
             );
-            // eth -> steth -> wsteth
-            uint256 initialWstethAmount = IERC20(deployParams.wsteth).balanceOf(
-                deployParams.deployer
-            );
-            ISteth(deployParams.steth).submit{
-                value: deployParams.initialDepositETH
-            }(address(0));
-            IERC20(deployParams.steth).safeIncreaseAllowance(
-                deployParams.wsteth,
-                deployParams.initialDepositETH
-            );
-            IWSteth(deployParams.wsteth).wrap(deployParams.initialDepositETH);
-            uint256 wstethAmount = IERC20(deployParams.wsteth).balanceOf(
-                deployParams.deployer
-            ) - initialWstethAmount;
-            IERC20(deployParams.wsteth).safeIncreaseAllowance(
+
+            IERC20(deployParams.underlyingToken).safeIncreaseAllowance(
                 address(s.vault),
-                wstethAmount
+                deployParams.initialDeposit
             );
-            require(wstethAmount > 0, "No wsteth received");
-            address[] memory tokens = new address[](1);
-            tokens[0] = deployParams.wsteth;
+
             uint256[] memory amounts = new uint256[](1);
-            amounts[0] = wstethAmount;
+            amounts[0] = deployParams.initialDeposit;
             s.vault.deposit(
                 address(s.vault),
                 amounts,
-                wstethAmount,
+                deployParams.initialDeposit,
                 type(uint256).max,
                 0
             );
-            s.wstethAmountDeposited = wstethAmount;
         }
 
         s.vault.renounceRole(s.vault.ADMIN_ROLE(), deployParams.deployer);
