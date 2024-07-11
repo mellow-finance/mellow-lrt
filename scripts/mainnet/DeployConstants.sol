@@ -14,7 +14,7 @@ library DeployConstants {
 
     uint256 public constant INITIAL_DEPOSIT_ETH = 10 gwei;
     uint256 public constant FIRST_DEPOSIT_ETH = 1 ether;
-    uint256 public constant MAXIMAL_TOTAL_SUPPLY = 1 ether; // only for new batch
+    uint256 public constant MAXIMAL_TOTAL_SUPPLY = 10000 ether;
 
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
