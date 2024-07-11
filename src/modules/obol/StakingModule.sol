@@ -16,7 +16,7 @@ contract StakingModule is IStakingModule, DefaultModule {
     address public immutable wsteth;
 
     /// @inheritdoc IStakingModule
-    IDepositSecurityModule public immutable depositSecurityModule;
+    ILidoLocator public immutable lidoLocator;
     /// @inheritdoc IStakingModule
     IWithdrawalQueue public immutable withdrawalQueue;
 
@@ -27,14 +27,14 @@ contract StakingModule is IStakingModule, DefaultModule {
         address weth_,
         address steth_,
         address wsteth_,
-        IDepositSecurityModule depositSecurityModule_,
+        ILidoLocator lidoLocator_,
         IWithdrawalQueue withdrawalQueue_,
         uint256 stakingModuleId_
     ) {
         weth = weth_;
         steth = steth_;
         wsteth = wsteth_;
-        depositSecurityModule = depositSecurityModule_;
+        lidoLocator = lidoLocator_;
         withdrawalQueue = withdrawalQueue_;
         stakingModuleId = stakingModuleId_;
     }
@@ -53,20 +53,32 @@ contract StakingModule is IStakingModule, DefaultModule {
         bytes calldata depositCalldata,
         IDepositSecurityModule.Signature[] calldata sortedGuardianSignatures
     ) external onlyDelegateCall {
-        uint256 wethBalance = IERC20(weth).balanceOf(address(this));
-        uint256 unfinalizedStETH = withdrawalQueue.unfinalizedStETH();
-        uint256 bufferedEther = ISteth(steth).getBufferedEther();
-        if (bufferedEther < unfinalizedStETH)
-            revert InvalidWithdrawalQueueState();
-        uint256 maxDepositsCount = Math.min(
-            IStakingRouter(depositSecurityModule.STAKING_ROUTER())
-                .getStakingModuleMaxDepositsCount(
-                    stakingModuleId,
-                    wethBalance + bufferedEther - unfinalizedStETH
-                ),
-            depositSecurityModule.getMaxDeposits()
+        uint256 amount;
+        IDepositSecurityModule depositSecurityModule = IDepositSecurityModule(
+            lidoLocator.depositSecurityModule()
         );
-        uint256 amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
+        if (
+            IDepositContract(depositSecurityModule.DEPOSIT_CONTRACT())
+                .get_deposit_root() != depositRoot
+        ) {
+            revert InvalidDepositRoot();
+        }
+        {
+            uint256 wethBalance = IERC20(weth).balanceOf(address(this));
+            uint256 unfinalizedStETH = withdrawalQueue.unfinalizedStETH();
+            uint256 bufferedEther = ISteth(steth).getBufferedEther();
+            if (bufferedEther < unfinalizedStETH)
+                revert InvalidWithdrawalQueueState();
+            uint256 maxDepositsCount = Math.min(
+                IStakingRouter(depositSecurityModule.STAKING_ROUTER())
+                    .getStakingModuleMaxDepositsCount(
+                        stakingModuleId,
+                        wethBalance + bufferedEther - unfinalizedStETH
+                    ),
+                depositSecurityModule.getMaxDeposits()
+            );
+            amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
+        }
         if (amount == 0) revert InvalidAmount();
         _wethToWSteth(amount);
         depositSecurityModule.depositBufferedEther(

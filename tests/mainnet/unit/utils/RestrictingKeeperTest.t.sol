@@ -24,6 +24,7 @@ contract RestrictingKeeperTestUnit is Test, DeployScript {
 
     function testConstructorSuccess() external {
         RestrictingKeeper keeper = new RestrictingKeeper(admin);
+        assertNotEq(address(keeper), address(0));
     }
 
     function testProcessConfiguratorsEmptyArraySuccess() external {

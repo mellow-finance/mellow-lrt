@@ -266,7 +266,7 @@ contract Unit is Test {
             // so if base == steth then priceX96(reth) ~= 1.1 * 2^96
             uint256 expectedPriceX96 = uint256(11 * 2 ** 96) / 10;
             if (block.number == 19845261)
-                assertEq(priceX96, 87640277532012770051909751095);
+                assertEq(priceX96, 87640277532795742885049038139);
             assertApproxEqAbs(
                 priceX96,
                 expectedPriceX96,
@@ -297,7 +297,7 @@ contract Unit is Test {
         // 1 eth ~= 2917 usdc
         // expectedPriceX96 = 2917 * 1e-12 * 2**96
         uint256 expectedPriceX96 = uint256(2917 * 2 ** 96) / 1e12;
-        if (block.number == 19845261) assertEq(priceX96, 231158100161120637905);
+        if (block.number == 19845261) assertEq(priceX96, 231158100161121504871);
         assertApproxEqAbs(priceX96, expectedPriceX96, uint256(2 ** 96) / 100);
 
         uint256 oneEthPriceInUsdc = FullMath.mulDiv(1 ether, priceX96, 2 ** 96);

@@ -40,8 +40,8 @@ contract SimpleDVTStakingStrategy is
         uint256 nonce,
         bytes calldata depositCalldata,
         IDepositSecurityModule.Signature[] calldata sortedGuardianSignatures
-    ) external returns (bool success) {
-        (success, ) = vault.delegateCall(
+    ) external {
+        (bool success, ) = vault.delegateCall(
             address(stakingModule),
             abi.encodeWithSelector(
                 IStakingModule.convertAndDeposit.selector,
@@ -53,7 +53,8 @@ contract SimpleDVTStakingStrategy is
                 sortedGuardianSignatures
             )
         );
-        emit ConvertAndDeposit(success, msg.sender);
+        if (!success) revert DepositFailed();
+        emit ConvertAndDeposit(msg.sender);
     }
 
     /// @inheritdoc ISimpleDVTStakingStrategy

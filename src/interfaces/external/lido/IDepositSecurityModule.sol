@@ -27,5 +27,7 @@ interface IDepositSecurityModule {
 
     function STAKING_ROUTER() external view returns (address);
 
+    function DEPOSIT_CONTRACT() external view returns (address);
+
     function getMaxDeposits() external view returns (uint256);
 }
