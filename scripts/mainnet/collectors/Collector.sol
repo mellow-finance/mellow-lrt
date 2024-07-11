@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "../../../src/interfaces/external/chainlink/IAggregatorV3.sol";
-import "../../../src/interfaces/external/lido/IWSteth.sol";
 import "../../../src/interfaces/IVault.sol";
 import "../../../src/interfaces/oracles/IChainlinkOracle.sol";
 import "./IDefiCollector.sol";
@@ -12,6 +11,20 @@ import "./IDefiCollector.sol";
 import "../../../src/utils/DefaultAccessControl.sol";
 
 import "../../../src/libraries/external/FullMath.sol";
+
+interface IWrappedSteth {
+    function wrap(uint256 stethAmount) external payable returns (uint256);
+
+    function unwrap(uint256 wstethAmount) external returns (uint256);
+
+    function getStETHByWstETH(
+        uint256 wstethAmount
+    ) external view returns (uint256);
+
+    function getWstETHByStETH(
+        uint256 stethAmount
+    ) external view returns (uint256);
+}
 
 contract Collector is DefaultAccessControl {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -161,9 +174,9 @@ contract Collector is DefaultAccessControl {
                     responses[i].totalValueETH,
                     responses[i].totalSupply
                 );
-                responses[i].maximalTotalSupplyWSTETH = IWSteth(wsteth)
+                responses[i].maximalTotalSupplyWSTETH = IWrappedSteth(wsteth)
                     .getWstETHByStETH(responses[i].maximalTotalSupplyETH);
-                responses[i].totalValueWSTETH = IWSteth(wsteth)
+                responses[i].totalValueWSTETH = IWrappedSteth(wsteth)
                     .getWstETHByStETH(responses[i].totalValueETH);
                 responses[i].maximalTotalSupplyUSDC = convertWethToUSDC(
                     responses[i].maximalTotalSupplyETH
@@ -547,7 +560,8 @@ contract Collector is DefaultAccessControl {
         if (r.vault != address(0))
             return FullMath.mulDiv(amount, r.totalValueETH, r.totalSupply);
         if (token == weth || token == steth) return amount;
-        if (token == wsteth) return IWSteth(wsteth).getStETHByWstETH(amount);
+        if (token == wsteth)
+            return IWrappedSteth(wsteth).getStETHByWstETH(amount);
         // by default == 1
         return amount;
     }
@@ -586,7 +600,7 @@ contract Collector is DefaultAccessControl {
                     wsteth
                 );
         } else if (token == wsteth) {
-            return IWSteth(wsteth).getStETHByWstETH(priceX96);
+            return IWrappedSteth(wsteth).getStETHByWstETH(priceX96);
         } else {
             revert("Unsupported token");
         }

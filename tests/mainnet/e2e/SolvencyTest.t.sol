@@ -65,7 +65,7 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
             deployParams.deployer,
             deployParams.initialDepositETH + deployParams.firstDepositETH
         );
-        uint256 minRequiredTotalSupply = IWSteth(deployParams.wsteth)
+        uint256 minRequiredTotalSupply = IWrappedSteth(deployParams.wsteth)
             .getWstETHByStETH(deployParams.deployer.balance) + 1 wei;
         deployParams.maximalTotalSupply = Math.max(
             mellowLimit,
@@ -217,13 +217,11 @@ contract SolvencyTest is DeployScript, Validator, EventValidator, Test {
             Q96,
             factor_x96
         );
-        uint256 price_before = IWSteth(deployParams.wsteth).getStETHByWstETH(
-            1 ether
-        );
+        uint256 price_before = IWrappedSteth(deployParams.wsteth)
+            .getStETHByWstETH(1 ether);
         vm.store(deployParams.steth, slot, bytes32(new_value));
-        uint256 price_after = IWSteth(deployParams.wsteth).getStETHByWstETH(
-            1 ether
-        );
+        uint256 price_after = IWrappedSteth(deployParams.wsteth)
+            .getStETHByWstETH(1 ether);
         assertApproxEqAbs(
             Math.mulDiv(price_before, factor_x96, Q96),
             price_after,
