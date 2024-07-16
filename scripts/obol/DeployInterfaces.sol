@@ -62,6 +62,7 @@ interface DeployInterfaces {
         address steth;
         address weth;
         uint256 maximalTotalSupply;
+        uint256 maximalAllowedRemainder;
         string lpTokenName;
         string lpTokenSymbol;
         uint256 initialDepositWETH;

@@ -36,6 +36,7 @@ library DeployConstants {
     uint256 public constant INITIAL_DEPOSIT_ETH = 10 gwei;
     uint256 public constant FIRST_DEPOSIT_ETH = 1 ether;
     uint256 public constant MAXIMAL_TOTAL_SUPPLY = 10000 ether;
+    uint256 public constant MAXIMAL_ALLOWED_REMAINDER = 1 ether;
 
     address public constant HOLESKY_STETH =
         0x67a8422c5301358e60209d13884090028FD3B294;

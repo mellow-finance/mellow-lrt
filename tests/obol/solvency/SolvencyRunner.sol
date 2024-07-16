@@ -3,13 +3,6 @@ pragma solidity 0.8.25;
 
 import "../../../scripts/obol/Deploy.s.sol";
 
-interface ILido {
-    function setStakingLimit(
-        uint256 _maxStakeLimit,
-        uint256 _stakeLimitIncreasePerBlock
-    ) external;
-}
-
 interface ILidoStakingModule {
     function getNodeOperatorIds(
         uint256 limit,
@@ -53,24 +46,6 @@ interface ILidoStakingModule {
 }
 
 interface ILidoStakingRouter {
-    enum StakingModuleStatus {
-        Active, // deposits and rewards allowed
-        DepositsPaused, // deposits NOT allowed, rewards allowed
-        Stopped // deposits and rewards NOT allowed
-    }
-
-    /// @notice A summary of the staking module's validators
-    struct StakingModuleSummary {
-        /// @notice The total number of validators in the EXITED state on the Consensus Layer
-        /// @dev This value can't decrease in normal conditions
-        uint256 totalExitedValidators;
-        /// @notice The total number of validators deposited via the official Deposit Contract
-        /// @dev This value is a cumulative counter: even when the validator goes into EXITED state this
-        ///     counter is not decreasing
-        uint256 totalDepositedValidators;
-        /// @notice The number of validators in the set available for deposit
-        uint256 depositableValidatorsCount;
-    }
     struct LidoStakingModule {
         /// @notice unique id of the staking module
         uint24 id;
@@ -96,25 +71,10 @@ interface ILidoStakingRouter {
         uint256 exitedValidatorsCount;
     }
 
-    struct StakingModuleCache {
-        address stakingModuleAddress;
-        uint24 stakingModuleId;
-        uint16 stakingModuleFee;
-        uint16 treasuryFee;
-        uint16 targetShare;
-        StakingModuleStatus status;
-        uint256 activeValidatorsCount;
-        uint256 availableValidatorsCount;
-    }
-
     function getStakingModules()
         external
         view
         returns (LidoStakingModule[] memory);
-
-    function getStakingModuleSummary(
-        uint256 _stakingModuleId
-    ) external view returns (StakingModuleSummary memory summary);
 }
 
 contract SolvencyRunner is Test, DeployScript {
@@ -126,9 +86,7 @@ contract SolvencyRunner is Test, DeployScript {
         REGISTER_WITHDRAWAL,
         PROCESS_WITHDRAWALS,
         CONVERT_AND_DEPOSIT,
-        CONVERT,
-        IDLE_ETHER_CHANGE,
-        WSTETH_PRICE_CHANGE
+        CONVERT
     }
 
     DeployInterfaces.DeployParameters internal deployParams;
@@ -144,6 +102,8 @@ contract SolvencyRunner is Test, DeployScript {
 
     uint256 internal cumulative_deposits_weth;
     uint256 internal cumulative_processed_withdrawals_weth;
+
+    bool internal is_stake_limit_disabled = false;
 
     function _indexOf(address user) internal view returns (uint256) {
         for (uint256 i = 0; i < depositors.length; i++) {
@@ -176,27 +136,12 @@ contract SolvencyRunner is Test, DeployScript {
         return (_random() % (maxValue - minValue + 1)) + minValue;
     }
 
-    function change_lido_validators_state(
-        uint256 maxStakeLimit,
-        uint256 stakeLimitIncreasePerBlock
-    ) internal {
-        if (block.chainid == 1) {
-            vm.prank(0x2e59A20f205bB85a89C53f1936454680651E618e);
-        } else {
-            // TODO: find correct address for holesky
-            vm.prank(address(0));
-        }
-        ILido(deployParams.steth).setStakingLimit(
-            maxStakeLimit,
-            stakeLimitIncreasePerBlock
-        );
-    }
-
     function set_inf_stake_limit() internal {
-        change_lido_validators_state(
-            type(uint96).max,
-            type(uint96).max / type(uint32).max
-        );
+        bytes32 slot_ = 0xa3678de4a579be090bed1177e0a24f77cc29d181ac22fd7688aca344d8938015;
+        bytes32 value = vm.load(deployParams.steth, slot_);
+        bytes32 new_value = bytes32(uint256(value) & type(uint160).max); // nullify maxStakeLimit
+        vm.store(deployParams.steth, slot_, new_value);
+        is_stake_limit_disabled = true;
     }
 
     function generate_signing_keys(
@@ -254,12 +199,7 @@ contract SolvencyRunner is Test, DeployScript {
         (bool active, , address rewardAddress, , , , ) = lidoStakingModule
             .getNodeOperator(_nodeOperatorId, false);
 
-        if (!active) {
-            // node operator is not active
-            // may be change this logic somehow?..
-            return;
-        }
-
+        if (!active) return;
         (
             bytes memory _publicKeys,
             bytes memory _signatures
@@ -298,9 +238,6 @@ contract SolvencyRunner is Test, DeployScript {
                 keysCount
             );
         }
-        // if (keysCount != 0) {
-        //      revert("Not enough unused keys");
-        // }
     }
 
     function remove_signing_keys(
@@ -363,12 +300,12 @@ contract SolvencyRunner is Test, DeployScript {
         }
     }
 
+    Vm.Wallet private _guardian;
     bool private _is_guardian_set = false;
 
     function get_convert_and_deposit_params(
         IDepositSecurityModule depositSecurityModule,
-        uint256 blockNumber,
-        Vm.Wallet memory guardian
+        uint256 blockNumber
     )
         public
         returns (
@@ -380,13 +317,15 @@ contract SolvencyRunner is Test, DeployScript {
         )
     {
         if (!_is_guardian_set) {
+            _guardian = vm.createWallet("guardian");
             vm.startPrank(depositSecurityModule.getOwner());
-            // stdstore
-            //     .target(address(depositSecurityModule))
-            //     .sig("setMinDepositBlockDistance()")
-            //     .checked_write(uint256(0));
-            depositSecurityModule.setMinDepositBlockDistance(1);
-            depositSecurityModule.addGuardian(guardian.addr, 1);
+            // nullify minDepositBlockDistance
+            vm.store(
+                address(depositSecurityModule),
+                bytes32(uint256(1)),
+                bytes32(0)
+            );
+            depositSecurityModule.addGuardian(_guardian.addr, 1);
             vm.stopPrank();
             _is_guardian_set = true;
         }
@@ -418,7 +357,7 @@ contract SolvencyRunner is Test, DeployScript {
             )
         );
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(guardian, message);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_guardian, message);
         sigs = new IDepositSecurityModule.Signature[](1);
         uint8 parity = v - 27;
         sigs[0] = IDepositSecurityModule.Signature({
@@ -426,7 +365,7 @@ contract SolvencyRunner is Test, DeployScript {
             vs: bytes32(uint256(s) | (uint256(parity) << 255))
         });
         address signerAddr = ecrecover(message, v, r, s);
-        assertEq(signerAddr, guardian.addr);
+        assertEq(signerAddr, _guardian.addr);
     }
 
     function random_float_x96(
@@ -572,7 +511,7 @@ contract SolvencyRunner is Test, DeployScript {
         } else {
             factor_x96 = random_float_x96(1.00001 ether, 1.01 ether);
         }
-        factor_x96 = factor_x96 / D18;
+        factor_x96 = factor_x96 / 1 ether;
         bytes32 slot = keccak256("lido.StETH.totalShares");
         bytes32 current_value = vm.load(deployParams.steth, slot);
         uint256 new_value = Math.mulDiv(
@@ -591,7 +530,7 @@ contract SolvencyRunner is Test, DeployScript {
             Math.mulDiv(price_before, factor_x96, Q96),
             price_after,
             1 wei,
-            "invalid wsteth price after change"
+            "invalid wsteth price after transition"
         );
     }
 
@@ -654,27 +593,34 @@ contract SolvencyRunner is Test, DeployScript {
             new uint256[](2),
             type(uint256).max,
             type(uint256).max,
-            true // just in case - close previous withdrawal request
+            true // close previous withdrawal request
         );
         vm.stopPrank();
     }
 
-    function transition_process_random_requested_withdrawals_subset() internal {
+    function transition_process_random_requested_withdrawals_subset(
+        bool is_forced_processing
+    ) internal {
         address[] memory withdrawers = setup.vault.pendingWithdrawers();
         if (withdrawers.length == 0) {
             // nothing to process
             return;
         }
 
-        uint256 numberOfWithdrawals = _randInt(0, withdrawers.length - 1);
-        // random shuffle
-        for (uint256 i = 1; i < withdrawers.length; i++) {
-            uint256 j = _randInt(0, i);
-            (withdrawers[i], withdrawers[j]) = (withdrawers[j], withdrawers[i]);
-        }
+        if (!is_forced_processing) {
+            uint256 numberOfWithdrawals = _randInt(0, withdrawers.length - 1);
+            // random shuffle
+            for (uint256 i = 1; i < withdrawers.length; i++) {
+                uint256 j = _randInt(0, i);
+                (withdrawers[i], withdrawers[j]) = (
+                    withdrawers[j],
+                    withdrawers[i]
+                );
+            }
 
-        assembly {
-            mstore(withdrawers, numberOfWithdrawals)
+            assembly {
+                mstore(withdrawers, numberOfWithdrawals)
+            }
         }
 
         uint256 full_vault_balance_before_processing = _tvl_weth(true);
@@ -695,21 +641,24 @@ contract SolvencyRunner is Test, DeployScript {
             );
         }
 
-        if (random_bool()) {
+        if (random_bool() && !is_forced_processing) {
             // do not swap weth->wsteth.
-            // withdrawal will occur only for prefix of withdrawers that have less total wsteth required
-            // than total wsteth on the vault balance
-
+            // withdrawal will occur only for withdrawers[i] |
+            // wsteth_vault_balance - actual_withdrawals >= expected_withdraw_amount[i]
             uint256 total_wsteth_balance = IERC20(deployParams.wsteth)
                 .balanceOf(address(setup.vault));
 
             vm.prank(deployParams.curatorOperator);
-            setup.strategy.processWithdrawals(withdrawers, 0);
+            bool[] memory statuses = setup.strategy.processWithdrawals(
+                withdrawers,
+                0
+            );
 
             for (uint256 i = 0; i < withdrawers.length; i++) {
                 uint256 actual_withdrawn_amount = IERC20(deployParams.wsteth)
                     .balanceOf(withdrawers[i]) - balances[i];
                 if (actual_withdrawn_amount == 0) {
+                    assertFalse(statuses[i]);
                     assertLe(
                         total_wsteth_balance,
                         expected_wsteth_amounts[i] + 1 wei,
@@ -721,6 +670,7 @@ contract SolvencyRunner is Test, DeployScript {
                         "non-zero lpAmount"
                     );
                 } else {
+                    assertTrue(statuses[i]);
                     assertApproxEqAbs(
                         actual_withdrawn_amount,
                         expected_wsteth_amounts[i],
@@ -744,23 +694,28 @@ contract SolvencyRunner is Test, DeployScript {
                 .balanceOf(address(setup.vault));
             // swap weth to wsteth
             {
+                uint256 wsteth_withdraw_attempt;
+                if (is_forced_processing) {
+                    wsteth_withdraw_attempt = total_wsteth_balance;
+                } else {
+                    wsteth_withdraw_attempt = _randInt(total_wsteth_balance);
+                }
+
                 uint256 wsteth_required = 0;
+
                 for (
                     uint256 i = 0;
                     i < expected_processed_withdrawals.length;
                     i++
                 ) {
-                    expected_processed_withdrawals[i] = random_bool();
-                    wsteth_required += expected_processed_withdrawals[i]
-                        ? expected_wsteth_amounts[i] +
-                            1 wei /* for rounding errors */
-                        : 0;
+                    if (expected_wsteth_amounts[i] <= wsteth_withdraw_attempt) {
+                        wsteth_withdraw_attempt -= expected_wsteth_amounts[i];
+                        wsteth_required += expected_wsteth_amounts[i];
+                        expected_processed_withdrawals[i] = true;
+                    } else if (is_forced_processing) {
+                        expected_processed_withdrawals[i] = true;
+                    }
                 }
-
-                total_wsteth_balance = IERC20(deployParams.wsteth).balanceOf(
-                    address(setup.vault)
-                );
-
                 wsteth_required = wsteth_required > total_wsteth_balance
                     ? wsteth_required - total_wsteth_balance
                     : 0;
@@ -769,9 +724,14 @@ contract SolvencyRunner is Test, DeployScript {
                     true
                 );
 
+                if (is_forced_processing) {
+                    weth_required = IERC20(deployParams.weth).balanceOf(
+                        address(setup.vault)
+                    );
+                }
                 if (weth_required != 0) {
                     vm.startPrank(deployParams.curatorAdmin);
-                    setup.vault.delegateCall(
+                    (bool success, ) = setup.vault.delegateCall(
                         address(deployParams.stakingModule),
                         abi.encodeWithSelector(
                             StakingModule.convert.selector,
@@ -779,58 +739,73 @@ contract SolvencyRunner is Test, DeployScript {
                         )
                     );
                     vm.stopPrank();
+                    require(
+                        success,
+                        "transition_process_random_requested_withdrawals_subset: weth to wsteht conversion failed (probably STAKE_LIMIT)"
+                    );
                 }
                 uint256 new_wsteth_balance = IERC20(deployParams.wsteth)
                     .balanceOf(address(setup.vault));
 
-                // assertApproxEqAbs(
-                //     new_wsteth_balance,
-                //     total_wsteth_balance +
-                //         _convert_weth_to_wsteth(weth_required, false),
-                //     1 wei,
-                //     "transition_process_random_requested_withdrawals_subset: invalid wsteth balance after conversion"
-                // );
+                assertApproxEqAbs(
+                    new_wsteth_balance,
+                    total_wsteth_balance +
+                        _convert_weth_to_wsteth(weth_required, false),
+                    weth_required / 1e18 + MAX_ERROR,
+                    "transition_process_random_requested_withdrawals_subset: invalid wsteth balance after conversion"
+                );
 
                 total_wsteth_balance = new_wsteth_balance;
             }
 
             vm.prank(deployParams.curatorOperator);
-            setup.strategy.processWithdrawals(withdrawers, 0);
+            bool[] memory statuses = setup.strategy.processWithdrawals(
+                withdrawers,
+                0
+            );
 
             for (uint256 i = 0; i < withdrawers.length; i++) {
                 uint256 actual_withdrawn_amount = IERC20(deployParams.wsteth)
                     .balanceOf(withdrawers[i]) - balances[i];
                 if (actual_withdrawn_amount == 0) {
-                    // assertFalse(
-                    //     expected_processed_withdrawals[i],
-                    //     "unexpected withdrawal"
-                    // );
-                    // assertLe(
-                    //     total_wsteth_balance,
-                    //     expected_wsteth_amounts[i] + 1 wei,
-                    //     "total_wsteth_balance > expected_wsteth_amount"
-                    // );
-                    // assertNotEq(
-                    //     setup.vault.withdrawalRequest(withdrawers[i]).lpAmount,
-                    //     0,
-                    //     "non-zero lpAmount"
-                    // );
+                    assertFalse(
+                        statuses[i],
+                        "unexpected withdrawal (statuses)"
+                    );
+                    assertFalse(
+                        expected_processed_withdrawals[i],
+                        "unexpected withdrawal (expected_processed_withdrawals)"
+                    );
+                    assertLe(
+                        total_wsteth_balance,
+                        expected_wsteth_amounts[i] + 1 wei,
+                        "total_wsteth_balance > expected_wsteth_amount"
+                    );
+                    assertNotEq(
+                        setup.vault.withdrawalRequest(withdrawers[i]).lpAmount,
+                        0,
+                        "non-zero lpAmount"
+                    );
                 } else {
-                    // assertTrue(
-                    //     expected_processed_withdrawals[i],
-                    //     "withdrawal not processed"
-                    // );
-                    // assertApproxEqAbs(
-                    //     actual_withdrawn_amount,
-                    //     expected_wsteth_amounts[i],
-                    //     1 wei,
-                    //     "invalid expected_wsteth_amount/actual_withdrawn_amount"
-                    // );
-                    // assertLe(
-                    //     actual_withdrawn_amount,
-                    //     total_wsteth_balance,
-                    //     "actual_withdrawn_amount > total_wsteth_balance"
-                    // );
+                    assertTrue(
+                        statuses[i],
+                        "withdrawal not processed (statuses)"
+                    );
+                    assertTrue(
+                        expected_processed_withdrawals[i],
+                        "withdrawal not processed (expected_processed_withdrawals)"
+                    );
+                    assertApproxEqAbs(
+                        actual_withdrawn_amount,
+                        expected_wsteth_amounts[i],
+                        actual_withdrawn_amount / 1 ether + MAX_ERROR,
+                        "invalid expected_wsteth_amount/actual_withdrawn_amount"
+                    );
+                    assertLe(
+                        actual_withdrawn_amount,
+                        total_wsteth_balance,
+                        "actual_withdrawn_amount > total_wsteth_balance"
+                    );
                     total_wsteth_balance -= actual_withdrawn_amount;
                 }
             }
@@ -853,18 +828,15 @@ contract SolvencyRunner is Test, DeployScript {
         assertLe(
             setup.vault.totalSupply(),
             setup.configurator.maximalTotalSupply(),
-            "totalSupply > maximalTotalSupply"
+            "validate_invariants: totalSupply > maximalTotalSupply"
         );
 
         uint256 full_vault_balance_weth = _tvl_weth(true);
-        uint256 wsteth_balance = IERC20(deployParams.wsteth).balanceOf(
-            address(setup.vault)
-        );
         assertApproxEqAbs(
             full_vault_balance_weth + cumulative_processed_withdrawals_weth,
             cumulative_deposits_weth + deployParams.initialDepositWETH,
-            wsteth_balance / 1 ether + MAX_ERROR,
-            "cumulative_deposits_weth + cumulative_processed_withdrawals_weth != cumulative_deposits_wsteth + wstethAmountDeposited"
+            cumulative_deposits_weth / 1 ether + MAX_ERROR,
+            "validate_invariants: cumulative_deposits_weth + cumulative_processed_withdrawals_weth != cumulative_deposits_wsteth + wstethAmountDeposited"
         );
 
         assertEq(
@@ -872,36 +844,36 @@ contract SolvencyRunner is Test, DeployScript {
             IERC20(deployParams.wsteth).balanceOf(
                 address(deployParams.deployer)
             ),
-            "deployer balance not zero"
+            "validate_invariants: deployer balance not zero"
         );
         assertEq(
             0,
             IERC20(deployParams.wsteth).balanceOf(
                 address(deployParams.proxyAdmin)
             ),
-            "proxyAdmin balance not zero"
+            "validate_invariants: proxyAdmin balance not zero"
         );
         assertEq(
             0,
             IERC20(deployParams.wsteth).balanceOf(address(deployParams.admin)),
-            "admin balance not zero"
+            "validate_invariants: admin balance not zero"
         );
         assertEq(
             0,
             IERC20(deployParams.wsteth).balanceOf(
                 address(deployParams.curatorOperator)
             ),
-            "curator balance not zero"
+            "validate_invariants: curator balance not zero"
         );
         assertEq(
             0,
             IERC20(deployParams.wsteth).balanceOf(address(setup.strategy)),
-            "strategy balance not zero"
+            "validate_invariants: strategy balance not zero"
         );
         assertEq(
             0,
             IERC20(deployParams.wsteth).balanceOf(address(setup.configurator)),
-            "configurator balance not zero"
+            "validate_invariants: configurator balance not zero"
         );
     }
 
@@ -915,7 +887,7 @@ contract SolvencyRunner is Test, DeployScript {
             setup.vault.registerWithdrawal(
                 user,
                 lpAmount,
-                new uint256[](1),
+                new uint256[](2),
                 type(uint256).max,
                 type(uint256).max,
                 true // close previous withdrawal request
@@ -928,12 +900,14 @@ contract SolvencyRunner is Test, DeployScript {
             balances[i] = IERC20(deployParams.wsteth).balanceOf(depositors[i]);
         }
 
-        uint256 full_vault_balance_before_processing = IERC20(
-            deployParams.wsteth
-        ).balanceOf(address(setup.vault));
+        uint256 wsteth_balance_before = IERC20(deployParams.wsteth).balanceOf(
+            address(setup.vault)
+        );
+        uint256 weth_balance_before = IERC20(deployParams.weth).balanceOf(
+            address(setup.vault)
+        );
 
-        vm.prank(deployParams.curatorOperator);
-        setup.strategy.processWithdrawals(depositors, 0);
+        transition_process_random_requested_withdrawals_subset(true);
 
         for (uint256 i = 0; i < depositors.length; i++) {
             uint256 balance = IERC20(deployParams.wsteth).balanceOf(
@@ -942,45 +916,65 @@ contract SolvencyRunner is Test, DeployScript {
             withdrawnAmounts[i] += balance - balances[i];
         }
 
-        uint256 full_vault_balance_after_processing = IERC20(
-            deployParams.wsteth
-        ).balanceOf(address(setup.vault));
+        uint256 wsteth_balance_after = IERC20(deployParams.wsteth).balanceOf(
+            address(setup.vault)
+        );
+        uint256 weth_balance_after = IERC20(deployParams.weth).balanceOf(
+            address(setup.vault)
+        );
 
-        cumulative_processed_withdrawals_weth +=
-            full_vault_balance_before_processing -
-            full_vault_balance_after_processing;
+        assertLe(
+            wsteth_balance_after,
+            wsteth_balance_before + setup.strategy.maxAllowedRemainder(),
+            "invalid wsteth balance after processWithdrawals"
+        );
+
+        if (weth_balance_before != weth_balance_after) {
+            assertLe(
+                wsteth_balance_after,
+                setup.strategy.maxAllowedRemainder(),
+                "invalid wsteth balance after processWithdrawals (wsteth_balance_after > max_allowed_remainder)"
+            );
+        }
     }
 
     function validate_final_invariants() internal view {
-        uint256 totalSupply = setup.vault.totalSupply();
         uint256 full_wsteth_balance = IERC20(deployParams.wsteth).balanceOf(
             address(setup.vault)
         );
-        uint256 allowed_error = Math.mulDiv(
-            full_wsteth_balance,
-            MAX_ERROR,
-            totalSupply
-        ) + MAX_ERROR;
-
+        uint256 allowed_error = cumulative_deposits_weth / 1e18 + MAX_ERROR;
         int256 excess = 0;
+
         for (uint256 i = 0; i < depositors.length; i++) {
             excess += int256(withdrawnAmounts[i]);
-            assertLe(
+            uint256 deposit_amount_in_wsteth = _convert_weth_to_wsteth(
                 depositedAmounts[i],
-                withdrawnAmounts[i] + allowed_error,
-                string.concat(
-                    "deposit amounts > withdrawal amounts + allowed_error ",
-                    Strings.toString(allowed_error),
-                    " ",
-                    Strings.toString(depositedAmounts[i]),
-                    " ",
-                    Strings.toString(withdrawnAmounts[i])
-                )
+                false
             );
+
             assertEq(
                 0,
                 setup.vault.balanceOf(depositors[i]),
-                "non-zero balance"
+                "validate_final_invariants: non-zero vault balance"
+            );
+
+            assertEq(
+                0,
+                setup.vault.withdrawalRequest(depositors[i]).lpAmount,
+                "validate_final_invariants: non-zero withdrawal request"
+            );
+
+            assertLe(
+                deposit_amount_in_wsteth,
+                withdrawnAmounts[i] + allowed_error,
+                string.concat(
+                    "validate_final_invariants: deposit amounts > withdrawal amounts + allowed_error. Allowed error: ",
+                    Strings.toString(allowed_error),
+                    " deposit_amount_in_wsteth: ",
+                    Strings.toString(deposit_amount_in_wsteth),
+                    " withdrawn_amounts: ",
+                    Strings.toString(withdrawnAmounts[i])
+                )
             );
         }
         for (uint256 i = 0; i < depositors.length; i++) {
@@ -989,20 +983,16 @@ contract SolvencyRunner is Test, DeployScript {
         excess +=
             int256(full_wsteth_balance) -
             int256(deployParams.initialDepositWETH);
-
         address[] memory pendingWithdrawers = setup.vault.pendingWithdrawers();
         assertEq(0, pendingWithdrawers.length, "pending withdrawals not empty");
-
         assertLe(
-            deployParams.initialDepositWETH,
+            _convert_weth_to_wsteth(deployParams.initialDepositWETH, false),
             IERC20(deployParams.wsteth).balanceOf(address(setup.vault)),
-            "wstethAmountDeposited > vault balance"
+            "validate_final_invariants: deposit amount > vault balance after all withdrawals"
         );
     }
 
     function transition_convert() internal {
-        // random convert
-
         uint256 weth_balance = IERC20(deployParams.weth).balanceOf(
             address(setup.vault)
         );
@@ -1055,11 +1045,15 @@ contract SolvencyRunner is Test, DeployScript {
                 keccak256(abi.encodePacked("STAKE_LIMIT")),
                 "unexpected revert"
             );
+
+            require(
+                !is_stake_limit_disabled,
+                "transition_convert: unexpected revert with flag is_stake_limit_disabled"
+            );
         }
     }
 
     function transition_convert_and_deposit() internal {
-        // random convert
         uint256 weth_balance = IERC20(deployParams.weth).balanceOf(
             address(setup.vault)
         );
@@ -1067,7 +1061,6 @@ contract SolvencyRunner is Test, DeployScript {
             address(setup.vault)
         );
 
-        Vm.Wallet memory guardian = vm.createWallet("guardian");
         uint256 blockNumber = block.number - 1;
         (
             bytes32 blockHash,
@@ -1082,8 +1075,7 @@ contract SolvencyRunner is Test, DeployScript {
                         .lidoLocator()
                         .depositSecurityModule()
                 ),
-                blockNumber,
-                guardian
+                blockNumber
             );
 
         address random_user = random_address();
@@ -1115,49 +1107,39 @@ contract SolvencyRunner is Test, DeployScript {
                 1 wei,
                 "weth_change != wsteth_change"
             );
-
-            // assertApproxEqAbs(
-            //     weth_balance - weth_amount,
-            //     new_weth_balance,
-            //     1 wei,
-            //     "transition_convert_and_deposit: invalid weth balance after conversion"
-            // );
-
-            // assertApproxEqAbs(
-            //     wsteth_balance + _convert_weth_to_wsteth(weth_amount, false),
-            //     new_wsteth_balance,
-            //     new_wsteth_balance / 1 ether,
-            //     "invalid wsteth balance after conversion"
-            // );
-        } catch {}
+        } catch {
+            console2.log("Deposit and convert failed");
+        }
 
         vm.stopPrank();
     }
 
-    function runSolvencyTest(Actions[] memory) internal {
+    function runSolvencyTest(Actions[] memory actions) internal {
         set_inf_stake_limit();
         set_vault_limit(1e6 ether);
 
-        for (uint256 i = 0; i < 10; i++) {
-            transition_random_deposit();
-            transition_request_random_withdrawal();
-            transition_process_random_requested_withdrawals_subset();
-
-            if (i & 1 == 0) {
+        for (
+            uint256 actionIndex = 0;
+            actionIndex < actions.length;
+            actionIndex++
+        ) {
+            Actions action = actions[actionIndex];
+            if (action == Actions.DEPOSIT) {
+                transition_random_deposit();
+            } else if (action == Actions.REGISTER_WITHDRAWAL) {
+                transition_request_random_withdrawal();
+            } else if (action == Actions.PROCESS_WITHDRAWALS) {
+                transition_process_random_requested_withdrawals_subset(false);
+            } else if (action == Actions.CONVERT) {
                 transition_convert();
-            } else {
+            } else if (action == Actions.CONVERT_AND_DEPOSIT) {
                 transition_convert_and_deposit();
             }
-
-            if (i % 4 == 0) {
-                transition_random_validator_limits_and_usage();
-            }
-
-            // validate_invariants();
+            validate_invariants();
         }
 
-        // finalize_test();
-        // validate_invariants();
-        // validate_final_invariants();
+        finalize_test();
+        validate_invariants();
+        validate_final_invariants();
     }
 }

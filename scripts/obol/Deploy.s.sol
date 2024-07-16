@@ -17,6 +17,7 @@ contract Deploy is Script, DeployScript {
             DeployConstants.HOLESKY_STETH,
             DeployConstants.HOLESKY_WETH,
             DeployConstants.MAXIMAL_TOTAL_SUPPLY,
+            DeployConstants.MAXIMAL_ALLOWED_REMAINDER,
             DeployConstants.MELLOW_VAULT_NAME,
             DeployConstants.MELLOW_VAULT_SYMBOL,
             DeployConstants.INITIAL_DEPOSIT_ETH,

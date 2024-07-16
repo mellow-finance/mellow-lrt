@@ -18,6 +18,7 @@ contract SolvencyTest is SolvencyRunner {
             DeployConstants.HOLESKY_STETH,
             DeployConstants.HOLESKY_WETH,
             DeployConstants.MAXIMAL_TOTAL_SUPPLY,
+            DeployConstants.MAXIMAL_ALLOWED_REMAINDER,
             DeployConstants.MELLOW_VAULT_NAME,
             DeployConstants.MELLOW_VAULT_SYMBOL,
             DeployConstants.INITIAL_DEPOSIT_ETH,
@@ -45,6 +46,7 @@ contract SolvencyTest is SolvencyRunner {
             DeployConstants.MAINNET_STETH,
             DeployConstants.MAINNET_WETH,
             DeployConstants.MAXIMAL_TOTAL_SUPPLY,
+            DeployConstants.MAXIMAL_ALLOWED_REMAINDER,
             DeployConstants.MELLOW_VAULT_NAME,
             DeployConstants.MELLOW_VAULT_SYMBOL,
             DeployConstants.INITIAL_DEPOSIT_ETH,
@@ -81,13 +83,103 @@ contract SolvencyTest is SolvencyRunner {
         vm.stopPrank();
     }
 
-    function testSolvencyForChain() external {
-        Actions[] memory baseActionsList = new Actions[](4);
-        baseActionsList[0] = Actions.DEPOSIT;
-        baseActionsList[1] = Actions.CONVERT_AND_DEPOSIT;
-        baseActionsList[2] = Actions.REGISTER_WITHDRAWAL;
-        baseActionsList[3] = Actions.PROCESS_WITHDRAWALS;
+    function append(
+        Actions[] memory actions,
+        uint256 index,
+        Actions new_action,
+        uint256 cnt
+    ) internal pure returns (uint256) {
+        require(index + cnt < actions.length, "Too many actions to append");
+        for (uint256 i = 0; i < cnt; i++) actions[index++] = new_action;
+        return index;
+    }
 
-        runSolvencyTest(baseActionsList);
+    function append(
+        Actions[] memory actions,
+        uint256 index,
+        Actions new_action
+    ) internal pure returns (uint256) {
+        return append(actions, index, new_action, 1);
+    }
+
+    function testSolvency1() external {
+        Actions[] memory actions = new Actions[](1024);
+        uint256 index = 0;
+        index = append(actions, index, Actions.DEPOSIT, 50);
+        index = append(actions, index, Actions.REGISTER_WITHDRAWAL, 40);
+        index = append(actions, index, Actions.PROCESS_WITHDRAWALS, 50);
+        index = append(actions, index, Actions.DEPOSIT, 50);
+        index = append(actions, index, Actions.REGISTER_WITHDRAWAL, 50);
+        index = append(actions, index, Actions.CONVERT, 1);
+        index = append(actions, index, Actions.DEPOSIT, 50);
+        assembly {
+            mstore(actions, index)
+        }
+        runSolvencyTest(actions);
+    }
+
+    function testSolvency2() external {
+        Actions[] memory actions = new Actions[](1024);
+        uint256 index = 0;
+        index = append(actions, index, Actions.DEPOSIT, 200);
+        assembly {
+            mstore(actions, index)
+        }
+        runSolvencyTest(actions);
+    }
+
+    function testSolvency3() external {
+        Actions[] memory actions = new Actions[](1024);
+        uint256 index = 0;
+        index = append(actions, index, Actions.DEPOSIT, 200);
+        index = append(actions, index, Actions.CONVERT_AND_DEPOSIT);
+        assembly {
+            mstore(actions, index)
+        }
+        runSolvencyTest(actions);
+    }
+
+    function testSolvency4() external {
+        Actions[] memory actions = new Actions[](1024);
+        uint256 index = 0;
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.REGISTER_WITHDRAWAL);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.PROCESS_WITHDRAWALS);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.CONVERT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.REGISTER_WITHDRAWAL);
+        index = append(actions, index, Actions.REGISTER_WITHDRAWAL);
+        index = append(actions, index, Actions.REGISTER_WITHDRAWAL);
+        index = append(actions, index, Actions.PROCESS_WITHDRAWALS);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.CONVERT_AND_DEPOSIT);
+        assembly {
+            mstore(actions, index)
+        }
+        runSolvencyTest(actions);
+    }
+
+    function testSolvency5() external {
+        Actions[] memory actions = new Actions[](1024);
+        uint256 index = 0;
+        index = append(actions, index, Actions.DEPOSIT, 10);
+        index = append(actions, index, Actions.CONVERT_AND_DEPOSIT);
+        assembly {
+            mstore(actions, index)
+        }
+        runSolvencyTest(actions);
     }
 }

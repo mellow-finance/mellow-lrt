@@ -182,6 +182,8 @@ abstract contract DeployScript is CommonBase {
             address(deployParams.curatorOperator)
         );
 
+        s.strategy.setMaxAllowedRemainder(deployParams.maximalAllowedRemainder);
+
         // validators setup
         s.validator = new ManagedValidator(deployParams.deployer);
         s.validator.grantRole(

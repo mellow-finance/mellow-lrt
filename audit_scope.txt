@@ -1,26 +1,27 @@
-  600 ./src/Vault.sol
+  610 ./src/Vault.sol
   652 ./src/VaultConfigurator.sol
    18 ./src/modules/DefaultModule.sol
    44 ./src/modules/erc20/ERC20SwapModule.sol
    21 ./src/modules/erc20/ERC20TvlModule.sol
    32 ./src/modules/erc20/ManagedTvlModule.sol
-   83 ./src/modules/obol/StakingModule.sol
-   33 ./src/modules/symbiotic/DefaultBondModule.sol
+  103 ./src/modules/obol/StakingModule.sol
+   38 ./src/modules/symbiotic/DefaultBondModule.sol
    39 ./src/modules/symbiotic/DefaultBondTvlModule.sol
-  100 ./src/oracles/ChainlinkOracle.sol
+  102 ./src/oracles/ChainlinkOracle.sol
    22 ./src/oracles/ConstantAggregatorV3.sol
    48 ./src/oracles/ManagedRatiosOracle.sol
+   61 ./src/oracles/VaultRateOracle.sol
    27 ./src/oracles/WStethRatiosAggregatorV3.sol
   164 ./src/security/AdminProxy.sol
    17 ./src/security/DefaultProxyImplementation.sol
    40 ./src/security/Initializer.sol
   122 ./src/strategies/DefaultBondStrategy.sol
-   85 ./src/strategies/SimpleDVTStakingStrategy.sol
+   84 ./src/strategies/SimpleDVTStakingStrategy.sol
    64 ./src/utils/DefaultAccessControl.sol
-   80 ./src/utils/DepositWrapper.sol
-   17 ./src/utils/RestrictingKeeper.sol
+   87 ./src/utils/DepositWrapper.sol
+   21 ./src/utils/RestrictingKeeper.sol
     9 ./src/validators/AllowAllValidator.sol
    37 ./src/validators/DefaultBondValidator.sol
    57 ./src/validators/ERC20SwapValidator.sol
   176 ./src/validators/ManagedValidator.sol
- 2587 total
+ 2695 total
