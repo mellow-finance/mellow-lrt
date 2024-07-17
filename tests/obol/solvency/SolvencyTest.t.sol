@@ -64,12 +64,26 @@ contract SolvencyTest is SolvencyRunner {
 
     function setUp() external {
         if (block.chainid == 1) {
-            deployParams = mainnetParams;
+            chainSetup.deployParams = holeskyParams;
+            chainSetup
+                .attestMessagePrefix = 0xd85557c963041ae93cfa5927261eeb189c486b6d293ccee7da72ca9387cc241d;
+            chainSetup
+                .stakingRouterRole = 0x3e40D73EB977Dc6a537aF587D48316feE66E9C8c;
+            chainSetup
+                .stakingModuleRole = 0xFE5986E06210aC1eCC1aDCafc0cc7f8D63B3F977;
         } else if (block.chainid == 17000) {
-            deployParams = holeskyParams;
+            chainSetup.deployParams = holeskyParams;
+            chainSetup
+                .attestMessagePrefix = 0x517f1a256ad7aa76f1fd7f0190e4e8eb0e01e75d9f5cf0d54a747384536765b9;
+            chainSetup
+                .stakingRouterRole = 0x5ce994D929eaDb0F287341a0eE74aF3FB5711BBA;
+            chainSetup
+                .stakingModuleRole = 0x16eb61328b9dCC48A386075035d6d4aeDee873C9;
         } else {
             revert("Unsupported chain");
         }
+
+        deployParams = chainSetup.deployParams;
 
         deal(
             deployParams.weth,
@@ -106,8 +120,7 @@ contract SolvencyTest is SolvencyRunner {
         Actions[] memory actions = new Actions[](1024);
         uint256 index = 0;
         index = append(actions, index, Actions.DEPOSIT, 50);
-        index = append(actions, index, Actions.REGISTER_WITHDRAWAL, 40);
-        index = append(actions, index, Actions.PROCESS_WITHDRAWALS, 50);
+        index = append(actions, index, Actions.REGISTER_WITHDRAWAL, 90);
         index = append(actions, index, Actions.DEPOSIT, 50);
         index = append(actions, index, Actions.REGISTER_WITHDRAWAL, 50);
         index = append(actions, index, Actions.CONVERT, 1);
@@ -131,6 +144,7 @@ contract SolvencyTest is SolvencyRunner {
     function testSolvency3() external {
         Actions[] memory actions = new Actions[](1024);
         uint256 index = 0;
+        index = append(actions, index, Actions.LIDO_SUBMIT, 1);
         index = append(actions, index, Actions.DEPOSIT, 200);
         index = append(actions, index, Actions.CONVERT_AND_DEPOSIT);
         assembly {
@@ -142,29 +156,16 @@ contract SolvencyTest is SolvencyRunner {
     function testSolvency4() external {
         Actions[] memory actions = new Actions[](1024);
         uint256 index = 0;
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.LIDO_SUBMIT, 1);
+        index = append(actions, index, Actions.DEPOSIT, 2);
         index = append(actions, index, Actions.REGISTER_WITHDRAWAL);
         index = append(actions, index, Actions.DEPOSIT);
         index = append(actions, index, Actions.PROCESS_WITHDRAWALS);
         index = append(actions, index, Actions.DEPOSIT);
         index = append(actions, index, Actions.CONVERT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.REGISTER_WITHDRAWAL);
-        index = append(actions, index, Actions.REGISTER_WITHDRAWAL);
-        index = append(actions, index, Actions.REGISTER_WITHDRAWAL);
-        index = append(actions, index, Actions.PROCESS_WITHDRAWALS);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
-        index = append(actions, index, Actions.DEPOSIT);
+        index = append(actions, index, Actions.DEPOSIT, 2);
+        index = append(actions, index, Actions.REGISTER_WITHDRAWAL, 4);
+        index = append(actions, index, Actions.DEPOSIT, 10);
         index = append(actions, index, Actions.CONVERT_AND_DEPOSIT);
         assembly {
             mstore(actions, index)
@@ -183,219 +184,39 @@ contract SolvencyTest is SolvencyRunner {
         runSolvencyTest(actions);
     }
 
-    function testFuzz_SolvencyObol(uint8[] memory actions_) external {
-        uint256 maxLength = 1024;
-        if (actions_.length > maxLength) {
-            assembly {
-                mstore(actions_, maxLength)
-            }
-        }
-        Actions[] memory actions = new Actions[](actions_.length);
-        for (uint256 i = 0; i < actions_.length; i++) {
-            uint256 action = actions_[i] % 5;
-            actions[i] = Actions(action);
+    function testSolvency6() external {
+        Actions[] memory actions = new Actions[](1024);
+        uint256 index = 0;
+
+        index = append(actions, index, Actions.LIDO_SUBMIT, 10);
+        index = append(actions, index, Actions.TARGET_SHARE_UPDATE);
+        for (uint256 i = 0; i < 10; i++) {
+            index = append(actions, index, Actions.DEPOSIT);
         }
 
+        index = append(actions, index, Actions.STAKING_MODULE_LIMIT_INCREMENT);
+        index = append(actions, index, Actions.CONVERT_AND_DEPOSIT);
+
+        assembly {
+            mstore(actions, index)
+        }
         runSolvencyTest(actions);
     }
 
-    function testSolvency6() external {
-        uint8[182] memory actions_ = [
-            124,
-            116,
-            242,
-            220,
-            20,
-            250,
-            198,
-            134,
-            143,
-            125,
-            226,
-            202,
-            29,
-            214,
-            212,
-            186,
-            52,
-            1,
-            167,
-            233,
-            190,
-            83,
-            56,
-            249,
-            9,
-            146,
-            116,
-            245,
-            0,
-            163,
-            34,
-            11,
-            34,
-            114,
-            122,
-            33,
-            68,
-            66,
-            164,
-            196,
-            229,
-            39,
-            84,
-            124,
-            59,
-            154,
-            7,
-            227,
-            104,
-            188,
-            169,
-            173,
-            129,
-            63,
-            14,
-            86,
-            38,
-            240,
-            26,
-            1,
-            163,
-            67,
-            153,
-            24,
-            215,
-            9,
-            5,
-            45,
-            101,
-            225,
-            31,
-            248,
-            95,
-            185,
-            106,
-            175,
-            181,
-            58,
-            207,
-            2,
-            250,
-            145,
-            114,
-            131,
-            29,
-            77,
-            180,
-            209,
-            176,
-            251,
-            50,
-            227,
-            198,
-            87,
-            16,
-            249,
-            194,
-            77,
-            83,
-            17,
-            107,
-            237,
-            189,
-            168,
-            174,
-            28,
-            255,
-            253,
-            124,
-            194,
-            168,
-            224,
-            164,
-            79,
-            166,
-            187,
-            1,
-            124,
-            141,
-            124,
-            33,
-            55,
-            236,
-            31,
-            7,
-            207,
-            211,
-            244,
-            128,
-            176,
-            202,
-            214,
-            127,
-            238,
-            2,
-            205,
-            31,
-            231,
-            175,
-            11,
-            51,
-            224,
-            0,
-            20,
-            65,
-            98,
-            20,
-            132,
-            207,
-            100,
-            179,
-            9,
-            107,
-            20,
-            153,
-            178,
-            251,
-            182,
-            30,
-            52,
-            61,
-            182,
-            16,
-            21,
-            189,
-            139,
-            125,
-            185,
-            122,
-            75,
-            4,
-            255,
-            173,
-            22,
-            2,
-            44,
-            1,
-            1,
-            211,
-            234,
-            11,
-            139
-        ];
-        uint256 maxLength = 1024;
-        if (actions_.length > maxLength) {
+    function testFuzz_SolvencyObol(uint8[] memory actions_) external {
+        uint256 maxLength = 64;
+        uint256 k = uint256(type(Actions).max) + 1;
+        require(k ** 2 <= 2 ** 8, "Invalid type");
+        Actions[] memory actions = new Actions[](actions_.length * 2);
+        for (uint256 i = 0; i < actions.length; i += 2) {
+            actions[i] = Actions(actions_[i >> 1] % k);
+            actions[i + 1] = Actions((actions_[i >> 1] / k) % k);
+        }
+        if (actions.length > maxLength) {
             assembly {
-                mstore(actions_, maxLength)
+                mstore(actions, maxLength)
             }
         }
-        Actions[] memory actions = new Actions[](actions_.length);
-        for (uint256 i = 0; i < actions_.length; i++) {
-            uint256 action = actions_[i] % 5;
-            actions[i] = Actions(action);
-        }
-
         runSolvencyTest(actions);
     }
 }

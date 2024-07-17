@@ -43,6 +43,20 @@ interface ILidoStakingModule {
     function getUnusedSigningKeyCount(
         uint256 _nodeOperatorId
     ) external view returns (uint256);
+
+    function invalidateReadyToDepositKeysRange(
+        uint256 _indexFrom,
+        uint256 _indexTo
+    ) external;
+
+    function getTotalSigningKeyCount(
+        uint256 nodeOperatorId
+    ) external view returns (uint256);
+
+    function setNodeOperatorStakingLimit(
+        uint256 _nodeOperatorId,
+        uint64 _vettedSigningKeysCount
+    ) external;
 }
 
 interface ILidoStakingRouter {
@@ -75,6 +89,28 @@ interface ILidoStakingRouter {
         external
         view
         returns (LidoStakingModule[] memory);
+
+    function updateStakingModule(
+        uint256 _stakingModuleId,
+        uint256 _targetShare,
+        uint256 _stakingModuleFee,
+        uint256 _treasuryFee
+    ) external;
+}
+
+interface IWithdrawalQueueFunctionInterface {
+    function withdrawalQueue() external returns (address);
+}
+
+interface ILidoWithdrawalQueue {
+    function requestWithdrawals(
+        uint256[] memory amounts,
+        address user
+    ) external returns (uint256[] memory requestIds);
+}
+
+interface ILidoDepositSecurityModule {
+    function setMaxDeposits(uint256 newValue) external;
 }
 
 contract SolvencyRunner is Test, DeployScript {
@@ -86,7 +122,12 @@ contract SolvencyRunner is Test, DeployScript {
         REGISTER_WITHDRAWAL,
         PROCESS_WITHDRAWALS,
         CONVERT_AND_DEPOSIT,
-        CONVERT
+        CONVERT,
+        LIDO_SUBMIT,
+        LIDO_REQUEST_WITHDRAWAL,
+        STAKING_MODULE_LIMIT_INCREMENT,
+        STAKING_MODULE_LIMIT_DECREMENT,
+        TARGET_SHARE_UPDATE
     }
 
     DeployInterfaces.DeployParameters internal deployParams;
@@ -95,6 +136,7 @@ contract SolvencyRunner is Test, DeployScript {
     uint256 internal constant MAX_ERROR = 100 wei;
     uint256 internal constant Q96 = 2 ** 96;
     uint256 internal constant D18 = 1e18;
+    uint256 internal stakingModuleId = DeployConstants.SIMPLE_DVT_MODULE_ID;
 
     address[] internal depositors;
     uint256[] internal depositedAmounts;
@@ -104,6 +146,15 @@ contract SolvencyRunner is Test, DeployScript {
     uint256 internal cumulative_processed_withdrawals_weth;
 
     bool internal is_stake_limit_disabled = false;
+
+    struct ChainSetup {
+        DeployInterfaces.DeployParameters deployParams;
+        bytes32 attestMessagePrefix;
+        address stakingRouterRole;
+        address stakingModuleRole;
+    }
+
+    ChainSetup internal chainSetup;
 
     function _indexOf(address user) internal view returns (uint256) {
         for (uint256 i = 0; i < depositors.length; i++) {
@@ -166,7 +217,7 @@ contract SolvencyRunner is Test, DeployScript {
     }
 
     function add_validator_keys(
-        uint256 stakingModuleId,
+        uint256 stakingModuleIndex,
         uint256 keysCount
     ) internal {
         IDepositSecurityModule dsm = IDepositSecurityModule(
@@ -174,7 +225,7 @@ contract SolvencyRunner is Test, DeployScript {
         );
         ILidoStakingModule lidoStakingModule = ILidoStakingModule(
             ILidoStakingRouter(dsm.STAKING_ROUTER())
-            .getStakingModules()[stakingModuleId].stakingModuleAddress
+            .getStakingModules()[stakingModuleIndex].stakingModuleAddress
         );
 
         uint256[] memory nodeOperatorIds = lidoStakingModule.getNodeOperatorIds(
@@ -184,7 +235,17 @@ contract SolvencyRunner is Test, DeployScript {
         for (uint256 i = 0; i < nodeOperatorIds.length; i++) {
             if (!lidoStakingModule.getNodeOperatorIsActive(nodeOperatorIds[i]))
                 continue;
+
             add_signing_keys(lidoStakingModule, nodeOperatorIds[i], keysCount);
+            uint64 newLimit = uint64(
+                lidoStakingModule.getTotalSigningKeyCount(nodeOperatorIds[i]) +
+                    keysCount
+            );
+            vm.prank(chainSetup.stakingModuleRole);
+            lidoStakingModule.setNodeOperatorStakingLimit(
+                nodeOperatorIds[i],
+                newLimit
+            );
 
             return;
         }
@@ -202,9 +263,9 @@ contract SolvencyRunner is Test, DeployScript {
         if (!active) return;
         (
             bytes memory _publicKeys,
-            bytes memory _signatures
+            bytes memory _signatures // 32e9
         ) = generate_signing_keys(_keysCount);
-        vm.startPrank(rewardAddress);
+        vm.prank(rewardAddress);
         lidoStakingModule.addSigningKeys(
             _nodeOperatorId,
             _keysCount,
@@ -214,7 +275,7 @@ contract SolvencyRunner is Test, DeployScript {
     }
 
     function remove_validator_keys(
-        uint256 stakingModuleId,
+        uint256 stakingModuleIndex,
         uint256 keysCount
     ) internal {
         IDepositSecurityModule dsm = IDepositSecurityModule(
@@ -222,7 +283,7 @@ contract SolvencyRunner is Test, DeployScript {
         );
         ILidoStakingModule lidoStakingModule = ILidoStakingModule(
             ILidoStakingRouter(dsm.STAKING_ROUTER())
-            .getStakingModules()[stakingModuleId].stakingModuleAddress
+            .getStakingModules()[stakingModuleIndex].stakingModuleAddress
         );
 
         uint256[] memory nodeOperatorIds = lidoStakingModule.getNodeOperatorIds(
@@ -262,7 +323,7 @@ contract SolvencyRunner is Test, DeployScript {
         unusedKeys = Math.min(unusedKeys, _keysCount);
         if (unusedKeys == 0) return _keysCount;
 
-        vm.startPrank(rewardAddress);
+        vm.prank(rewardAddress);
         try
             lidoStakingModule.removeSigningKeys(
                 _nodeOperatorId,
@@ -318,37 +379,28 @@ contract SolvencyRunner is Test, DeployScript {
     {
         if (!_is_guardian_set) {
             _guardian = vm.createWallet("guardian");
-            vm.startPrank(depositSecurityModule.getOwner());
             // nullify minDepositBlockDistance
             vm.store(
                 address(depositSecurityModule),
                 bytes32(uint256(1)),
                 bytes32(0)
             );
+            vm.prank(depositSecurityModule.getOwner());
             depositSecurityModule.addGuardian(_guardian.addr, 1);
-            vm.stopPrank();
             _is_guardian_set = true;
         }
 
         blockHash = blockhash(blockNumber);
         assertNotEq(bytes32(0), blockHash);
-        uint256 stakingModuleId = DeployConstants.SIMPLE_DVT_MODULE_ID;
         depositRoot = IDepositContract(depositSecurityModule.DEPOSIT_CONTRACT())
             .get_deposit_root();
         nonce = IStakingRouter(depositSecurityModule.STAKING_ROUTER())
             .getStakingModuleNonce(stakingModuleId);
         depositCalldata = new bytes(0);
-        bytes32 attest_message_prefix;
-        if (block.chainid == 1) {
-            attest_message_prefix = 0xd85557c963041ae93cfa5927261eeb189c486b6d293ccee7da72ca9387cc241d;
-        } else {
-            // chain id == 17000
-            attest_message_prefix = 0xc7cfa471a8a16980de8314ea3a88ebcafb38ae7fb767d792017e90cf637d731b;
-        }
 
         bytes32 message = keccak256(
             abi.encodePacked(
-                attest_message_prefix,
+                chainSetup.attestMessagePrefix,
                 blockNumber,
                 blockHash,
                 depositRoot,
@@ -462,8 +514,10 @@ contract SolvencyRunner is Test, DeployScript {
             user = depositors[_randInt(0, depositors.length - 1)];
         }
         uint256 amount = calc_random_amount_d18();
-        deal(deployParams.weth, user, amount);
+        // wrap ETH->WETH
+        deal(user, amount);
         vm.startPrank(user);
+        IWeth(deployParams.weth).deposit{value: amount}();
         IERC20(deployParams.weth).safeIncreaseAllowance(
             address(setup.vault),
             amount
@@ -586,7 +640,7 @@ contract SolvencyRunner is Test, DeployScript {
             // nothing to withdraw
             return;
         }
-        vm.startPrank(user);
+        vm.prank(user);
         vault.registerWithdrawal(
             user,
             lpAmount,
@@ -595,7 +649,6 @@ contract SolvencyRunner is Test, DeployScript {
             type(uint256).max,
             true // close previous withdrawal request
         );
-        vm.stopPrank();
     }
 
     function transition_process_random_requested_withdrawals_subset(
@@ -687,10 +740,6 @@ contract SolvencyRunner is Test, DeployScript {
                 }
             }
         } else {
-            bool[] memory expected_processed_withdrawals = new bool[](
-                withdrawers.length
-            );
-
             uint256 total_wsteth_balance = IERC20(deployParams.wsteth)
                 .balanceOf(address(setup.vault));
             // swap weth to wsteth
@@ -704,18 +753,11 @@ contract SolvencyRunner is Test, DeployScript {
 
                 uint256 wsteth_required = 0;
 
-                for (
-                    uint256 i = 0;
-                    i < expected_processed_withdrawals.length;
-                    i++
-                ) {
+                for (uint256 i = 0; i < withdrawers.length; i++) {
                     if (expected_wsteth_amounts[i] <= wsteth_withdraw_attempt) {
                         wsteth_withdraw_attempt -= expected_wsteth_amounts[i];
                         wsteth_required += expected_wsteth_amounts[i];
-                        expected_processed_withdrawals[i] = true;
-                    } else if (is_forced_processing) {
-                        expected_processed_withdrawals[i] = true;
-                    }
+                    } else if (is_forced_processing) {}
                 }
                 wsteth_required = wsteth_required > total_wsteth_balance
                     ? wsteth_required - total_wsteth_balance
@@ -747,10 +789,6 @@ contract SolvencyRunner is Test, DeployScript {
                         statuses[i],
                         "unexpected withdrawal (statuses)"
                     );
-                    // assertFalse(
-                    //     expected_processed_withdrawals[i],
-                    //     "unexpected withdrawal (expected_processed_withdrawals)"
-                    // );
                     assertNotEq(
                         setup.vault.withdrawalRequest(withdrawers[i]).lpAmount,
                         0,
@@ -761,10 +799,6 @@ contract SolvencyRunner is Test, DeployScript {
                         statuses[i],
                         "withdrawal not processed (statuses)"
                     );
-                    // assertTrue(
-                    //     expected_processed_withdrawals[i],
-                    //     "withdrawal not processed (expected_processed_withdrawals)"
-                    // );
                     assertApproxEqAbs(
                         actual_withdrawn_amount,
                         expected_wsteth_amounts[i],
@@ -845,9 +879,9 @@ contract SolvencyRunner is Test, DeployScript {
         for (uint256 i = 0; i < depositors.length; i++) {
             address user = depositors[i];
             if (setup.vault.balanceOf(user) == 0) continue;
-            vm.startPrank(user);
             uint256 lpAmount = setup.vault.balanceOf(user) +
                 setup.vault.withdrawalRequest(user).lpAmount;
+            vm.prank(user);
             setup.vault.registerWithdrawal(
                 user,
                 lpAmount,
@@ -856,7 +890,6 @@ contract SolvencyRunner is Test, DeployScript {
                 type(uint256).max,
                 true // close previous withdrawal request
             );
-            vm.stopPrank();
         }
 
         uint256[] memory balances = new uint256[](depositors.length);
@@ -1078,16 +1111,144 @@ contract SolvencyRunner is Test, DeployScript {
         vm.stopPrank();
     }
 
+    address[] internal external_depositors;
+    mapping(address => uint256[]) internal pending_withdrawals;
+
+    function transition_external_submit() internal {
+        address random_user = random_address();
+        vm.startPrank(random_user);
+        uint256 amount = calc_random_amount_d18();
+        deal(random_user, amount);
+        ISteth(deployParams.steth).submit{value: amount}(address(0));
+        external_depositors.push(random_user);
+        vm.stopPrank();
+    }
+
+    function transition_external_lido_withdrawal_request() internal {
+        uint256 n = external_depositors.length;
+        if (n == 0) {
+            // no external depositors
+            return;
+        }
+
+        uint256 index = _randInt(0, n - 1);
+        address user = external_depositors[index];
+        uint256 amount = IERC20(deployParams.steth).balanceOf(user);
+        uint256 withdrawal_amount = Math.min(amount, 1000 ether);
+        if (amount < 100) {
+            // nothing to withdraw
+            return;
+        }
+        if (random_bool()) {
+            withdrawal_amount = _randInt(100, withdrawal_amount);
+        }
+
+        ILidoWithdrawalQueue wq = ILidoWithdrawalQueue(
+            IWithdrawalQueueFunctionInterface(deployParams.lidoLocator)
+                .withdrawalQueue()
+        );
+
+        vm.startPrank(user);
+        IERC20(deployParams.steth).safeIncreaseAllowance(
+            address(wq),
+            withdrawal_amount
+        );
+        uint256 maxSingleWithdrawalSize = 1000 ether;
+        n = Math.ceilDiv(withdrawal_amount, maxSingleWithdrawalSize);
+        uint256[] memory withdrawalAmounts = new uint256[](n);
+        for (uint256 i = 0; i < n; i++) {
+            if (i != n - 1) {
+                withdrawalAmounts[i] = maxSingleWithdrawalSize;
+            } else {
+                withdrawalAmounts[i] =
+                    withdrawal_amount -
+                    (n - 1) *
+                    maxSingleWithdrawalSize;
+            }
+        }
+
+        if (withdrawalAmounts[n - 1] < 100) {
+            uint256 dx = 100 - withdrawalAmounts[n - 1];
+            withdrawalAmounts[n - 1] += dx;
+            withdrawalAmounts[n - 2] -= dx;
+        }
+
+        uint256[] memory ids = wq.requestWithdrawals(withdrawalAmounts, user);
+        for (uint256 i = 0; i < ids.length; i++) {
+            pending_withdrawals[user].push(ids[i]);
+        }
+
+        vm.stopPrank();
+    }
+
+    function transition_staking_module_limit_increment() internal {
+        add_validator_keys(stakingModuleId - 1, _randInt(1, 128));
+    }
+
+    function transition_staking_module_limit_decrement() internal {
+        remove_validator_keys(stakingModuleId - 1, _randInt(1, 128));
+    }
+
+    function transition_random_target_share_change() internal {
+        IDepositSecurityModule dsm = IDepositSecurityModule(
+            ILidoLocator(deployParams.lidoLocator).depositSecurityModule()
+        );
+        ILidoStakingRouter router = ILidoStakingRouter(dsm.STAKING_ROUTER());
+        ILidoStakingRouter.LidoStakingModule memory sm = router
+            .getStakingModules()[stakingModuleId - 1];
+        uint256 newTargetShare = _randInt(1, 10);
+        vm.prank(chainSetup.stakingRouterRole);
+        ILidoStakingRouter(router).updateStakingModule(
+            sm.id,
+            newTargetShare,
+            sm.stakingModuleFee,
+            sm.treasuryFee
+        );
+    }
+
+    function log_staking_module_state() internal {
+        uint256 wethBalance = IERC20(deployParams.weth).balanceOf(
+            address(setup.vault)
+        );
+        uint256 unfinalizedStETH = IWithdrawalQueue(
+            IWithdrawalQueueFunctionInterface(deployParams.lidoLocator)
+                .withdrawalQueue()
+        ).unfinalizedStETH();
+        uint256 bufferedEther = ISteth(deployParams.steth).getBufferedEther();
+        if (bufferedEther < unfinalizedStETH) {
+            console2.log("bufferedEther < unfinalizedStETH");
+            return;
+        }
+        IDepositSecurityModule dsm = IDepositSecurityModule(
+            ILidoLocator(deployParams.lidoLocator).depositSecurityModule()
+        );
+        uint256 maxDepositsCount = Math.min(
+            IStakingRouter(dsm.STAKING_ROUTER())
+                .getStakingModuleMaxDepositsCount(
+                    stakingModuleId,
+                    wethBalance + bufferedEther - unfinalizedStETH
+                ),
+            dsm.getMaxDeposits()
+        );
+        uint256 amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
+        console2.log("deposit amount:", amount);
+    }
+
+    function set_inf_dsm_max_deposits() internal {
+        ILidoDepositSecurityModule dsm = ILidoDepositSecurityModule(
+            ILidoLocator(deployParams.lidoLocator).depositSecurityModule()
+        );
+        vm.prank(chainSetup.stakingRouterRole);
+        dsm.setMaxDeposits(type(uint256).max);
+    }
+
     function runSolvencyTest(Actions[] memory actions) internal {
         set_inf_stake_limit();
-        set_vault_limit(1e6 ether);
+        set_inf_dsm_max_deposits();
+        set_vault_limit(1e9 ether);
 
-        for (
-            uint256 actionIndex = 0;
-            actionIndex < actions.length;
-            actionIndex++
-        ) {
-            Actions action = actions[actionIndex];
+        for (uint256 index = 0; index < actions.length; index++) {
+            Actions action = actions[index];
             if (action == Actions.DEPOSIT) {
                 transition_random_deposit();
             } else if (action == Actions.REGISTER_WITHDRAWAL) {
@@ -1097,7 +1258,18 @@ contract SolvencyRunner is Test, DeployScript {
             } else if (action == Actions.CONVERT) {
                 transition_convert();
             } else if (action == Actions.CONVERT_AND_DEPOSIT) {
+                log_staking_module_state();
                 transition_convert_and_deposit();
+            } else if (action == Actions.LIDO_SUBMIT) {
+                transition_external_submit();
+            } else if (action == Actions.LIDO_REQUEST_WITHDRAWAL) {
+                transition_external_lido_withdrawal_request();
+            } else if (action == Actions.STAKING_MODULE_LIMIT_INCREMENT) {
+                transition_staking_module_limit_increment();
+            } else if (action == Actions.STAKING_MODULE_LIMIT_DECREMENT) {
+                transition_staking_module_limit_decrement();
+            } else if (action == Actions.TARGET_SHARE_UPDATE) {
+                transition_random_target_share_change();
             }
             validate_invariants();
         }
