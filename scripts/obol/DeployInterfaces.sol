@@ -66,7 +66,6 @@ interface DeployInterfaces {
         string lpTokenName;
         string lpTokenSymbol;
         uint256 initialDepositWETH;
-        uint256 firstDepositWETH;
         Vault initialImplementation;
         Initializer initializer;
         ERC20TvlModule erc20TvlModule;

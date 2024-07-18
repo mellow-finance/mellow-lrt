@@ -312,6 +312,4 @@ abstract contract DeployScript is CommonBase {
 
         return (deployParams, s);
     }
-
-    function testDeployScript() external pure {}
 }

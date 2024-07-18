@@ -21,7 +21,6 @@ contract Deploy is Script, DeployScript {
             DeployConstants.MELLOW_VAULT_NAME,
             DeployConstants.MELLOW_VAULT_SYMBOL,
             DeployConstants.INITIAL_DEPOSIT_ETH,
-            DeployConstants.FIRST_DEPOSIT_ETH,
             Vault(payable(address(0))),
             Initializer(address(0)),
             ERC20TvlModule(address(0)),
