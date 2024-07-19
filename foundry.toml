@@ -5,6 +5,8 @@ test = 'tests'
 libs = ['lib']
 optimizer = true
 
+fs_permissions = [{ access = "read", path = "./tests/obol/permissions/__collector_logs__/"}]
+
 [profile.default.optimizer_details]
 yul = true
 

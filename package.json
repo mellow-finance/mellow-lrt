@@ -25,6 +25,8 @@
     "test:obol:acceptance:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./tests/obol/acceptance/AcceptanceTest.t.sol --fork-block-number 20185753",
     "test:obol:permissions:holesky": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./tests/obol/permissions/PermissionsTest.t.sol --fork-block-number 1947000",
     "test:obol:permissions:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./tests/obol/permissions/PermissionsTest.t.sol --fork-block-number 20185753",
+    "test:obol:permissions:holesky:onchain-collect": "python3 tests/obol/permissions/collector.py",
+    "test:obol:permissions:holesky:onchain-validate": "forge test -vvv --fork-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --match-path ./tests/obol/permissions/PermissionsTest.t.sol --match-test testPermissionsOnchainHolesky",
     "size": "forge build --sizes --force",
     "deploy:obol:holesky": "forge script --use 0.8.25 scripts/obol/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
     "deploy:symbiotic:mainnet": "forge script --use 0.8.25 scripts/mainnet/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",

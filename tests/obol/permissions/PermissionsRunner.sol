@@ -4,7 +4,10 @@ pragma solidity 0.8.25;
 import "../../../scripts/obol/Deploy.s.sol";
 
 contract PermissionsRunner {
-    function removeAddress(address[] memory array, address removingAddress) internal pure {
+    function removeAddress(
+        address[] memory array,
+        address removingAddress
+    ) internal pure {
         uint256 n = array.length;
         uint256 index = n;
         for (uint256 i = 0; i < n; i++) {
@@ -23,7 +26,7 @@ contract PermissionsRunner {
             }
         }
     }
-    
+
     function checkRoles(
         ManagedValidator validator,
         address addr,
@@ -109,7 +112,7 @@ contract PermissionsRunner {
                 );
             }
         }
-        
+
         {
             ManagedValidator validator = setup.validator;
 
@@ -167,7 +170,6 @@ contract PermissionsRunner {
                     );
                     removeAddress(allAddresses, forbiddenAddresses[i]);
                 }
-
             }
 
             {
@@ -204,7 +206,6 @@ contract PermissionsRunner {
                 }
             }
 
-
             {
                 // Addresses without any roles
                 address[] memory forbiddenAddresses = allAddresses;
@@ -218,7 +219,6 @@ contract PermissionsRunner {
                         false // hasAllowSignatureRoles
                     );
                 }
-
             }
         }
     }

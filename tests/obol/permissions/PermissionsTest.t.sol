@@ -60,7 +60,6 @@ contract PermissionsTest is PermissionsRunner, DeployScript, Test {
             DefaultProxyImplementation(address(0))
         );
 
-
     DeployInterfaces.DeployParameters internal deployParams;
     DeployInterfaces.DeploySetup internal setup;
 
@@ -105,9 +104,82 @@ contract PermissionsTest is PermissionsRunner, DeployScript, Test {
                 }
                 allAddresses_.add(address(bytes20(word)));
                 allAddresses_.add(address(uint160(uint256(word))));
-            }            
+            }
         }
 
         validatePermissions(deployParams, setup, allAddresses_.values());
+    }
+
+    struct Data {
+        address addr;
+    }
+
+    function parseLogs(
+        address vault
+    ) public view returns (address[] memory addresses) {
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(
+            root,
+            "/tests/obol/permissions/__collector_logs__/",
+            Strings.toHexString(vault),
+            ".json"
+        );
+        bytes memory data = vm.parseJson(vm.readFile(path));
+        Data[] memory d = abi.decode(data, (Data[]));
+        addresses = new address[](d.length);
+        for (uint256 i = 0; i < d.length; i++) {
+            addresses[i] = d[i].addr;
+        }
+    }
+
+    function testPermissionsOnchainHolesky() external {
+        if (block.chainid != 17000) {
+            console2.log("No deployment on this chain yet. Skipping test...");
+            return;
+        }
+
+        deployParams = DeployInterfaces.DeployParameters(
+            DeployConstants.HOLESKY_DEPLOYER,
+            DeployConstants.HOLESKY_PROXY_VAULT_ADMIN,
+            DeployConstants.HOLESKY_VAULT_ADMIN,
+            DeployConstants.HOLESKY_CURATOR_ADMIN,
+            DeployConstants.HOLESKY_CURATOR_OPERATOR,
+            DeployConstants.HOLESKY_LIDO_LOCATOR,
+            DeployConstants.HOLESKY_WSTETH,
+            DeployConstants.HOLESKY_STETH,
+            DeployConstants.HOLESKY_WETH,
+            DeployConstants.MAXIMAL_TOTAL_SUPPLY,
+            DeployConstants.MAXIMAL_ALLOWED_REMAINDER,
+            DeployConstants.MELLOW_VAULT_NAME,
+            DeployConstants.MELLOW_VAULT_SYMBOL,
+            DeployConstants.INITIAL_DEPOSIT_ETH,
+            Vault(payable(0x1EF5eaB67AE611092b8003D42cA684bD4C196fFc)),
+            Initializer(0x279F68f4a9b5dB11fC32B04Cb4F56794fad48242),
+            ERC20TvlModule(0x0e4701020700f53b0a8903D7a3A6209Ae97a1BC0),
+            StakingModule(0x3B342b4BA8cc065C6b115A18dbcf1c2B54FC93E2),
+            ManagedRatiosOracle(0x64e70C5B72412efe67Ea4872BfCb80570aC5e93f),
+            ChainlinkOracle(0x7C76B8411e0C530F6aa86858d1B12d6e62845bc6),
+            IAggregatorV3(0x329eA0287b8198C59FD8D89D8F2bb0316Bd35d67),
+            IAggregatorV3(0xA1CF7999E6Befe221581E3F74AAd442E88618ca0),
+            DefaultProxyImplementation(
+                0x202aeBF79bC49f39F4e6E72973f48c361349e9D6
+            )
+        );
+        setup = DeployInterfaces.DeploySetup({
+            vault: Vault(payable(0x2d3086B7d3A2A14e121c0Fce651F9E1A819A1E84)),
+            proxyAdmin: ProxyAdmin(0x7594059ABEd2Fb1B1dA8715282AaD7e52Afd16c8),
+            configurator: IVaultConfigurator(
+                0xa81e199E01350e7d7EE6bE846329b20e43eee735
+            ),
+            validator: ManagedValidator(
+                0xE659ab3De7Ca8F6ac4D52a0b7cE0DcaAbD07946A
+            ),
+            strategy: SimpleDVTStakingStrategy(
+                0x1911D3D13a91561E8bc16182E1ec6A1E612f8E9e
+            )
+        });
+
+        address[] memory addresses = parseLogs(address(setup.vault));
+        validatePermissions(deployParams, setup, addresses);
     }
 }

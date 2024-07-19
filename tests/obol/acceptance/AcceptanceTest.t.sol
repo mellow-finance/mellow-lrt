@@ -58,7 +58,6 @@ contract AcceptanceTest is AcceptanceRunner, DeployScript, Test {
             DefaultProxyImplementation(address(0))
         );
 
-
     DeployInterfaces.DeployParameters internal deployParams;
     DeployInterfaces.DeploySetup internal setup;
 
@@ -118,19 +117,31 @@ contract AcceptanceTest is AcceptanceRunner, DeployScript, Test {
                 ChainlinkOracle(0x7C76B8411e0C530F6aa86858d1B12d6e62845bc6),
                 IAggregatorV3(0x329eA0287b8198C59FD8D89D8F2bb0316Bd35d67),
                 IAggregatorV3(0xA1CF7999E6Befe221581E3F74AAd442E88618ca0),
-                DefaultProxyImplementation(0x202aeBF79bC49f39F4e6E72973f48c361349e9D6)
+                DefaultProxyImplementation(
+                    0x202aeBF79bC49f39F4e6E72973f48c361349e9D6
+                )
             );
             setup = DeployInterfaces.DeploySetup({
-                vault: Vault(payable(0x2d3086B7d3A2A14e121c0Fce651F9E1A819A1E84)),
-                proxyAdmin: ProxyAdmin(0x7594059ABEd2Fb1B1dA8715282AaD7e52Afd16c8),
-                configurator: IVaultConfigurator(0xa81e199E01350e7d7EE6bE846329b20e43eee735),
-                validator: ManagedValidator(0xE659ab3De7Ca8F6ac4D52a0b7cE0DcaAbD07946A),
-                strategy: SimpleDVTStakingStrategy(0x1911D3D13a91561E8bc16182E1ec6A1E612f8E9e)
+                vault: Vault(
+                    payable(0x2d3086B7d3A2A14e121c0Fce651F9E1A819A1E84)
+                ),
+                proxyAdmin: ProxyAdmin(
+                    0x7594059ABEd2Fb1B1dA8715282AaD7e52Afd16c8
+                ),
+                configurator: IVaultConfigurator(
+                    0xa81e199E01350e7d7EE6bE846329b20e43eee735
+                ),
+                validator: ManagedValidator(
+                    0xE659ab3De7Ca8F6ac4D52a0b7cE0DcaAbD07946A
+                ),
+                strategy: SimpleDVTStakingStrategy(
+                    0x1911D3D13a91561E8bc16182E1ec6A1E612f8E9e
+                )
             });
         } else {
             revert("Unsupported chain");
         }
-        
+
         HAS_IN_DEPLOYMENT_BLOCK_FLAG = false;
         HAS_EXTRA_STRATEGY_ADMIN_DELEGATE = true;
 
