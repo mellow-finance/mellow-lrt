@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "../interfaces/utils/IDepositWrapper.sol";
+import "../interfaces/utils/IWethDepositWrapper.sol";
 
-contract WethDepositWrapper {
-    error AddressZero();
-    error InvalidToken();
-    error InvalidAmount();
-    error InvalidTokenList();
-    error InvalidSender();
-
+contract WethDepositWrapper is IWethDepositWrapper {
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IWethDepositWrapper
     address public immutable weth;
+    /// @inheritdoc IWethDepositWrapper
     IVault public immutable vault;
 
     constructor(IVault vault_, address weth_) {
@@ -20,6 +16,7 @@ contract WethDepositWrapper {
         weth = weth_;
     }
 
+    /// @inheritdoc IWethDepositWrapper
     function deposit(
         address to,
         address token,
@@ -59,6 +56,14 @@ contract WethDepositWrapper {
             minLpAmount,
             deadline,
             referralCode
+        );
+
+        emit WethDepositWrapperDeposit(
+            msg.sender,
+            token,
+            amount,
+            lpAmount,
+            deadline
         );
     }
 
