@@ -2,87 +2,27 @@
 pragma solidity 0.8.25;
 
 import "./SolvencyRunner.sol";
+import "../Deployments.sol";
 
 contract SolvencyTest is SolvencyRunner {
     using SafeERC20 for IERC20;
 
-    DeployInterfaces.DeployParameters private holeskyParams =
-        DeployInterfaces.DeployParameters(
-            DeployConstants.HOLESKY_DEPLOYER,
-            DeployConstants.HOLESKY_PROXY_VAULT_ADMIN,
-            DeployConstants.HOLESKY_VAULT_ADMIN,
-            DeployConstants.HOLESKY_CURATOR_ADMIN,
-            DeployConstants.HOLESKY_CURATOR_OPERATOR,
-            DeployConstants.HOLESKY_LIDO_LOCATOR,
-            DeployConstants.HOLESKY_WSTETH,
-            DeployConstants.HOLESKY_STETH,
-            DeployConstants.HOLESKY_WETH,
-            DeployConstants.MAXIMAL_TOTAL_SUPPLY,
-            DeployConstants.MAXIMAL_ALLOWED_REMAINDER,
-            DeployConstants.MELLOW_VAULT_NAME,
-            DeployConstants.MELLOW_VAULT_SYMBOL,
-            DeployConstants.INITIAL_DEPOSIT_ETH,
-            Vault(payable(address(0))),
-            Initializer(address(0)),
-            ERC20TvlModule(address(0)),
-            StakingModule(address(0)),
-            ManagedRatiosOracle(address(0)),
-            ChainlinkOracle(address(0)),
-            IAggregatorV3(address(0)),
-            IAggregatorV3(address(0)),
-            DefaultProxyImplementation(address(0))
-        );
-
-    DeployInterfaces.DeployParameters private mainnetParams =
-        DeployInterfaces.DeployParameters(
-            DeployConstants.MAINNET_DEPLOYER,
-            DeployConstants.MAINNET_PROXY_VAULT_ADMIN,
-            DeployConstants.MAINNET_VAULT_ADMIN,
-            DeployConstants.MAINNET_CURATOR_ADMIN,
-            DeployConstants.MAINNET_CURATOR_OPERATOR,
-            DeployConstants.MAINNET_LIDO_LOCATOR,
-            DeployConstants.MAINNET_WSTETH,
-            DeployConstants.MAINNET_STETH,
-            DeployConstants.MAINNET_WETH,
-            DeployConstants.MAXIMAL_TOTAL_SUPPLY,
-            DeployConstants.MAXIMAL_ALLOWED_REMAINDER,
-            DeployConstants.MELLOW_VAULT_NAME,
-            DeployConstants.MELLOW_VAULT_SYMBOL,
-            DeployConstants.INITIAL_DEPOSIT_ETH,
-            Vault(payable(address(0))),
-            Initializer(address(0)),
-            ERC20TvlModule(address(0)),
-            StakingModule(address(0)),
-            ManagedRatiosOracle(address(0)),
-            ChainlinkOracle(address(0)),
-            IAggregatorV3(address(0)),
-            IAggregatorV3(address(0)),
-            DefaultProxyImplementation(address(0))
-        );
-
     function setUp() external {
         if (block.chainid == 1) {
-            chainSetup.deployParams = holeskyParams;
-            chainSetup
-                .attestMessagePrefix = 0xd85557c963041ae93cfa5927261eeb189c486b6d293ccee7da72ca9387cc241d;
-            chainSetup
-                .stakingRouterRole = 0x3e40D73EB977Dc6a537aF587D48316feE66E9C8c;
-            chainSetup
-                .stakingModuleRole = 0xFE5986E06210aC1eCC1aDCafc0cc7f8D63B3F977;
+            chainSetup = ChainSetup({
+                attestMessagePrefix: 0xd85557c963041ae93cfa5927261eeb189c486b6d293ccee7da72ca9387cc241d,
+                stakingRouterRole: 0x3e40D73EB977Dc6a537aF587D48316feE66E9C8c,
+                stakingModuleRole: 0xFE5986E06210aC1eCC1aDCafc0cc7f8D63B3F977
+            });
         } else if (block.chainid == 17000) {
-            chainSetup.deployParams = holeskyParams;
-            chainSetup
-                .attestMessagePrefix = 0x517f1a256ad7aa76f1fd7f0190e4e8eb0e01e75d9f5cf0d54a747384536765b9;
-            chainSetup
-                .stakingRouterRole = 0x5ce994D929eaDb0F287341a0eE74aF3FB5711BBA;
-            chainSetup
-                .stakingModuleRole = 0x16eb61328b9dCC48A386075035d6d4aeDee873C9;
-        } else {
-            revert("Unsupported chain");
+            chainSetup = ChainSetup({
+                attestMessagePrefix: 0x517f1a256ad7aa76f1fd7f0190e4e8eb0e01e75d9f5cf0d54a747384536765b9,
+                stakingRouterRole: 0x5ce994D929eaDb0F287341a0eE74aF3FB5711BBA,
+                stakingModuleRole: 0x16eb61328b9dCC48A386075035d6d4aeDee873C9
+            });
         }
 
-        deployParams = chainSetup.deployParams;
-
+        deployParams = Deployments.deployParameters();
         deal(
             deployParams.weth,
             deployParams.deployer,
