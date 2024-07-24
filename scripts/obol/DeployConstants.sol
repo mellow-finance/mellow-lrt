@@ -9,7 +9,7 @@ library DeployConstants {
     address public constant HOLESKY_VAULT_ADMIN =
         0x2C5f98743e4Cb30d8d65e30B8cd748967D7A051e;
     address public constant HOLESKY_CURATOR_ADMIN =
-        0x20daa9d68196aa882A856D0aBBEbB6836Dc4B840;
+        0xa9f8D7E123784ED914724B8d11D5e669De5cC4d8;
     address public constant HOLESKY_CURATOR_OPERATOR =
         0x73a5ac225B0b345AE95c45a4bBF5D96Ca6f26810;
     address public constant HOLESKY_DEPLOYER =
@@ -58,7 +58,6 @@ library DeployConstants {
 
     // ---------- Ethereum Mainnet ----------
 
-    // Mellow
-    string public constant MELLOW_VAULT_NAME = "Mellow Obol Test ETH";
-    string public constant MELLOW_VAULT_SYMBOL = "mobETHTest";
+    string public constant MELLOW_VAULT_NAME = "Distributed Validator stETH";
+    string public constant MELLOW_VAULT_SYMBOL = "DVstETH";
 }
