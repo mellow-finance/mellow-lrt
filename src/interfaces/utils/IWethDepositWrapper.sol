@@ -36,7 +36,7 @@ interface IWethDepositWrapper {
     /**
      * @notice Deposits specified tokens into the vault, converting them to the required format if necessary.
      * @param to The address that will receive the resulting LP tokens.
-     * @param token The address of the token to deposit (can be WETH, stETH, wstETH, or ETH).
+     * @param token The address of the token to deposit (can be WETH or ETH).
      * @param amount The amount of tokens to deposit.
      * @param minLpAmount The minimum number of LP tokens expected from the deposit.
      * @param deadline The deadline timestamp for the deposit transaction.

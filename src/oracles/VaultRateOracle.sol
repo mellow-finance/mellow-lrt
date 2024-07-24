@@ -3,13 +3,14 @@ pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "../interfaces/external/chainlink/IAggregatorV3.sol";
 import "../interfaces/oracles/IChainlinkOracle.sol";
-
 import "../interfaces/IVault.sol";
 
 contract VaultRateOracle is IAggregatorV3 {
-    uint256 public constant D18 = 1e18;
+    error InvalidBaseToken();
+
+    uint256 private constant D18 = 1e18;
+    uint256 private constant Q96 = 2 ** 96;
 
     uint8 public constant decimals = 18;
     uint256 public constant version = 1;
@@ -19,6 +20,10 @@ contract VaultRateOracle is IAggregatorV3 {
 
     constructor(IVault vault_) {
         vault = vault_;
+        address baseToken_ = IChainlinkOracle(
+            vault.configurator().priceOracle()
+        ).baseTokens(address(vault));
+        if (baseToken_ == address(0)) revert InvalidBaseToken();
         description = string.concat(
             "Vault Rate Oracle for ",
             IERC20Metadata(address(vault_)).symbol(),
@@ -36,26 +41,28 @@ contract VaultRateOracle is IAggregatorV3 {
     }
 
     function getRate() public view returns (uint256) {
-        IVault.ProcessWithdrawalsStack memory stack = vault.calculateStack();
-        return Math.mulDiv(stack.totalValue, D18, stack.totalSupply);
+        uint256 totalValue = 0;
+        uint256 totalSupply = vault.totalSupply();
+        IPriceOracle priceOracle = IPriceOracle(
+            vault.configurator().priceOracle()
+        );
+        (address[] memory tokens, uint256[] memory amounts) = vault
+            .underlyingTvl();
+        for (uint256 i = 0; i < tokens.length; i++)
+            totalValue += Math.mulDiv(
+                amounts[i],
+                priceOracle.priceX96(address(vault), tokens[i]),
+                Q96
+            );
+        return Math.mulDiv(totalValue, D18, totalSupply);
     }
 
     function latestRoundData()
         external
         view
         override
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80, int256, uint256, uint256, uint80)
     {
-        roundId = 0;
-        answer = int256(getRate());
-        startedAt = block.timestamp;
-        updatedAt = block.timestamp;
-        answeredInRound = 0;
+        return (0, int256(getRate()), block.timestamp, block.timestamp, 0);
     }
 }

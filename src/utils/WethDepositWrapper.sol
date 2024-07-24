@@ -27,16 +27,6 @@ contract WethDepositWrapper is IWethDepositWrapper {
     ) external payable returns (uint256 lpAmount) {
         if (amount == 0) revert InvalidAmount();
         if (to == address(0)) revert AddressZero();
-        if (token == address(0)) {
-            if (msg.value != amount) revert InvalidAmount();
-            IWeth(weth).deposit{value: amount}();
-            token = weth;
-        } else if (token == weth) {
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        } else {
-            revert InvalidToken();
-        }
-
         address[] memory tokens = vault.underlyingTokens();
         uint256 wethIndex = tokens.length;
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -46,6 +36,17 @@ contract WethDepositWrapper is IWethDepositWrapper {
             }
         }
         if (wethIndex == tokens.length) revert InvalidTokenList();
+        if (token == address(0)) {
+            if (msg.value != amount) revert InvalidAmount();
+            IWeth(weth).deposit{value: amount}();
+            token = weth;
+        } else if (token == weth) {
+            if (msg.value != 0) revert InvalidAmount();
+            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        } else {
+            revert InvalidToken();
+        }
+
         uint256[] memory amounts = new uint256[](tokens.length);
         amounts[wethIndex] = amount;
         IERC20(token).safeIncreaseAllowance(address(vault), amount);
@@ -66,6 +67,4 @@ contract WethDepositWrapper is IWethDepositWrapper {
             deadline
         );
     }
-
-    receive() external payable {}
 }
