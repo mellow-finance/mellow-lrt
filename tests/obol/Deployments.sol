@@ -85,8 +85,45 @@ library Deployments {
         uint256 id = block.chainid;
         if (id == MAINNET_CHAIN_ID) return deployments_;
         if (id == HOLESKY_CHAIN_ID) {
-            deployments_ = new Deployment[](1);
+            deployments_ = new Deployment[](2);
             deployments_[0].deployParams = DeployInterfaces.DeployParameters(
+                0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf,
+                0x3995c5a3A74f3B3049fD5DA7C7D7BaB0b581A6e1,
+                0x2C5f98743e4Cb30d8d65e30B8cd748967D7A051e,
+                0x20daa9d68196aa882A856D0aBBEbB6836Dc4B840,
+                0x73a5ac225B0b345AE95c45a4bBF5D96Ca6f26810,
+                DeployConstants.HOLESKY_LIDO_LOCATOR,
+                DeployConstants.HOLESKY_WSTETH,
+                DeployConstants.HOLESKY_STETH,
+                DeployConstants.HOLESKY_WETH,
+                DeployConstants.MAXIMAL_TOTAL_SUPPLY,
+                DeployConstants.MAXIMAL_ALLOWED_REMAINDER,
+                "Mellow Obol Test ETH",
+                "mobETHTest",
+                DeployConstants.INITIAL_DEPOSIT_ETH,
+                Vault(payable(0x1EF5eaB67AE611092b8003D42cA684bD4C196fFc)),
+                Initializer(0x279F68f4a9b5dB11fC32B04Cb4F56794fad48242),
+                ERC20TvlModule(0x0e4701020700f53b0a8903D7a3A6209Ae97a1BC0),
+                StakingModule(0x3B342b4BA8cc065C6b115A18dbcf1c2B54FC93E2),
+                ManagedRatiosOracle(0x64e70C5B72412efe67Ea4872BfCb80570aC5e93f),
+                ChainlinkOracle(0x7C76B8411e0C530F6aa86858d1B12d6e62845bc6),
+                IAggregatorV3(0x329eA0287b8198C59FD8D89D8F2bb0316Bd35d67),
+                IAggregatorV3(0xA1CF7999E6Befe221581E3F74AAd442E88618ca0),
+                DefaultProxyImplementation(
+                    0x202aeBF79bC49f39F4e6E72973f48c361349e9D6
+                )
+            );
+            deployments_[0].deploySetup = DeployInterfaces.DeploySetup(
+                Vault(payable(0x2d3086B7d3A2A14e121c0Fce651F9E1A819A1E84)),
+                ProxyAdmin(0x7594059ABEd2Fb1B1dA8715282AaD7e52Afd16c8),
+                IVaultConfigurator(0xa81e199E01350e7d7EE6bE846329b20e43eee735),
+                ManagedValidator(0xE659ab3De7Ca8F6ac4D52a0b7cE0DcaAbD07946A),
+                SimpleDVTStakingStrategy(
+                    0x1911D3D13a91561E8bc16182E1ec6A1E612f8E9e
+                )
+            );
+
+            deployments_[1].deployParams = DeployInterfaces.DeployParameters(
                 DeployConstants.HOLESKY_DEPLOYER,
                 DeployConstants.HOLESKY_PROXY_VAULT_ADMIN,
                 DeployConstants.HOLESKY_VAULT_ADMIN,
@@ -113,13 +150,13 @@ library Deployments {
                     0x202aeBF79bC49f39F4e6E72973f48c361349e9D6
                 )
             );
-            deployments_[0].deploySetup = DeployInterfaces.DeploySetup(
-                Vault(payable(0x2d3086B7d3A2A14e121c0Fce651F9E1A819A1E84)),
-                ProxyAdmin(0x7594059ABEd2Fb1B1dA8715282AaD7e52Afd16c8),
-                IVaultConfigurator(0xa81e199E01350e7d7EE6bE846329b20e43eee735),
-                ManagedValidator(0xE659ab3De7Ca8F6ac4D52a0b7cE0DcaAbD07946A),
+            deployments_[1].deploySetup = DeployInterfaces.DeploySetup(
+                Vault(payable(0x7F31eb85aBE328EBe6DD07f9cA651a6FE623E69B)),
+                ProxyAdmin(0xE60063c6CaCB23146ceA11dEE0bF3C0C887b8136),
+                IVaultConfigurator(0x5aab3E3E9D627f2d027808c3780f7d746C8E8138),
+                ManagedValidator(0xf02502935f4060D7f7Ebadb95627fAD6912173e1),
                 SimpleDVTStakingStrategy(
-                    0x1911D3D13a91561E8bc16182E1ec6A1E612f8E9e
+                    0x17d53Fe02084953dA820986cc4912F7B12338306
                 )
             );
 

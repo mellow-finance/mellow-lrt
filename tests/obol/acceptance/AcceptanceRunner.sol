@@ -30,6 +30,7 @@ contract AcceptanceRunner {
     // Flags
     bool internal HAS_IN_DEPLOYMENT_BLOCK_FLAG = false; // if true enables additional checks, that are valid only for deployment block
     bool internal HAS_EXTRA_STRATEGY_ADMIN_DELEGATE = false; // if true allowes additional ADMIN_DELEGATE in strategy
+    bool internal HAS_EXTRA_VAULT_ADMIN_DELEGATE = false; // if true allowes additional ADMIN_DELEGATE in vault
 
     function checkRoles(
         ManagedValidator validator,
@@ -112,7 +113,8 @@ contract AcceptanceRunner {
                 "Vault: Admin not set"
             );
             require(
-                vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) == 0,
+                vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) <=
+                    (HAS_EXTRA_VAULT_ADMIN_DELEGATE ? 1 : 0),
                 "Vault: Wrong admin delegate count"
             );
             require(

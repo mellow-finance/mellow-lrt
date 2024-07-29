@@ -147,6 +147,7 @@ contract SolvencyRunner is Test, DeployScript {
 
     bool internal is_stake_limit_disabled = false;
     bool internal accept_any_initial_state = false;
+    bool internal is_onchain_run = false;
 
     uint256 internal initial_weth_balance = 0;
 
@@ -849,13 +850,15 @@ contract SolvencyRunner is Test, DeployScript {
             "validate_invariants: cumulative_deposits_weth + cumulative_processed_withdrawals_weth != cumulative_deposits_wsteth + wstethAmountDeposited"
         );
 
-        assertEq(
-            0,
-            IERC20(deployParams.wsteth).balanceOf(
-                address(deployParams.deployer)
-            ),
-            "validate_invariants: deployer balance not zero"
-        );
+        if (!is_onchain_run) {
+            assertEq(
+                0,
+                IERC20(deployParams.wsteth).balanceOf(
+                    address(deployParams.deployer)
+                ),
+                "validate_invariants: deployer balance not zero"
+            );
+        }
         assertEq(
             0,
             IERC20(deployParams.wsteth).balanceOf(
@@ -948,14 +951,9 @@ contract SolvencyRunner is Test, DeployScript {
     }
 
     function validate_final_invariants() internal view {
-        uint256 full_wsteth_balance = IERC20(deployParams.wsteth).balanceOf(
-            address(setup.vault)
-        );
         uint256 allowed_error = cumulative_deposits_weth / 1e18 + MAX_ERROR;
-        int256 excess = 0;
 
         for (uint256 i = 0; i < depositors.length; i++) {
-            excess += int256(withdrawnAmounts[i]);
             uint256 deposit_amount_in_wsteth = _convert_weth_to_wsteth(
                 depositedAmounts[i],
                 false
@@ -986,12 +984,6 @@ contract SolvencyRunner is Test, DeployScript {
                 )
             );
         }
-        for (uint256 i = 0; i < depositors.length; i++) {
-            excess -= int256(depositedAmounts[i]);
-        }
-        excess +=
-            int256(full_wsteth_balance) -
-            int256(deployParams.initialDepositWETH);
         address[] memory pendingWithdrawers = setup.vault.pendingWithdrawers();
         assertEq(0, pendingWithdrawers.length, "pending withdrawals not empty");
         assertLe(

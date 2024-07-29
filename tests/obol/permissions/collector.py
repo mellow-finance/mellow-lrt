@@ -13,15 +13,21 @@ STEP = 10000
 LOGS_PATH = './tests/obol/permissions/__collector_logs__/'
 
 
+def to_checksum_address(address):
+    try:
+        return Web3.toChecksumAddress(address.lower())
+    except:
+        return Web3.to_checksum_address(address.lower())
+
+
 def parse_events(contract_address, creation_block, to_block):
-    contract_address = Web3.toChecksumAddress(contract_address)
+    contract_address = to_checksum_address(contract_address)
     all_data = set()
     for from_block in range(creation_block, to_block + 1, STEP):
-        to_block = min(from_block + STEP, to_block)
         logs = w3.eth.get_logs({
             'address': contract_address,
             'fromBlock': from_block,
-            'toBlock': to_block
+            'toBlock': min(from_block + STEP, to_block)
         })
         for log in logs:
             topics = log['topics']
@@ -61,7 +67,7 @@ for chain, items in config.DEPLOYMENTS.items():
 
         unique_address_data = sorted(list(unique_address_data))
         for i, address in enumerate(unique_address_data):
-            unique_address_data[i] = Web3.toChecksumAddress('0x' + address)
+            unique_address_data[i] = to_checksum_address('0x' + address)
 
         with open('{}{}.json'.format(LOGS_PATH, vault_address), 'w') as f:
             f.write(json.dumps(unique_address_data))
