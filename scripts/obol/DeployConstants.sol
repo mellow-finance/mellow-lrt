@@ -16,15 +16,15 @@ library DeployConstants {
         0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 
     address public constant MAINNET_PROXY_VAULT_ADMIN =
-        address(bytes20(keccak256("mainnet_proxy_vault_admin")));
+        0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
     address public constant MAINNET_VAULT_ADMIN =
-        address(bytes20(keccak256("mainnet_vault_admin")));
+        0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
     address public constant MAINNET_CURATOR_ADMIN =
-        address(bytes20(keccak256("mainnet_curator_admin")));
+        0x2E93913A796a6C6b2bB76F41690E78a2E206Be54;
     address public constant MAINNET_CURATOR_OPERATOR =
-        address(bytes20(keccak256("mainnet_curator_operator")));
+        0x2afc096981c2CFe3501bE4054160048718F6C0C8;
     address public constant MAINNET_DEPLOYER =
-        address(bytes20(keccak256("mainnet_deployer")));
+        0x188858AC61a74350116d1CB6958fBc509FD6afA1;
 
     uint256 public constant SIMPLE_DVT_MODULE_ID = 2;
 
@@ -58,6 +58,6 @@ library DeployConstants {
 
     // ---------- Ethereum Mainnet ----------
 
-    string public constant MELLOW_VAULT_NAME = "Distributed Validator stETH";
+    string public constant MELLOW_VAULT_NAME = "Decentralized Validator Token";
     string public constant MELLOW_VAULT_SYMBOL = "DVstETH";
 }
