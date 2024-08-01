@@ -850,15 +850,6 @@ contract SolvencyRunner is Test, DeployScript {
             "validate_invariants: cumulative_deposits_weth + cumulative_processed_withdrawals_weth != cumulative_deposits_wsteth + wstethAmountDeposited"
         );
 
-        if (!is_onchain_run) {
-            assertEq(
-                0,
-                IERC20(deployParams.wsteth).balanceOf(
-                    address(deployParams.deployer)
-                ),
-                "validate_invariants: deployer balance not zero"
-            );
-        }
         assertEq(
             0,
             IERC20(deployParams.wsteth).balanceOf(

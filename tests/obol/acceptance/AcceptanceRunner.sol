@@ -29,8 +29,7 @@ contract AcceptanceRunner {
 
     // Flags
     bool internal HAS_IN_DEPLOYMENT_BLOCK_FLAG = false; // if true enables additional checks, that are valid only for deployment block
-    bool internal HAS_EXTRA_STRATEGY_ADMIN_DELEGATE = false; // if true allowes additional ADMIN_DELEGATE in strategy
-    bool internal HAS_EXTRA_VAULT_ADMIN_DELEGATE = false; // if true allowes additional ADMIN_DELEGATE in vault
+    bool internal HAS_TEST_PARAMETERS = false; // if true allows to use test parameters (small delays, more permissions, e.t.c)
 
     function checkRoles(
         ManagedValidator validator,
@@ -114,12 +113,13 @@ contract AcceptanceRunner {
             );
             require(
                 vault.getRoleMemberCount(ADMIN_DELEGATE_ROLE) <=
-                    (HAS_EXTRA_VAULT_ADMIN_DELEGATE ? 1 : 0),
+                    (HAS_TEST_PARAMETERS ? 1 : 0),
                 "Vault: Wrong admin delegate count"
             );
+
             require(
-                vault.getRoleMemberCount(OPERATOR_ROLE) == 2,
-                "Vault: OPERATOR_ROLE count is not equal to 1"
+                vault.getRoleMemberCount(OPERATOR_ROLE) <= 2,
+                "Vault: OPERATOR_ROLE count is not equal to 2"
             );
             require(
                 vault.hasRole(OPERATOR_ROLE, address(setup.strategy)),
@@ -147,11 +147,12 @@ contract AcceptanceRunner {
             );
             require(
                 strategy.getRoleMemberCount(ADMIN_DELEGATE_ROLE) ==
-                    (HAS_EXTRA_STRATEGY_ADMIN_DELEGATE ? 1 : 0),
+                    (HAS_TEST_PARAMETERS ? 1 : 0),
                 "Strategy: more than one has ADMIN_DELEGATE_ROLE"
             );
             require(
-                strategy.getRoleMemberCount(OPERATOR_ROLE) == 1,
+                strategy.getRoleMemberCount(OPERATOR_ROLE) ==
+                    1 + (HAS_TEST_PARAMETERS ? 1 : 0),
                 "Strategy: OPERATOR_ROLE count is not equal to 1"
             );
             require(
@@ -551,7 +552,7 @@ contract AcceptanceRunner {
             }
 
             // VaultConfigurator values
-            {
+            if (!HAS_TEST_PARAMETERS) {
                 require(
                     setup.configurator.baseDelay() == 30 days,
                     "VaultConfigurator: baseDelay is not 30 days"

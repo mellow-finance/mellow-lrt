@@ -86,7 +86,7 @@ contract AcceptanceTest is AcceptanceRunner, DeployScript, Test {
     function testAcceptance() external {
         deploy();
         HAS_IN_DEPLOYMENT_BLOCK_FLAG = true;
-        HAS_EXTRA_STRATEGY_ADMIN_DELEGATE = false;
+        HAS_TEST_PARAMETERS = false;
         validateParameters(deployParams, setup);
     }
 
@@ -108,8 +108,7 @@ contract AcceptanceTest is AcceptanceRunner, DeployScript, Test {
             setup = deployments[i].deploySetup;
 
             HAS_IN_DEPLOYMENT_BLOCK_FLAG = false;
-            HAS_EXTRA_STRATEGY_ADMIN_DELEGATE = true;
-            HAS_EXTRA_VAULT_ADMIN_DELEGATE = true;
+            HAS_TEST_PARAMETERS = true;
 
             validateParameters(deployParams, setup);
         }
