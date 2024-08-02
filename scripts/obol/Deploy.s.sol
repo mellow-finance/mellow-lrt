@@ -4,44 +4,64 @@ pragma solidity 0.8.25;
 import "./DeployScript.sol";
 import "./DeployInterfaces.sol";
 
-contract Deploy is Script, DeployScript {
-    DeployInterfaces.DeployParameters private holeskyParams =
-        DeployInterfaces.DeployParameters(
-            DeployConstants.HOLESKY_DEPLOYER,
-            DeployConstants.HOLESKY_PROXY_VAULT_ADMIN,
-            DeployConstants.HOLESKY_VAULT_ADMIN,
-            DeployConstants.HOLESKY_CURATOR_ADMIN,
-            DeployConstants.HOLESKY_CURATOR_OPERATOR,
-            DeployConstants.HOLESKY_LIDO_LOCATOR,
-            DeployConstants.HOLESKY_WSTETH,
-            DeployConstants.HOLESKY_STETH,
-            DeployConstants.HOLESKY_WETH,
-            DeployConstants.MAXIMAL_TOTAL_SUPPLY,
-            DeployConstants.MAXIMAL_ALLOWED_REMAINDER,
-            DeployConstants.MELLOW_VAULT_NAME,
-            DeployConstants.MELLOW_VAULT_SYMBOL,
-            DeployConstants.INITIAL_DEPOSIT_ETH,
-            Vault(payable(address(0))),
-            Initializer(address(0)),
-            ERC20TvlModule(address(0)),
-            StakingModule(address(0)),
-            ManagedRatiosOracle(address(0)),
-            ChainlinkOracle(address(0)),
-            IAggregatorV3(address(0)),
-            IAggregatorV3(address(0)),
-            DefaultProxyImplementation(address(0))
-        );
+import {Deployments} from "../../tests/obol/Deployments.sol";
+
+import {AcceptanceRunner} from "../../tests/obol/acceptance/AcceptanceRunner.sol";
+import {PermissionsRunner} from "../../tests/obol/permissions/PermissionsRunner.sol";
+
+contract Deploy is Script, DeployScript, AcceptanceRunner, PermissionsRunner {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    EnumerableSet.AddressSet private allAddresses_;
 
     function run() external {
-        DeployInterfaces.DeployParameters memory deployParams = holeskyParams;
-        vm.startBroadcast(uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER"))));
+        DeployInterfaces.DeployParameters memory deployParams = Deployments
+            .deployParameters();
+
+        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
         deployParams = commonContractsDeploy(deployParams);
         DeployInterfaces.DeploySetup memory setup;
+
+        vm.recordLogs();
+        IWeth(deployParams.weth).deposit{
+            value: deployParams.initialDepositWETH
+        }();
         (deployParams, setup) = deploy(deployParams);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
         vm.stopBroadcast();
+
         logSetup(setup);
         logDeployParams(deployParams);
-        // revert("success");
+
+        HAS_IN_DEPLOYMENT_BLOCK_FLAG = true;
+        HAS_TEST_PARAMETERS = false;
+
+        validateParameters(deployParams, setup);
+        {
+            for (uint256 i = 0; i < logs.length; i++) {
+                allAddresses_.add(logs[i].emitter);
+                for (uint256 j = 0; j < logs[i].topics.length; j++) {
+                    allAddresses_.add(address(bytes20(logs[i].topics[j])));
+                    allAddresses_.add(
+                        address(uint160(uint256(logs[i].topics[j])))
+                    );
+                }
+                bytes memory data = logs[i].data;
+                for (uint256 offset = 0; offset < data.length; offset++) {
+                    bytes32 word;
+                    assembly {
+                        word := mload(add(data, add(32, offset)))
+                    }
+                    allAddresses_.add(address(bytes20(word)));
+                    allAddresses_.add(address(uint160(uint256(word))));
+                }
+            }
+
+            validatePermissions(deployParams, setup, allAddresses_.values());
+        }
+        revert("success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {

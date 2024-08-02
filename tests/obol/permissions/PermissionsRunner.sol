@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../../../scripts/obol/Deploy.s.sol";
+import "../../../scripts/obol/DeployInterfaces.sol";
 
 contract PermissionsRunner {
     function removeAddress(
@@ -33,7 +33,7 @@ contract PermissionsRunner {
         bool hasUserRoles,
         bool hasAllowAllSignatureRoles,
         bool hasAllowSignatureRoles
-    ) internal view {
+    ) private view {
         uint256 userRoles = validator.userRoles(addr);
         if (hasUserRoles) {
             require(userRoles != 0, "ManagedValidator: User roles are not set");

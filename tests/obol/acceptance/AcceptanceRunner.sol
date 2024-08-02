@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../../../scripts/obol/Deploy.s.sol";
+import "../../../scripts/obol/DeployInterfaces.sol";
 
 contract AcceptanceRunner {
     // Roles constants
@@ -31,13 +31,13 @@ contract AcceptanceRunner {
     bool internal HAS_IN_DEPLOYMENT_BLOCK_FLAG = false; // if true enables additional checks, that are valid only for deployment block
     bool internal HAS_TEST_PARAMETERS = false; // if true allows to use test parameters (small delays, more permissions, e.t.c)
 
-    function checkRoles(
+    function _checkRolesPermissions(
         ManagedValidator validator,
         address addr,
         bool hasUserRoles,
         bool hasAllowAllSignatureRoles,
         bool hasAllowSignatureRoles
-    ) internal view {
+    ) private view {
         uint256 userRoles = validator.userRoles(addr);
         if (hasUserRoles) {
             require(userRoles != 0, "ManagedValidator: User roles are not set");
@@ -245,7 +245,7 @@ contract AcceptanceRunner {
                 ];
 
                 for (uint256 i = 0; i < forbiddenAddresses.length; i++) {
-                    checkRoles(
+                    _checkRolesPermissions(
                         validator,
                         forbiddenAddresses[i],
                         false, // hasUserRoles
@@ -264,7 +264,7 @@ contract AcceptanceRunner {
                 ];
 
                 for (uint256 i = 0; i < forbiddenAddresses.length; i++) {
-                    checkRoles(
+                    _checkRolesPermissions(
                         validator,
                         forbiddenAddresses[i],
                         true, // hasUserRoles
@@ -281,7 +281,7 @@ contract AcceptanceRunner {
                 ];
 
                 for (uint256 i = 0; i < forbiddenAddresses.length; i++) {
-                    checkRoles(
+                    _checkRolesPermissions(
                         validator,
                         forbiddenAddresses[i],
                         false, // hasUserRoles
@@ -296,7 +296,7 @@ contract AcceptanceRunner {
                 address[1] memory forbiddenAddresses = [address(setup.vault)];
 
                 for (uint256 i = 0; i < forbiddenAddresses.length; i++) {
-                    checkRoles(
+                    _checkRolesPermissions(
                         validator,
                         forbiddenAddresses[i],
                         true, // hasUserRoles
