@@ -570,8 +570,8 @@ contract AcceptanceRunner {
                     "VaultConfigurator: withdrawalFeeD9Delay is not 30 days"
                 );
                 require(
-                    setup.configurator.maximalTotalSupplyDelay() == 1 hours,
-                    "VaultConfigurator: maximalTotalSupplyDelay is not 1 hour"
+                    setup.configurator.maximalTotalSupplyDelay() == 4 hours,
+                    "VaultConfigurator: maximalTotalSupplyDelay is not 4 hours"
                 );
                 require(
                     setup.configurator.isDepositLockedDelay() == 1 hours,
