@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "../../../scripts/obol/DeployInterfaces.sol";
+import "../../../scripts/obol/DeployScript.sol";
 
 contract AcceptanceRunner {
     // Roles constants

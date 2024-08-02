@@ -83,7 +83,46 @@ library Deployments {
         returns (Deployment[] memory deployments_)
     {
         uint256 id = block.chainid;
-        if (id == MAINNET_CHAIN_ID) return deployments_;
+        if (id == MAINNET_CHAIN_ID) {
+            deployments_ = new Deployment[](1);
+            deployments_[0].deployParams = DeployInterfaces.DeployParameters(
+                DeployConstants.MAINNET_DEPLOYER,
+                DeployConstants.MAINNET_PROXY_VAULT_ADMIN,
+                DeployConstants.MAINNET_VAULT_ADMIN,
+                DeployConstants.MAINNET_CURATOR_ADMIN,
+                DeployConstants.MAINNET_CURATOR_OPERATOR,
+                DeployConstants.MAINNET_LIDO_LOCATOR,
+                DeployConstants.MAINNET_WSTETH,
+                DeployConstants.MAINNET_STETH,
+                DeployConstants.MAINNET_WETH,
+                DeployConstants.MAXIMAL_TOTAL_SUPPLY,
+                DeployConstants.MAXIMAL_ALLOWED_REMAINDER,
+                DeployConstants.MELLOW_VAULT_NAME,
+                DeployConstants.MELLOW_VAULT_SYMBOL,
+                DeployConstants.INITIAL_DEPOSIT_ETH,
+                Vault(payable(0xe2D2E90122cb203CF1565a37ef90a256843A825A)),
+                Initializer(0x969A0c7699ad0AC38fE05117c81D662762443E07),
+                ERC20TvlModule(0x2c73350310C2b8c721d8192bd7620D1DCB1219ce),
+                StakingModule(0xD570E16E3B62F05EcF3ff2706D331B7f56453adA),
+                ManagedRatiosOracle(0xFeAFe509fae65962EF81555E3f078D58aF7ca3e9),
+                ChainlinkOracle(0x39D5F9aEbBEcba99ED5d707b11d790387B5acB63),
+                IAggregatorV3(0x278798AE6ea76ae75b381eA0D8DF140C1D5a7712),
+                IAggregatorV3(0x966a3b1c9d477D113630290F037b12349649d1bd),
+                DefaultProxyImplementation(
+                    0xB8eF363E1909665c18BF0CB72Cba9a8152413A2E
+                )
+            );
+            deployments_[0].deploySetup = DeployInterfaces.DeploySetup(
+                Vault(payable(0x5E362eb2c0706Bd1d134689eC75176018385430B)),
+                ProxyAdmin(0x8E6C80c41450D3fA7B1Fd0196676b99Bfb34bF48),
+                IVaultConfigurator(0xDee41701310f48744e6Bb4A5df6B5e714cE49133),
+                ManagedValidator(0xA1b3a352c3fC7cfcBD36381CC2D0b157d6843473),
+                SimpleDVTStakingStrategy(
+                    0x078b1C03d14652bfeeDFadf7985fdf2D8a2e8108
+                )
+            );
+            return deployments_;
+        }
         if (id == HOLESKY_CHAIN_ID) {
             deployments_ = new Deployment[](1);
             deployments_[0].deployParams = DeployInterfaces.DeployParameters(

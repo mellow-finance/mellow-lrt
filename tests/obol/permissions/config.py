@@ -1,7 +1,14 @@
 # DEPLOYMENTS[chainId][vaultAddress][parameter]
 
 DEPLOYMENTS = {
-    1: {},
+    1: {
+        '0x5E362eb2c0706Bd1d134689eC75176018385430B'.lower(): {
+            'ManagedValidator': '0xA1b3a352c3fC7cfcBD36381CC2D0b157d6843473'.lower(),
+            'VaultConfigurator': '0xDee41701310f48744e6Bb4A5df6B5e714cE49133'.lower(),
+            'ManagedValidatorCreationBlock': 20442288,
+            'VaultConfiguratorCreationBlock': 20442252
+        }
+    },
     17000: {
         # test obol deployment 1
         '0x2d3086b7d3a2a14e121c0fce651f9e1a819a1e84'.lower(): {

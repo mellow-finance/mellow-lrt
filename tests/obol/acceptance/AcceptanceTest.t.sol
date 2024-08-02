@@ -91,25 +91,17 @@ contract AcceptanceTest is AcceptanceRunner, DeployScript, Test {
     }
 
     function testAcceptanceOnTestingDeployment() external {
-        Deployments.Deployment[] memory deployments;
-        if (block.chainid == 1) {
-            console2.log("No mainnet deployment yet. Skipping...");
-            return;
-        }
-
-        if (block.chainid == 17000) {
-            deployments = Deployments.deployments();
-        } else {
-            revert("Unsupported chain");
-        }
-
+        Deployments.Deployment[] memory deployments = Deployments.deployments();
         for (uint256 i = 0; i < deployments.length; i++) {
             deployParams = deployments[i].deployParams;
             setup = deployments[i].deploySetup;
-
-            HAS_IN_DEPLOYMENT_BLOCK_FLAG = false;
-            HAS_TEST_PARAMETERS = true;
-
+            if (block.chainid == 1) {
+                HAS_IN_DEPLOYMENT_BLOCK_FLAG = false;
+                HAS_TEST_PARAMETERS = false;
+            } else {
+                HAS_IN_DEPLOYMENT_BLOCK_FLAG = false;
+                HAS_TEST_PARAMETERS = true;
+            }
             validateParameters(deployParams, setup);
         }
     }
