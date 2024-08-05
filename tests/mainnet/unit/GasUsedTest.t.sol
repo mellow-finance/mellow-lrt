@@ -55,7 +55,8 @@ contract GasUsedTest is Validator, DeployScript, Test {
                 address(0),
                 1 ether,
                 0,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
             setup.vault.registerWithdrawal(
                 depositor,
@@ -99,7 +100,8 @@ contract GasUsedTest is Validator, DeployScript, Test {
                 address(0),
                 1 ether,
                 0,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
             setup.vault.registerWithdrawal(
                 depositor,

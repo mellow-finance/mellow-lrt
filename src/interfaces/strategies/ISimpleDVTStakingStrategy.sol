@@ -13,6 +13,7 @@ interface ISimpleDVTStakingStrategy {
     error NotEnoughWeth(); // Thrown if the contract has insufficient WETH for operations.
     error InvalidWithdrawalQueueState(); // Thrown if the withdrawal queue state is inconsistent or invalid.
     error LimitOverflow(); // Thrown if the maximum allowed remainder is exceeded.
+    error DepositFailed(); // Thrown if the deposit operation failed.
 
     /**
      * @return The vault address.
@@ -38,25 +39,22 @@ interface ISimpleDVTStakingStrategy {
 
     /**
      * @notice Converts and deposits into specific staking module.
-     * @param amount The amount of tokens to convert and deposit.
      * @param blockNumber The block number at the time of the operation for verification.
      * @param blockHash The block hash at the time of the operation for additional verification.
      * @param depositRoot The root hash of the deposit records for verification.
      * @param nonce A nonce to ensure the uniqueness of the operation.
      * @param depositCalldata The calldata required for the deposit operation.
      * @param sortedGuardianSignatures The signatures from guardians verifying the operation.
-     * @return success True if the operation was successful.
      * @notice The function can be called by anyone.
      */
     function convertAndDeposit(
-        uint256 amount,
         uint256 blockNumber,
         bytes32 blockHash,
         bytes32 depositRoot,
         uint256 nonce,
         bytes calldata depositCalldata,
         IDepositSecurityModule.Signature[] calldata sortedGuardianSignatures
-    ) external returns (bool success);
+    ) external;
 
     /**
      * @notice Processes withdrawals from the vault, possibly staking some of the withdrawn assets.
@@ -81,10 +79,9 @@ interface ISimpleDVTStakingStrategy {
 
     /**
      * @notice Emitted after attempting to convert and deposit tokens via the staking module.
-     * @param success True if the conversion and deposit were successful.
      * @param sender The address that initiated the operation.
      */
-    event ConvertAndDeposit(bool success, address sender);
+    event ConvertAndDeposit(address sender);
 
     /**
      * @notice Emitted when processing withdrawals.

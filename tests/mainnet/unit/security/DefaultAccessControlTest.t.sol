@@ -71,7 +71,8 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
                 address(0),
                 deployParams.firstDepositETH,
                 0,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
         }
         vm.stopBroadcast();
@@ -230,7 +231,8 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
             address(0),
             amount,
             0,
-            type(uint256).max
+            type(uint256).max,
+            0
         );
 
         setup.vault.registerWithdrawal(
@@ -344,7 +346,8 @@ contract DefaultAccessControlTest is DeployScript, Validator, Test {
             address(0),
             amount,
             0,
-            type(uint256).max
+            type(uint256).max,
+            0
         );
 
         setup.vault.registerWithdrawal(

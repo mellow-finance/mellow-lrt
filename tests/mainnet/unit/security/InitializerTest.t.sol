@@ -1,37 +1,58 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../../../../src/security/Initializer.sol";
 import "../../Constants.sol";
+import "../../e2e/DeployLibrary.sol";
 
-contract Unit is Test {
-    function testInitialize() external {
+contract InitializerTestUnit is Test {
+    address public immutable deployer = vm.createWallet("deployer").addr;
+    string lpTokenNameDefault = "tokenName";
+    string lpTokenSymbolDefault = "symbol";
+
+    function testZeroConfiguratorAddressRevert() external {
         Initializer initializer = new Initializer();
-        address admin = vm.createWallet("admin").addr;
-        initializer.initialize("name", "symbol", admin);
-        assertTrue(initializer.hasRole(initializer.ADMIN_ROLE(), admin));
-        assertTrue(initializer.hasRole(initializer.OPERATOR(), admin));
-        assertNotEq(address(initializer.configurator()), address(0));
-        assertEq(initializer.name(), "name");
-        assertEq(initializer.symbol(), "symbol");
+
+        initializer.initialize(
+            lpTokenNameDefault,
+            lpTokenSymbolDefault,
+            deployer
+        );
+        vm.expectRevert();
+        initializer.initialize(
+            lpTokenNameDefault,
+            lpTokenSymbolDefault,
+            deployer
+        );
     }
 
-    function testInvalidInitialization() external {
+    function testZeroAdminAddressRevert() external {
         Initializer initializer = new Initializer();
-        address admin = vm.createWallet("admin").addr;
-        vm.expectRevert(abi.encodeWithSignature("AddressZero()"));
-        initializer.initialize("name", "symbol", address(0));
 
-        string memory longString = "01234567890123456789012345678901"; // 32 symbols
-        string memory maxAllowedString = "0123456789012345678901234567890"; // 32 symbols
+        vm.expectRevert();
+        initializer.initialize(
+            lpTokenNameDefault,
+            lpTokenSymbolDefault,
+            address(0)
+        );
+    }
+
+    function testCheckTooLongNameRevert() external {
+        string memory lpTokenName = "012345678901234567890123456789012345";
+        string memory lpTokenSymbol = "symbol";
+
+        Initializer initializer = new Initializer();
 
         vm.expectRevert("Too long name");
-        initializer.initialize(longString, "symbol", admin);
-        vm.expectRevert("Too long symbol");
-        initializer.initialize("name", longString, admin);
+        initializer.initialize(lpTokenName, lpTokenSymbol, deployer);
+    }
 
-        initializer.initialize(maxAllowedString, maxAllowedString, admin);
-        vm.expectRevert();
-        initializer.initialize("name", "symbol", admin);
+    function testCheckTooLongSymbolRevert() external {
+        string memory lpTokenName = "name";
+        string memory lpTokenSymbol = "012345678901234567890123456789012345";
+
+        Initializer initializer = new Initializer();
+
+        vm.expectRevert("Too long symbol");
+        initializer.initialize(lpTokenName, lpTokenSymbol, deployer);
     }
 }

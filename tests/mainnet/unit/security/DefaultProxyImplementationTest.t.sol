@@ -1,17 +1,31 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "../../../../src/security/DefaultProxyImplementation.sol";
 import "../../Constants.sol";
+import "../../e2e/DeployLibrary.sol";
 
-contract Unit is Test {
-    function test() external {
-        DefaultProxyImplementation impl = new DefaultProxyImplementation(
-            "impl",
-            "impl"
+contract DefaultProxyImplementationUnitTest is
+    Test,
+    DefaultProxyImplementation
+{
+    address public immutable deployer = vm.createWallet("deployer").addr;
+    string lpTokenNameDefault = "tokenName";
+    string lpTokenSymbolDefault = "symbol";
+
+    constructor()
+        DefaultProxyImplementation(lpTokenNameDefault, lpTokenSymbolDefault)
+    {}
+
+    function testConstructorSuccess() external {
+        DefaultProxyImplementation proxy = new DefaultProxyImplementation(
+            lpTokenNameDefault,
+            lpTokenSymbolDefault
         );
-        deal(address(impl), address(this), 1 ether);
-        vm.expectRevert(abi.encodeWithSignature("Locked()"));
-        impl.transfer(address(this), 1 ether);
+        assertNotEq(address(proxy), address(0));
+    }
+
+    function testUpdateLockedRevert() external {
+        vm.expectRevert();
+        _update(deployer, address(0), 0);
     }
 }

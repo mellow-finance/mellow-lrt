@@ -2,6 +2,7 @@
 pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {Math as FullMath} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../../src/interfaces/external/chainlink/IAggregatorV3.sol";
 import "../../../src/interfaces/external/lido/IWSteth.sol";
@@ -9,8 +10,6 @@ import "../../../src/interfaces/IVault.sol";
 import "./IDefiCollector.sol";
 
 import "../../../src/utils/DefaultAccessControl.sol";
-
-import "../../../src/libraries/external/FullMath.sol";
 
 contract Collector is DefaultAccessControl {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -324,10 +323,11 @@ contract Collector is DefaultAccessControl {
                 uint256 priceX96 = response.pricesX96[i];
                 totalValue += response.underlyingAmounts[i] == 0
                     ? 0
-                    : FullMath.mulDivRoundingUp(
+                    : FullMath.mulDiv(
                         response.underlyingAmounts[i],
                         priceX96,
-                        Q96
+                        Q96,
+                        FullMath.Rounding.Ceil
                     );
                 if (ratiosX96[i] == 0) continue;
                 uint256 amount = FullMath.mulDiv(

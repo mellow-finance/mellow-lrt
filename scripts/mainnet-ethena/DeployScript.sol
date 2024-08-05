@@ -296,7 +296,8 @@ abstract contract DeployScript is CommonBase {
                 address(s.vault),
                 amounts,
                 deployParams.initialDeposit,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
         }
 

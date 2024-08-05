@@ -31,7 +31,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -68,7 +68,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -90,7 +90,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -189,7 +189,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -231,8 +231,7 @@ contract Unit is Test {
 
         assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 0);
 
-        bool success = strategy.convertAndDeposit(
-            amount,
+        strategy.convertAndDeposit(
             blockNumber,
             blockHash,
             depositRoot,
@@ -240,8 +239,6 @@ contract Unit is Test {
             depositCalldata,
             sigs
         );
-
-        assertTrue(success);
 
         assertEq(IERC20(Constants.WETH).balanceOf(address(vault)), 0);
 
@@ -258,7 +255,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -295,7 +292,6 @@ contract Unit is Test {
         uint256 amount = 1 ether;
         deal(Constants.WETH, address(vault), amount);
         strategy.convertAndDeposit(
-            amount,
             blockNumber,
             blockHash,
             depositRoot,
@@ -314,7 +310,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -389,7 +385,13 @@ contract Unit is Test {
             );
             uint256[] memory amounts = new uint256[](2);
             amounts[1] = amount;
-            vault.deposit(address(vault), amounts, amount, type(uint256).max);
+            vault.deposit(
+                address(vault),
+                amounts,
+                amount,
+                type(uint256).max,
+                0
+            );
         }
 
         vm.stopPrank();
@@ -408,7 +410,8 @@ contract Unit is Test {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
 
             vault.registerWithdrawal(
@@ -473,7 +476,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -548,7 +551,13 @@ contract Unit is Test {
             );
             uint256[] memory amounts = new uint256[](2);
             amounts[1] = amount;
-            vault.deposit(address(vault), amounts, amount, type(uint256).max);
+            vault.deposit(
+                address(vault),
+                amounts,
+                amount,
+                type(uint256).max,
+                0
+            );
         }
 
         vm.stopPrank();
@@ -567,7 +576,8 @@ contract Unit is Test {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
 
             vault.registerWithdrawal(
@@ -618,7 +628,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -693,7 +703,13 @@ contract Unit is Test {
             );
             uint256[] memory amounts = new uint256[](2);
             amounts[1] = amount;
-            vault.deposit(address(vault), amounts, amount, type(uint256).max);
+            vault.deposit(
+                address(vault),
+                amounts,
+                amount,
+                type(uint256).max,
+                0
+            );
         }
 
         vm.stopPrank();
@@ -712,7 +728,8 @@ contract Unit is Test {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
 
             vault.registerWithdrawal(
@@ -755,7 +772,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -830,7 +847,13 @@ contract Unit is Test {
             );
             uint256[] memory amounts = new uint256[](2);
             amounts[1] = amount;
-            vault.deposit(address(vault), amounts, amount, type(uint256).max);
+            vault.deposit(
+                address(vault),
+                amounts,
+                amount,
+                type(uint256).max,
+                0
+            );
         }
 
         vm.stopPrank();
@@ -849,7 +872,8 @@ contract Unit is Test {
                 Constants.DEPOSITOR,
                 amounts,
                 amount,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
 
             vault.registerWithdrawal(

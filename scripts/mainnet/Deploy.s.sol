@@ -96,7 +96,8 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
                 address(0),
                 deployParams.firstDepositETH,
                 0,
-                type(uint256).max
+                type(uint256).max,
+                0
             );
         }
 

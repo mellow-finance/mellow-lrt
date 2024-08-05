@@ -4,18 +4,44 @@ pragma solidity 0.8.25;
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "../../../src/interfaces/external/chainlink/IAggregatorV3.sol";
-import "../../../src/interfaces/external/lido/IWSteth.sol";
 import "../../../src/interfaces/IVault.sol";
 import "../../../src/interfaces/oracles/IChainlinkOracle.sol";
 import "./IDefiCollector.sol";
 
-import "../../../src/utils/DefaultAccessControl.sol";
+interface IWrappedSteth {
+    function wrap(uint256 stethAmount) external payable returns (uint256);
 
-import "../../../src/libraries/external/FullMath.sol";
+    function unwrap(uint256 wstethAmount) external returns (uint256);
 
-contract Collector is DefaultAccessControl {
-    using EnumerableSet for EnumerableSet.AddressSet;
+    function getStETHByWstETH(
+        uint256 wstethAmount
+    ) external view returns (uint256);
 
+    function getWstETHByStETH(
+        uint256 stethAmount
+    ) external view returns (uint256);
+}
+
+interface IUniswapV3Pool {
+    function slot0()
+        external
+        view
+        returns (
+            uint160 sqrtPriceX96,
+            int24 tick,
+            uint16 observationIndex,
+            uint16 observationCardinality,
+            uint16 observationCardinalityNext,
+            uint8 feeProtocol,
+            bool unlocked
+        );
+
+    function token0() external view returns (address);
+
+    function token1() external view returns (address);
+}
+
+contract Collector {
     struct Response {
         address vault;
         uint256 balance; // Vault.balanceOf(user)
@@ -59,8 +85,6 @@ contract Collector is DefaultAccessControl {
     IAggregatorV3 public immutable wstethOracle;
     IAggregatorV3 public immutable wethOracle;
 
-    EnumerableSet.AddressSet private collectors_;
-
     constructor(
         address wsteth_,
         address weth_,
@@ -68,9 +92,8 @@ contract Collector is DefaultAccessControl {
         address ena_,
         address susde_,
         IAggregatorV3 _wstethOracle,
-        IAggregatorV3 _wethToUSDOracle,
-        address admin_
-    ) DefaultAccessControl(admin_) {
+        IAggregatorV3 _wethToUSDOracle
+    ) {
         wsteth = wsteth_;
         weth = weth_;
         steth = steth_;
@@ -126,12 +149,12 @@ contract Collector is DefaultAccessControl {
                     responses[i].underlyingTokenDecimals[j] = IERC20Metadata(
                         responses[i].underlyingTokens[j]
                     ).decimals();
-                    responses[i].totalValueETH += FullMath.mulDiv(
+                    responses[i].totalValueETH += Math.mulDiv(
                         responses[i].pricesX96[j],
                         responses[i].underlyingAmounts[j],
                         Q96
                     );
-                    responses[i].totalValueBaseToken += FullMath.mulDiv(
+                    responses[i].totalValueBaseToken += Math.mulDiv(
                         underlyingPriceX96,
                         responses[i].underlyingAmounts[j],
                         Q96
@@ -140,7 +163,7 @@ contract Collector is DefaultAccessControl {
                 responses[i].totalValueUSDC = convertWethToUSDC(
                     responses[i].totalValueETH
                 );
-                responses[i].userBalanceETH = FullMath.mulDiv(
+                responses[i].userBalanceETH = Math.mulDiv(
                     responses[i].totalValueETH,
                     responses[i].balance,
                     vault.totalSupply()
@@ -148,7 +171,7 @@ contract Collector is DefaultAccessControl {
                 responses[i].userBalanceUSDC = convertWethToUSDC(
                     responses[i].userBalanceETH
                 );
-                responses[i].lpPriceD18 = FullMath.mulDiv(
+                responses[i].lpPriceD18 = Math.mulDiv(
                     responses[i].totalValueUSDC,
                     D18,
                     responses[i].totalSupply
@@ -156,36 +179,36 @@ contract Collector is DefaultAccessControl {
                 responses[i].maximalTotalSupply = vault
                     .configurator()
                     .maximalTotalSupply();
-                responses[i].maximalTotalSupplyETH = FullMath.mulDiv(
+                responses[i].maximalTotalSupplyETH = Math.mulDiv(
                     responses[i].maximalTotalSupply,
                     responses[i].totalValueETH,
                     responses[i].totalSupply
                 );
-                responses[i].maximalTotalSupplyWSTETH = IWSteth(wsteth)
+                responses[i].maximalTotalSupplyWSTETH = IWrappedSteth(wsteth)
                     .getWstETHByStETH(responses[i].maximalTotalSupplyETH);
-                responses[i].totalValueWSTETH = IWSteth(wsteth)
+                responses[i].totalValueWSTETH = IWrappedSteth(wsteth)
                     .getWstETHByStETH(responses[i].totalValueETH);
                 responses[i].maximalTotalSupplyUSDC = convertWethToUSDC(
                     responses[i].maximalTotalSupplyETH
                 );
-                responses[i].lpPriceETHD18 = FullMath.mulDiv(
+                responses[i].lpPriceETHD18 = Math.mulDiv(
                     responses[i].totalValueETH,
                     D18,
                     responses[i].totalSupply
                 );
-                responses[i].lpPriceWSTETHD18 = FullMath.mulDiv(
+                responses[i].lpPriceWSTETHD18 = Math.mulDiv(
                     responses[i].totalValueWSTETH,
                     D18,
                     responses[i].totalSupply
                 );
 
-                responses[i].maximalTotalSupplyBaseToken = FullMath.mulDiv(
+                responses[i].maximalTotalSupplyBaseToken = Math.mulDiv(
                     responses[i].maximalTotalSupply,
                     responses[i].totalValueBaseToken,
                     responses[i].totalSupply
                 );
 
-                responses[i].lpPriceWSTETHD18 = FullMath.mulDiv(
+                responses[i].lpPriceWSTETHD18 = Math.mulDiv(
                     responses[i].totalValueBaseToken,
                     D18,
                     responses[i].totalSupply
@@ -216,17 +239,7 @@ contract Collector is DefaultAccessControl {
             responses[i].balance += responses[i].withdrawalRequest.lpAmount;
         }
 
-        return mergeWithDefiCollectors(user, vaults, responses);
-    }
-
-    function multiCollect(
-        address[] memory users,
-        address[] memory vaults
-    ) external view returns (Response[][] memory responses) {
-        responses = new Response[][](users.length);
-        for (uint256 i = 0; i < users.length; i++) {
-            responses[i] = collect(users[i], vaults);
-        }
+        return responses;
     }
 
     function fetchWithdrawalAmounts(
@@ -243,15 +256,15 @@ contract Collector is DefaultAccessControl {
         address[] memory vaults = new address[](1);
         vaults[0] = vault;
         Response memory response = collect(address(0), vaults)[0];
-        uint256 value = FullMath.mulDiv(
+        uint256 value = Math.mulDiv(
             lpAmount,
             response.totalValueBaseToken,
             response.totalSupply
         );
         IVault.ProcessWithdrawalsStack memory s = IVault(vault)
             .calculateStack();
-        value = FullMath.mulDiv(value, D9 - s.feeD9, D9);
-        uint256 coefficientX96 = FullMath.mulDiv(value, Q96, s.ratiosX96Value);
+        value = Math.mulDiv(value, D9 - s.feeD9, D9);
+        uint256 coefficientX96 = Math.mulDiv(value, Q96, s.ratiosX96Value);
         uint256 length = s.erc20Balances.length;
         expectedAmounts = new uint256[](length);
         expectedAmountsUSDC = new uint256[](length);
@@ -259,9 +272,9 @@ contract Collector is DefaultAccessControl {
             uint256 ratiosX96 = s.ratiosX96[i];
             expectedAmounts[i] = ratiosX96 == 0
                 ? 0
-                : FullMath.mulDiv(coefficientX96, ratiosX96, Q96);
+                : Math.mulDiv(coefficientX96, ratiosX96, Q96);
             expectedAmountsUSDC[i] = convertWethToUSDC(
-                FullMath.mulDiv(expectedAmounts[i], response.pricesX96[i], Q96)
+                Math.mulDiv(expectedAmounts[i], response.pricesX96[i], Q96)
             );
         }
     }
@@ -269,12 +282,12 @@ contract Collector is DefaultAccessControl {
     function convertWethToUSDC(uint256 amount) public view returns (uint256) {
         (, int256 sAnswer, , , ) = wethOracle.latestRoundData();
         uint256 answer = uint256(sAnswer);
-        return FullMath.mulDiv(amount, answer, D18);
+        return Math.mulDiv(amount, answer, D18);
     }
 
     function fetchDepositWrapperParams(
         address vault,
-        address wrapper,
+        address,
         address token,
         uint256 amount
     )
@@ -291,27 +304,12 @@ contract Collector is DefaultAccessControl {
         if (IVault(vault).configurator().isDepositLocked())
             return (false, false, false, 0, 0);
         isDepositPossible = true;
-        {
-            IValidator validator = IValidator(
-                IVault(vault).configurator().validator()
-            );
-            try
-                validator.validate(
-                    wrapper,
-                    vault,
-                    abi.encodeWithSelector(IVault.deposit.selector)
-                )
-            {
-                isDepositorWhitelisted = true;
-            } catch {
-                return (true, false, false, 0, 0);
-            }
-        }
+        isDepositorWhitelisted = true;
         uint256 depositValue = amount;
         if (token == wsteth) {
             (, int256 sAnswer, , , ) = wstethOracle.latestRoundData();
             uint256 answer = uint256(sAnswer);
-            depositValue = FullMath.mulDiv(depositValue, answer, D18);
+            depositValue = Math.mulDiv(depositValue, answer, D18);
         } else {
             if (token != address(0) && token != weth && token != steth) {
                 return (true, true, false, 0, 0);
@@ -322,11 +320,7 @@ contract Collector is DefaultAccessControl {
         vaults[0] = vault;
         Response memory response = collect(address(0), vaults)[0];
         uint256 totalValue = response.totalValueETH;
-        lpAmount = FullMath.mulDiv(
-            depositValue,
-            response.totalSupply,
-            totalValue
-        );
+        lpAmount = Math.mulDiv(depositValue, response.totalSupply, totalValue);
         depositValueUSDC = convertWethToUSDC(depositValue);
     }
 
@@ -344,26 +338,11 @@ contract Collector is DefaultAccessControl {
     function fetchDepositAmounts(
         uint256[] memory amounts,
         address vault,
-        address user
+        address
     ) external view returns (FetchDepositAmountsResponse memory r) {
         if (IVault(vault).configurator().isDepositLocked()) return r;
         r.isDepositPossible = true;
-        {
-            IValidator validator = IValidator(
-                IVault(vault).configurator().validator()
-            );
-            try
-                validator.validate(
-                    user,
-                    vault,
-                    abi.encodeWithSelector(IVault.deposit.selector)
-                )
-            {
-                r.isDepositorWhitelisted = true;
-            } catch {
-                return r;
-            }
-        }
+        r.isDepositorWhitelisted = true;
         address[] memory vaults = new address[](1);
         vaults[0] = vault;
         Response memory response = collect(address(0), vaults)[0];
@@ -373,8 +352,8 @@ contract Collector is DefaultAccessControl {
         r.ratiosD18 = new uint256[](ratiosX96.length);
         for (uint256 i = 0; i < r.tokens.length; i++) {
             if (ratiosX96[i] == 0) continue;
-            r.ratiosD18[i] = FullMath.mulDiv(ratiosX96[i], D18, Q96);
-            uint256 currentCoefficientX96 = FullMath.mulDiv(
+            r.ratiosD18[i] = Math.mulDiv(ratiosX96[i], D18, Q96);
+            uint256 currentCoefficientX96 = Math.mulDiv(
                 amounts[i],
                 Q96,
                 ratiosX96[i]
@@ -391,21 +370,18 @@ contract Collector is DefaultAccessControl {
                 uint256 priceX96 = response.pricesX96[i];
                 totalValue += response.underlyingAmounts[i] == 0
                     ? 0
-                    : FullMath.mulDivRoundingUp(
+                    : Math.mulDiv(
                         response.underlyingAmounts[i],
                         priceX96,
-                        Q96
+                        Q96,
+                        Math.Rounding.Ceil
                     );
                 if (ratiosX96[i] == 0) continue;
-                uint256 amount = FullMath.mulDiv(
-                    coefficientX96,
-                    ratiosX96[i],
-                    Q96
-                );
+                uint256 amount = Math.mulDiv(coefficientX96, ratiosX96[i], Q96);
                 r.expectedAmounts[i] = amount;
-                depositValue += FullMath.mulDiv(amount, priceX96, Q96);
+                depositValue += Math.mulDiv(amount, priceX96, Q96);
             }
-            r.expectedLpAmount = FullMath.mulDiv(
+            r.expectedLpAmount = Math.mulDiv(
                 depositValue,
                 response.totalSupply,
                 totalValue
@@ -414,7 +390,7 @@ contract Collector is DefaultAccessControl {
             r.expectedAmountsUSDC = new uint256[](r.tokens.length);
             for (uint256 i = 0; i < r.tokens.length; i++) {
                 r.expectedAmountsUSDC[i] = convertWethToUSDC(
-                    FullMath.mulDiv(
+                    Math.mulDiv(
                         r.expectedAmounts[i],
                         response.pricesX96[i],
                         Q96
@@ -422,134 +398,6 @@ contract Collector is DefaultAccessControl {
                 );
             }
         }
-    }
-
-    function addCollectors(address collector_) external {
-        _requireAdmin();
-        collectors_.add(collector_);
-    }
-
-    function removeCollector() external {
-        _requireAdmin();
-        collectors_.remove(msg.sender);
-    }
-
-    function isOneOf(address x, address[] memory a) public pure returns (bool) {
-        for (uint256 i = 0; i < a.length; i++) if (a[i] == x) return true;
-        return false;
-    }
-
-    function haveCommon(
-        address[] memory a,
-        address[] memory b
-    ) public pure returns (bool) {
-        for (uint256 i = 0; i < a.length; i++)
-            if (isOneOf(a[i], b)) return true;
-        return false;
-    }
-
-    function mergeWithDefiCollectors(
-        address user,
-        address[] memory vaults,
-        Response[] memory responses
-    ) public view returns (Response[] memory fullResponses) {
-        address[] memory collectors = collectors_.values();
-        fullResponses = new Response[](1 << 10);
-        uint256 itr = 0;
-        while (itr < responses.length) {
-            fullResponses[itr] = responses[itr];
-            itr++;
-        }
-        address[] memory users = new address[](1);
-        users[0] = user;
-        for (uint256 i = 0; i < collectors.length; i++) {
-            IDefiCollector.Data[] memory data = IDefiCollector(collectors[i])
-                .collect(users);
-
-            for (uint256 j = 0; j < data.length; j++) {
-                IERC20[] memory tokens = data[j].tokens;
-                address[] memory tokens_ = new address[](tokens.length);
-                for (uint256 k = 0; k < tokens.length; k++) {
-                    tokens_[k] = address(tokens[k]);
-                }
-                if (!haveCommon(tokens_, vaults)) continue;
-                IDefiCollector.UserData memory userData = data[j].users[0];
-
-                Response memory response;
-                response.balance = userData.lpAmount;
-                response.vault = data[j].pool;
-                response.isDefi = true;
-                response.underlyingTokens = tokens_;
-                response.underlyingAmounts = data[j].balances;
-                response.underlyingTokenDecimals = new uint8[](tokens.length);
-                for (uint256 k = 0; k < tokens.length; k++) {
-                    response.underlyingTokenDecimals[k] = IERC20Metadata(
-                        tokens_[k]
-                    ).decimals();
-                }
-                response.totalSupply = data[j].totalSupply;
-                response.pricesX96 = new uint256[](tokens.length);
-
-                for (uint256 k = 0; k < tokens.length; k++) {
-                    response.pricesX96[k] = convertTokenIntoEth(
-                        responses,
-                        tokens_[k],
-                        Q96
-                    );
-                    response.totalValueETH += FullMath.mulDiv(
-                        response.pricesX96[k],
-                        response.underlyingAmounts[k],
-                        Q96
-                    );
-                }
-
-                response.totalValueUSDC = convertWethToUSDC(
-                    response.totalValueETH
-                );
-                response.userBalanceETH = FullMath.mulDiv(
-                    response.totalValueETH,
-                    response.balance,
-                    response.totalSupply
-                );
-                response.userBalanceUSDC = convertWethToUSDC(
-                    response.userBalanceETH
-                );
-                response.lpPriceD18 = FullMath.mulDiv(
-                    response.totalValueUSDC,
-                    D18,
-                    response.totalSupply
-                );
-                fullResponses[itr++] = response;
-            }
-        }
-
-        assembly {
-            mstore(fullResponses, itr)
-        }
-    }
-
-    function getVaultResponse(
-        Response[] memory responses,
-        address vault
-    ) public pure returns (Response memory r) {
-        for (uint256 i = 0; i < responses.length; i++) {
-            Response memory response = responses[i];
-            if (response.vault == vault) return response;
-        }
-    }
-
-    function convertTokenIntoEth(
-        Response[] memory responses,
-        address token,
-        uint256 amount
-    ) public view returns (uint256 ethAmount) {
-        Response memory r = getVaultResponse(responses, token);
-        if (r.vault != address(0))
-            return FullMath.mulDiv(amount, r.totalValueETH, r.totalSupply);
-        if (token == weth || token == steth) return amount;
-        if (token == wsteth) return IWSteth(wsteth).getStETHByWstETH(amount);
-        // by default == 1
-        return amount;
     }
 
     function convertBaseTokenPriceToWethPrice(
@@ -563,18 +411,18 @@ contract Collector is DefaultAccessControl {
                 0xc3Db44ADC1fCdFd5671f555236eae49f4A8EEa18
             );
             (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-            uint256 enaToWethPriceX96 = FullMath.mulDiv(
+            uint256 enaToWethPriceX96 = Math.mulDiv(
                 sqrtPriceX96,
                 sqrtPriceX96,
                 Q96
             );
-            return FullMath.mulDiv(priceX96, enaToWethPriceX96, Q96);
+            return Math.mulDiv(priceX96, enaToWethPriceX96, Q96);
         } else if (token == susde) {
             IUniswapV3Pool pool = IUniswapV3Pool(
                 0x7C45F7ff7dDeaC1af333E469f4B99bbd75Ee5495
             );
             (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-            uint256 wstethToSusdePriceX96 = FullMath.mulDiv(
+            uint256 wstethToSusdePriceX96 = Math.mulDiv(
                 sqrtPriceX96,
                 sqrtPriceX96,
                 Q96
@@ -582,34 +430,15 @@ contract Collector is DefaultAccessControl {
 
             return
                 convertBaseTokenPriceToWethPrice(
-                    FullMath.mulDiv(priceX96, Q96, wstethToSusdePriceX96),
+                    Math.mulDiv(priceX96, Q96, wstethToSusdePriceX96),
                     wsteth
                 );
         } else if (token == wsteth) {
-            return IWSteth(wsteth).getStETHByWstETH(priceX96);
+            return IWrappedSteth(wsteth).getStETHByWstETH(priceX96);
         } else {
             revert("Unsupported token");
         }
     }
 
     function test() external pure {}
-}
-
-interface IUniswapV3Pool {
-    function slot0()
-        external
-        view
-        returns (
-            uint160 sqrtPriceX96,
-            int24 tick,
-            uint16 observationIndex,
-            uint16 observationCardinality,
-            uint16 observationCardinalityNext,
-            uint8 feeProtocol,
-            bool unlocked
-        );
-
-    function token0() external view returns (address);
-
-    function token1() external view returns (address);
 }

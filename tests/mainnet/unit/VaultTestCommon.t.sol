@@ -6,6 +6,8 @@ import "../Constants.sol";
 contract VaultTestCommon is Test {
     using SafeERC20 for IERC20;
 
+    function test() external pure {}
+
     address public immutable admin =
         address(bytes20(keccak256("mellow-vault-admin")));
 
@@ -81,7 +83,7 @@ contract VaultTestCommon is Test {
 
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 10 gwei;
-        vault.deposit(address(vault), amounts, 10 gwei, type(uint256).max);
+        vault.deposit(address(vault), amounts, 10 gwei, type(uint256).max, 0);
 
         assertEq(IERC20(Constants.WSTETH).balanceOf(address(vault)), 10 gwei);
         assertEq(IERC20(Constants.RETH).balanceOf(address(vault)), 0);
@@ -112,6 +114,4 @@ contract VaultTestCommon is Test {
             depositRole
         );
     }
-
-    function test() public pure {}
 }

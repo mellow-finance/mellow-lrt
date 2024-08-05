@@ -61,7 +61,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
             );
             uint256[] memory amounts = new uint256[](1);
             amounts[0] = 1 ether;
-            IVault(setup.vault).deposit(user, amounts, 0, type(uint256).max);
+            IVault(setup.vault).deposit(user, amounts, 0, type(uint256).max, 0);
 
             vm.stopPrank();
 
@@ -142,7 +142,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
             );
             uint256[] memory amounts = new uint256[](1);
             amounts[0] = 1 ether;
-            IVault(setup.vault).deposit(user, amounts, 0, type(uint256).max);
+            IVault(setup.vault).deposit(user, amounts, 0, type(uint256).max, 0);
 
             vm.stopPrank();
 

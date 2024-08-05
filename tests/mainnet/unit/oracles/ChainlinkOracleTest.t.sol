@@ -275,6 +275,35 @@ contract Unit is Test {
         }
     }
 
+    function testPriceX96StethUsdc() external {
+        address admin = address(bytes20(keccak256("vault-admin")));
+        ChainlinkOracle oracle = new ChainlinkOracle();
+        VaultMock vault = new VaultMock(admin);
+        address[] memory tokens = new address[](2);
+        tokens[0] = Constants.STETH; // 18 decimals
+        tokens[1] = Constants.USDC; // 8 decimals
+
+        address[] memory oracles = new address[](2);
+        oracles[0] = 0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8; // steth-usd oracle, 18 decimals
+        oracles[1] = 0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6; // usdc-usd oracle, 8 decimals
+
+        vm.prank(admin);
+        oracle.setChainlinkOracles(address(vault), tokens, _convert(oracles));
+
+        vm.prank(admin);
+        oracle.setBaseToken(address(vault), Constants.USDC);
+
+        uint256 priceX96 = oracle.priceX96(address(vault), Constants.STETH);
+        // 1 eth ~= 2917 usdc
+        // expectedPriceX96 = 2917 * 1e-12 * 2**96
+        uint256 expectedPriceX96 = uint256(2917 * 2 ** 96) / 1e12;
+        if (block.number == 19845261) assertEq(priceX96, 231158100161121504871);
+        assertApproxEqAbs(priceX96, expectedPriceX96, uint256(2 ** 96) / 100);
+
+        uint256 oneEthPriceInUsdc = FullMath.mulDiv(1 ether, priceX96, 2 ** 96);
+        assertApproxEqAbs(oneEthPriceInUsdc, 2917 * 1e6, 1e6);
+    }
+
     function testPriceX96FailsWithBaseStaleOracle() external {
         address admin = address(bytes20(keccak256("vault-admin")));
         ChainlinkOracle oracle = new ChainlinkOracle();

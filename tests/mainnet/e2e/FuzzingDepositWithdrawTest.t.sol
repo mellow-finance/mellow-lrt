@@ -113,7 +113,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
 
                 uint256 depositValue = FullMath.mulDiv(
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(amount),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(amount),
                     priceX96,
                     Q96
                 );
@@ -139,7 +139,8 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                     address(0),
                     amount,
                     0,
-                    type(uint256).max
+                    type(uint256).max,
+                    0
                 );
 
                 assertEq(expectedLpAmount, lpAmount);
@@ -215,7 +216,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }
@@ -299,7 +302,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }
@@ -382,7 +387,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
 
                 uint256 depositValue = FullMath.mulDiv(
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(amount),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(amount),
                     priceX96,
                     Q96
                 );
@@ -412,7 +417,8 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                     deployParams.weth,
                     amount,
                     0,
-                    type(uint256).max
+                    type(uint256).max,
+                    0
                 );
 
                 assertEq(expectedLpAmount, lpAmount);
@@ -488,7 +494,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }
@@ -572,7 +580,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }
@@ -656,7 +666,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
 
                 uint256 depositValue = FullMath.mulDiv(
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(amount),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(amount),
                     priceX96,
                     Q96
                 );
@@ -686,7 +696,8 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                     deployParams.steth,
                     amount,
                     0,
-                    type(uint256).max
+                    type(uint256).max,
+                    0
                 );
 
                 assertEq(expectedLpAmount, lpAmount);
@@ -762,7 +773,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }
@@ -846,7 +859,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }
@@ -932,7 +947,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
 
                 assertApproxEqAbs(
                     depositValue,
-                    IWSteth(deployParams.wsteth).getStETHByWstETH(amount),
+                    IWrappedSteth(deployParams.wsteth).getStETHByWstETH(amount),
                     MAX_ERROR_DEPOSIT
                 );
 
@@ -959,7 +974,8 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                     deployParams.wsteth,
                     amount,
                     0,
-                    type(uint256).max
+                    type(uint256).max,
+                    0
                 );
 
                 assertEq(expectedLpAmount, lpAmount);
@@ -1035,7 +1051,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }
@@ -1119,7 +1137,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }
@@ -1205,7 +1225,7 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
 
                 assertApproxEqAbs(
                     depositValue,
-                    IWSteth(deployParams.wsteth).getStETHByWstETH(amount),
+                    IWrappedSteth(deployParams.wsteth).getStETHByWstETH(amount),
                     MAX_ERROR_DEPOSIT
                 );
 
@@ -1233,7 +1253,8 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                     user,
                     amounts,
                     0,
-                    type(uint256).max
+                    type(uint256).max,
+                    0
                 );
 
                 assertEq(expectedLpAmount, lpAmount);
@@ -1309,7 +1330,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }
@@ -1393,7 +1416,9 @@ contract FuzzingDepositWithdrawTest is DeployScript, Validator, Test {
                 );
                 expectedWithdrawalAmounts[i] = FullMath.mulDiv(
                     setup.vault.withdrawalRequest(users[i]).lpAmount,
-                    IWSteth(deployParams.wsteth).getWstETHByStETH(totalValue),
+                    IWrappedSteth(deployParams.wsteth).getWstETHByStETH(
+                        totalValue
+                    ),
                     setup.vault.totalSupply()
                 );
             }

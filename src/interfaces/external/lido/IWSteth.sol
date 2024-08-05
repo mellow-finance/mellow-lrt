@@ -9,8 +9,4 @@ interface IWSteth {
     function getStETHByWstETH(
         uint256 wstethAmount
     ) external view returns (uint256);
-
-    function getWstETHByStETH(
-        uint256 stethAmount
-    ) external view returns (uint256);
 }

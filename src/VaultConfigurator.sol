@@ -31,13 +31,13 @@ contract VaultConfigurator is IVaultConfigurator, ReentrancyGuard {
     Data private _withdrawalCallback;
     Data private _withdrawalFeeD9;
     Data private _maximalTotalSupply;
-    Data private _isDepositLocked; // nothing
+    Data private _isDepositLocked;
     Data private _areTransfersLocked;
     Data private _ratiosOracle;
     Data private _priceOracle;
     Data private _validator;
 
-    mapping(address => Data) private _isDelegateModuleApproved; // bool
+    mapping(address => Data) private _isDelegateModuleApproved;
 
     constructor() {
         vault = msg.sender;

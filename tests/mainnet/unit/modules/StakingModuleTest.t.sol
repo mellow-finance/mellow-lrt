@@ -12,17 +12,14 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
         assertEq(module.weth(), Constants.WETH);
         assertEq(module.steth(), Constants.STETH);
         assertEq(module.wsteth(), Constants.WSTETH);
-        assertEq(
-            address(module.depositSecurityModule()),
-            Constants.DEPOSIT_SECURITY_MODULE
-        );
+        assertEq(address(module.lidoLocator()), Constants.LIDO_LOCATOR);
         assertEq(address(module.withdrawalQueue()), Constants.WITHDRAWAL_QUEUE);
         assertEq(module.stakingModuleId(), Constants.SIMPLE_DVT_MODULE_ID);
 
@@ -30,14 +27,14 @@ contract Unit is Test {
             address(0),
             address(0),
             address(0),
-            IDepositSecurityModule(address(0)),
+            ILidoLocator(address(0)),
             IWithdrawalQueue(address(0)),
             0
         );
         assertEq(module.weth(), address(0));
         assertEq(module.steth(), address(0));
         assertEq(module.wsteth(), address(0));
-        assertEq(address(module.depositSecurityModule()), address(0));
+        assertEq(address(module.lidoLocator()), address(0));
         assertEq(address(module.withdrawalQueue()), address(0));
         assertEq(module.stakingModuleId(), 0);
     }
@@ -47,7 +44,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -57,7 +54,6 @@ contract Unit is Test {
 
         vm.expectRevert(abi.encodeWithSignature("Forbidden()"));
         module.convertAndDeposit(
-            0,
             0,
             bytes32(0),
             bytes32(0),
@@ -72,7 +68,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -198,7 +194,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -220,7 +216,6 @@ contract Unit is Test {
         (bool success, bytes memory response) = address(module).delegatecall(
             abi.encodeWithSelector(
                 module.convertAndDeposit.selector,
-                1 ether,
                 blockNumber,
                 blockHash,
                 depositRoot,
@@ -257,7 +252,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -276,10 +271,54 @@ contract Unit is Test {
 
         deal(Constants.WETH, address(this), 1 ether);
 
+        (bool success, ) = address(module).delegatecall(
+            abi.encodeWithSelector(
+                module.convertAndDeposit.selector,
+                blockNumber,
+                blockHash,
+                depositRoot,
+                nonce,
+                depositCalldata,
+                sortedGuardianSignatures
+            )
+        );
+
+        assertTrue(success);
+
+        // assertEq(IERC20(Constants.WETH).balanceOf(address(this)), 1 ether);
+        // assertEq(IERC20(Constants.STETH).balanceOf(address(this)), 0);
+        // assertEq(IERC20(Constants.WSTETH).balanceOf(address(this)), 0);
+        // assertEq(abi.encodeWithSignature("NotEnoughWeth()"), response);
+        vm.stopPrank();
+    }
+
+    function testConvertAndDepositFailsWithInvalidAmount() external {
+        StakingModule module = new StakingModule(
+            Constants.WETH,
+            Constants.STETH,
+            Constants.WSTETH,
+            ILidoLocator(Constants.LIDO_LOCATOR),
+            IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
+            Constants.SIMPLE_DVT_MODULE_ID
+        );
+
+        uint256 blockNumber = block.number - 1;
+        Vm.Wallet memory guardian = vm.createWallet("guardian");
+
+        simplifyDepositSecurityModule(guardian);
+        (
+            bytes32 blockHash,
+            bytes32 depositRoot,
+            uint256 nonce,
+            bytes memory depositCalldata,
+            IDepositSecurityModule.Signature[] memory sortedGuardianSignatures
+        ) = getAllDepositParams(blockNumber, guardian);
+
+        deal(Constants.WETH, address(this), 0 ether);
+
         (bool success, bytes memory response) = address(module).delegatecall(
             abi.encodeWithSelector(
                 module.convertAndDeposit.selector,
-                2 ether,
                 blockNumber,
                 blockHash,
                 depositRoot,
@@ -290,12 +329,7 @@ contract Unit is Test {
         );
 
         assertFalse(success);
-
-        assertEq(IERC20(Constants.WETH).balanceOf(address(this)), 1 ether);
-        assertEq(IERC20(Constants.STETH).balanceOf(address(this)), 0);
-        assertEq(IERC20(Constants.WSTETH).balanceOf(address(this)), 0);
-
-        assertEq(abi.encodeWithSignature("NotEnoughWeth()"), response);
+        assertEq(abi.encodeWithSignature("InvalidAmount()"), response);
         vm.stopPrank();
     }
 
@@ -306,7 +340,7 @@ contract Unit is Test {
             Constants.WETH,
             Constants.STETH,
             Constants.WSTETH,
-            IDepositSecurityModule(Constants.DEPOSIT_SECURITY_MODULE),
+            ILidoLocator(Constants.LIDO_LOCATOR),
             IWithdrawalQueue(Constants.WITHDRAWAL_QUEUE),
             Constants.SIMPLE_DVT_MODULE_ID
         );
@@ -334,7 +368,6 @@ contract Unit is Test {
         (bool success, bytes memory response) = address(module).delegatecall(
             abi.encodeWithSelector(
                 module.convertAndDeposit.selector,
-                1 ether,
                 blockNumber,
                 blockHash,
                 depositRoot,

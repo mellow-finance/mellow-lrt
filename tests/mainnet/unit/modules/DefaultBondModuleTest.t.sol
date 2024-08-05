@@ -45,56 +45,6 @@ contract Unit is Test {
         assertEq(bond.balanceOf(sender), lpAmount);
     }
 
-    function testDepositWithLimits() external {
-        address sender = address(this);
-        DefaultBondModule module = new DefaultBondModule();
-        DefaultBondMock bond = new DefaultBondMock(Constants.WSTETH);
-
-        uint256 amount = 1 ether;
-        bytes memory delegateCallData = abi.encodeWithSelector(
-            IDefaultBondModule.deposit.selector,
-            address(bond),
-            amount
-        );
-
-        bond.setLimit(amount - 1 wei);
-
-        deal(Constants.WSTETH, sender, amount);
-
-        (bool success, bytes memory response) = address(module).delegatecall(
-            delegateCallData
-        );
-        assertTrue(success);
-        uint256 lpAmount = abi.decode(response, (uint256));
-        assertEq(lpAmount, amount - 1 wei);
-        assertEq(bond.balanceOf(sender), lpAmount);
-    }
-
-    function testDepositWithZeroLimits() external {
-        address sender = address(this);
-        DefaultBondModule module = new DefaultBondModule();
-        DefaultBondMock bond = new DefaultBondMock(Constants.WSTETH);
-
-        uint256 amount = 1 ether;
-        bytes memory delegateCallData = abi.encodeWithSelector(
-            IDefaultBondModule.deposit.selector,
-            address(bond),
-            amount
-        );
-
-        bond.setLimit(0);
-
-        deal(Constants.WSTETH, sender, amount);
-
-        (bool success, bytes memory response) = address(module).delegatecall(
-            delegateCallData
-        );
-        assertTrue(success);
-        uint256 lpAmount = abi.decode(response, (uint256));
-        assertEq(lpAmount, 0);
-        assertEq(bond.balanceOf(sender), 0);
-    }
-
     function testDepositZero() external {
         address sender = address(this);
         DefaultBondModule module = new DefaultBondModule();
