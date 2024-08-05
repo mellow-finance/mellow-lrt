@@ -21,18 +21,6 @@ contract SunsetTest is SolvencyRunner {
                 stakingModuleRole: 0x16eb61328b9dCC48A386075035d6d4aeDee873C9
             });
         }
-
-        deployParams = Deployments.deployParameters();
-        deal(
-            deployParams.weth,
-            deployParams.deployer,
-            deployParams.initialDepositWETH
-        );
-
-        vm.startPrank(deployParams.deployer);
-        deployParams = commonContractsDeploy(deployParams);
-        (deployParams, setup) = deploy(deployParams);
-        vm.stopPrank();
     }
 
     function prepare() internal {
@@ -63,7 +51,7 @@ contract SunsetTest is SolvencyRunner {
         transition_convert_and_deposit();
     }
 
-    function testSunset() external {
+    function runSunsetTest() internal {
         // creating multiple deposits + withdrawal requests
         prepare();
 
@@ -73,5 +61,48 @@ contract SunsetTest is SolvencyRunner {
         // validation process
         validate_invariants();
         validate_final_invariants();
+    }
+
+    function testSunset() external {
+        deployParams = Deployments.deployParameters();
+        deal(
+            deployParams.weth,
+            deployParams.deployer,
+            deployParams.initialDepositWETH
+        );
+
+        vm.startPrank(deployParams.deployer);
+        deployParams = commonContractsDeploy(deployParams);
+        (deployParams, setup) = deploy(deployParams);
+        vm.stopPrank();
+
+        runSunsetTest();
+    }
+
+    function testSunsetOnchain() external {
+        Deployments.Deployment[] memory deployments = Deployments.deployments();
+
+        uint256 index = 0;
+        deployParams = deployments[index].deployParams;
+        setup = deployments[index].deploySetup;
+
+        // setting initial values
+        cumulative_deposits_weth =
+            _tvl_weth(false) -
+            deployParams.initialDepositWETH;
+        cumulative_processed_withdrawals_weth = 0;
+
+        initial_weth_balance = (_tvl_weth(false) * 99) / 100;
+        {
+            uint256 total_pending = setup.vault.balanceOf(address(setup.vault));
+            uint256 total_supply = setup.vault.totalSupply();
+            initial_weth_balance = Math.mulDiv(
+                initial_weth_balance,
+                total_supply - total_pending,
+                total_pending
+            );
+        }
+
+        runSunsetTest();
     }
 }

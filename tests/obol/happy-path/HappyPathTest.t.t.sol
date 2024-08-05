@@ -5,8 +5,6 @@ import "../solvency/SolvencyRunner.sol";
 import "../Deployments.sol";
 
 contract HappyPathTest is SolvencyRunner {
-    using SafeERC20 for IERC20;
-
     function setUp() external {
         if (block.chainid == 1) {
             chainSetup = ChainSetup({
@@ -21,21 +19,9 @@ contract HappyPathTest is SolvencyRunner {
                 stakingModuleRole: 0x16eb61328b9dCC48A386075035d6d4aeDee873C9
             });
         }
-
-        deployParams = Deployments.deployParameters();
-        deal(
-            deployParams.weth,
-            deployParams.deployer,
-            deployParams.initialDepositWETH
-        );
-
-        vm.startPrank(deployParams.deployer);
-        deployParams = commonContractsDeploy(deployParams);
-        (deployParams, setup) = deploy(deployParams);
-        vm.stopPrank();
     }
 
-    function testHappyPath() external {
+    function runHappyPath() internal {
         set_inf_stake_limit();
         set_inf_dsm_max_deposits();
         set_vault_limit(1e9 ether);
@@ -66,5 +52,28 @@ contract HappyPathTest is SolvencyRunner {
         finalize_test();
         validate_invariants();
         validate_final_invariants();
+    }
+
+    function testHappyPath() external {
+        deployParams = Deployments.deployParameters();
+        deal(
+            deployParams.weth,
+            deployParams.deployer,
+            deployParams.initialDepositWETH
+        );
+
+        vm.startPrank(deployParams.deployer);
+        deployParams = commonContractsDeploy(deployParams);
+        (deployParams, setup) = deploy(deployParams);
+        vm.stopPrank();
+        runHappyPath();
+    }
+
+    function testHappyPathOnchain() external {
+        Deployments.Deployment[] memory deployments = Deployments.deployments();
+        uint256 index = 0;
+        deployParams = deployments[index].deployParams;
+        setup = deployments[index].deploySetup;
+        runHappyPath();
     }
 }

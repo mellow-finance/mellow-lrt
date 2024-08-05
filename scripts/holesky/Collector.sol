@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../src/Vault.sol";
 import "../../src/VaultConfigurator.sol";
@@ -24,8 +25,6 @@ import "../../src/modules/obol/StakingModule.sol";
 
 import "../../src/modules/symbiotic/DefaultBondModule.sol";
 import "../../src/modules/symbiotic/DefaultBondTvlModule.sol";
-
-import "../../src/libraries/external/FullMath.sol";
 
 import "../../src/interfaces/external/lido/ISteth.sol";
 import "../../src/interfaces/external/lido/IWSteth.sol";
