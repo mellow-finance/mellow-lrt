@@ -81,18 +81,33 @@ contract SymbioticVaultStrategy is DefaultAccessControl {
         bytes[] calldata hints
     ) external {
         _requireAtLeastOperator();
-        Data memory data = farmToData[token];
+        Data memory farmData = farmToData[token];
         require(
-            data.farm != address(0),
+            farmData.farm != address(0),
             "SymbioticVaultStrategy: farm not set"
         );
         rewardsModule.claimRewards(
-            data.stakerRewards,
-            data.farm,
+            farmData.stakerRewards,
+            farmData.farm,
             token,
             network,
             maxRewards,
             hints
+        );
+    }
+
+    function transferRewards(address token, bytes calldata data) private {
+        _requireAtLeastOperator();
+        Data memory farmData = farmToData[token];
+        require(
+            farmData.farm != address(0),
+            "SymbioticVaultStrategy: farm not set"
+        );
+        rewardsModule.claimRewards(
+            farmData.stakerRewards,
+            farmData.farm,
+            token,
+            data
         );
     }
 
