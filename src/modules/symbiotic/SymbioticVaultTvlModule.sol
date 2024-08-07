@@ -9,14 +9,6 @@ import {ICollateral as ISymbioticCollateral} from "../../interfaces/external/sym
 import {IDefaultAccessControl} from "../../interfaces/utils/IDefaultAccessControl.sol";
 import {ITvlModule} from "../../interfaces/modules/ITvlModule.sol";
 
-/*
-    TODO:
-        add logs
-        check permissions
-        add strategy contract
-        add contract with limits (SymbioticDelegateModule (?))
-*/
-
 contract SymbioticVaultTvlModule is ITvlModule {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -100,8 +92,6 @@ contract SymbioticVaultTvlModule is ITvlModule {
             uint256[] memory epochs = symbioticEpochsForVault[vault][
                 address(symbioticVault)
             ];
-
-            data = new Data[](1);
             data[i].token = address(0); // impossible to get base token, b.o. Symbiotic vault is not ERC20 compatibe.
             data[i].underlyingToken = ISymbioticCollateral(
                 symbioticVault.collateral()
