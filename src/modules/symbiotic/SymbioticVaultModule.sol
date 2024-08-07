@@ -3,10 +3,11 @@ pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/external/symbiotic/vault/IVault.sol";
+import {IVault as ISymbioticVault} from "../../interfaces/external/symbiotic/vault/IVault.sol";
+
 import "../DefaultModule.sol";
 
-import "./SymbioticVaultTvlModule.sol";
+import {SymbioticVaultTvlModule} from "./SymbioticVaultTvlModule.sol";
 
 contract SymbioticVaultModule is DefaultModule {
     using SafeERC20 for IERC20;
@@ -20,7 +21,7 @@ contract SymbioticVaultModule is DefaultModule {
     }
 
     function allowAndDeposit(
-        IVault vault,
+        ISymbioticVault vault,
         address onBehalfOf,
         uint256 amount
     ) external onlyDelegateCall returns (uint256 shares) {
@@ -30,7 +31,7 @@ contract SymbioticVaultModule is DefaultModule {
     }
 
     function withdraw(
-        IVault vault,
+        ISymbioticVault vault,
         address claimer,
         uint256 amount
     )
@@ -44,7 +45,7 @@ contract SymbioticVaultModule is DefaultModule {
     }
 
     function claim(
-        IVault vault,
+        ISymbioticVault vault,
         address recipient,
         uint256 epoch
     ) external onlyDelegateCall returns (uint256 amount) {
@@ -53,7 +54,7 @@ contract SymbioticVaultModule is DefaultModule {
     }
 
     function claimBatch(
-        IVault vault,
+        ISymbioticVault vault,
         address recipient,
         uint256[] memory epochs
     ) external onlyDelegateCall returns (uint256 amount) {

@@ -1,17 +1,36 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "../../interfaces/external/symbiotic/vault/IVault.sol";
+import {IStakerRewards} from "../../interfaces/external/symbiotic/rewards/stakerRewards/IStakerRewards.sol";
 import "../DefaultModule.sol";
 
-contract SymbioticVaultModule is DefaultModule {
-    using SafeERC20 for IERC20;
+contract SymbioticStakerRewardsModule is DefaultModule {
+    function claimRewards(
+        address stakerRewards,
+        address recipient,
+        address token,
+        bytes calldata data
+    ) external onlyDelegateCall {
+        IStakerRewards(stakerRewards).claimRewards(recipient, token, data);
+    }
 
-    function claimRewards()
-        external
-        onlyDelegateCall
-        returns (uint256 shares)
-    {}
+    function claimRewards(
+        address defaultStakerRewards,
+        address recipient,
+        address token,
+        address network,
+        uint256 maxRewards,
+        bytes[] calldata activeSharesOfHints
+    ) external onlyDelegateCall {
+        bytes memory data = abi.encode(
+            network,
+            maxRewards,
+            activeSharesOfHints
+        );
+        IStakerRewards(defaultStakerRewards).claimRewards(
+            recipient,
+            token,
+            data
+        );
+    }
 }
