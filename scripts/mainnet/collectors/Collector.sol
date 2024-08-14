@@ -7,15 +7,10 @@ import "../../../src/interfaces/external/chainlink/IAggregatorV3.sol";
 import "../../../src/interfaces/external/lido/IWSteth.sol";
 import "../../../src/interfaces/IVault.sol";
 import "../../../src/interfaces/oracles/IChainlinkOracle.sol";
-import "./IDefiCollector.sol";
-
-import "../../../src/utils/DefaultAccessControl.sol";
 
 import "../../../src/libraries/external/FullMath.sol";
 
-contract Collector is DefaultAccessControl {
-    using EnumerableSet for EnumerableSet.AddressSet;
-
+contract Collector {
     struct Response {
         address vault;
         uint256 balance; // Vault.balanceOf(user)
@@ -55,11 +50,11 @@ contract Collector is DefaultAccessControl {
     address public immutable steth;
     address public immutable ena;
     address public immutable susde;
+    address public immutable wbtc;
 
     IAggregatorV3 public immutable wstethOracle;
     IAggregatorV3 public immutable wethOracle;
-
-    EnumerableSet.AddressSet private collectors_;
+    IAggregatorV3 public immutable wbtcOracle;
 
     constructor(
         address wsteth_,
@@ -67,17 +62,20 @@ contract Collector is DefaultAccessControl {
         address steth_,
         address ena_,
         address susde_,
+        address wbtc_,
         IAggregatorV3 _wstethOracle,
         IAggregatorV3 _wethToUSDOracle,
-        address admin_
-    ) DefaultAccessControl(admin_) {
+        IAggregatorV3 _wbtcToUSDOracle
+    ) {
         wsteth = wsteth_;
         weth = weth_;
         steth = steth_;
         ena = ena_;
         susde = susde_;
+        wbtc = wbtc_;
         wstethOracle = _wstethOracle;
         wethOracle = _wethToUSDOracle;
+        wbtcOracle = _wbtcToUSDOracle;
     }
 
     function collect(
@@ -216,7 +214,7 @@ contract Collector is DefaultAccessControl {
             responses[i].balance += responses[i].withdrawalRequest.lpAmount;
         }
 
-        return mergeWithDefiCollectors(user, vaults, responses);
+        return responses;
     }
 
     function multiCollect(
@@ -274,7 +272,7 @@ contract Collector is DefaultAccessControl {
 
     function fetchDepositWrapperParams(
         address vault,
-        address wrapper,
+        address /* user */,
         address token,
         uint256 amount
     )
@@ -291,22 +289,7 @@ contract Collector is DefaultAccessControl {
         if (IVault(vault).configurator().isDepositLocked())
             return (false, false, false, 0, 0);
         isDepositPossible = true;
-        {
-            IValidator validator = IValidator(
-                IVault(vault).configurator().validator()
-            );
-            try
-                validator.validate(
-                    wrapper,
-                    vault,
-                    abi.encodeWithSelector(IVault.deposit.selector)
-                )
-            {
-                isDepositorWhitelisted = true;
-            } catch {
-                return (true, false, false, 0, 0);
-            }
-        }
+        isDepositorWhitelisted = true;
         uint256 depositValue = amount;
         if (token == wsteth) {
             (, int256 sAnswer, , , ) = wstethOracle.latestRoundData();
@@ -344,26 +327,11 @@ contract Collector is DefaultAccessControl {
     function fetchDepositAmounts(
         uint256[] memory amounts,
         address vault,
-        address user
+        address /* user */
     ) external view returns (FetchDepositAmountsResponse memory r) {
         if (IVault(vault).configurator().isDepositLocked()) return r;
         r.isDepositPossible = true;
-        {
-            IValidator validator = IValidator(
-                IVault(vault).configurator().validator()
-            );
-            try
-                validator.validate(
-                    user,
-                    vault,
-                    abi.encodeWithSelector(IVault.deposit.selector)
-                )
-            {
-                r.isDepositorWhitelisted = true;
-            } catch {
-                return r;
-            }
-        }
+        r.isDepositorWhitelisted = true;
         address[] memory vaults = new address[](1);
         vaults[0] = vault;
         Response memory response = collect(address(0), vaults)[0];
@@ -424,134 +392,6 @@ contract Collector is DefaultAccessControl {
         }
     }
 
-    function addCollectors(address collector_) external {
-        _requireAdmin();
-        collectors_.add(collector_);
-    }
-
-    function removeCollector() external {
-        _requireAdmin();
-        collectors_.remove(msg.sender);
-    }
-
-    function isOneOf(address x, address[] memory a) public pure returns (bool) {
-        for (uint256 i = 0; i < a.length; i++) if (a[i] == x) return true;
-        return false;
-    }
-
-    function haveCommon(
-        address[] memory a,
-        address[] memory b
-    ) public pure returns (bool) {
-        for (uint256 i = 0; i < a.length; i++)
-            if (isOneOf(a[i], b)) return true;
-        return false;
-    }
-
-    function mergeWithDefiCollectors(
-        address user,
-        address[] memory vaults,
-        Response[] memory responses
-    ) public view returns (Response[] memory fullResponses) {
-        address[] memory collectors = collectors_.values();
-        fullResponses = new Response[](1 << 10);
-        uint256 itr = 0;
-        while (itr < responses.length) {
-            fullResponses[itr] = responses[itr];
-            itr++;
-        }
-        address[] memory users = new address[](1);
-        users[0] = user;
-        for (uint256 i = 0; i < collectors.length; i++) {
-            IDefiCollector.Data[] memory data = IDefiCollector(collectors[i])
-                .collect(users);
-
-            for (uint256 j = 0; j < data.length; j++) {
-                IERC20[] memory tokens = data[j].tokens;
-                address[] memory tokens_ = new address[](tokens.length);
-                for (uint256 k = 0; k < tokens.length; k++) {
-                    tokens_[k] = address(tokens[k]);
-                }
-                if (!haveCommon(tokens_, vaults)) continue;
-                IDefiCollector.UserData memory userData = data[j].users[0];
-
-                Response memory response;
-                response.balance = userData.lpAmount;
-                response.vault = data[j].pool;
-                response.isDefi = true;
-                response.underlyingTokens = tokens_;
-                response.underlyingAmounts = data[j].balances;
-                response.underlyingTokenDecimals = new uint8[](tokens.length);
-                for (uint256 k = 0; k < tokens.length; k++) {
-                    response.underlyingTokenDecimals[k] = IERC20Metadata(
-                        tokens_[k]
-                    ).decimals();
-                }
-                response.totalSupply = data[j].totalSupply;
-                response.pricesX96 = new uint256[](tokens.length);
-
-                for (uint256 k = 0; k < tokens.length; k++) {
-                    response.pricesX96[k] = convertTokenIntoEth(
-                        responses,
-                        tokens_[k],
-                        Q96
-                    );
-                    response.totalValueETH += FullMath.mulDiv(
-                        response.pricesX96[k],
-                        response.underlyingAmounts[k],
-                        Q96
-                    );
-                }
-
-                response.totalValueUSDC = convertWethToUSDC(
-                    response.totalValueETH
-                );
-                response.userBalanceETH = FullMath.mulDiv(
-                    response.totalValueETH,
-                    response.balance,
-                    response.totalSupply
-                );
-                response.userBalanceUSDC = convertWethToUSDC(
-                    response.userBalanceETH
-                );
-                response.lpPriceD18 = FullMath.mulDiv(
-                    response.totalValueUSDC,
-                    D18,
-                    response.totalSupply
-                );
-                fullResponses[itr++] = response;
-            }
-        }
-
-        assembly {
-            mstore(fullResponses, itr)
-        }
-    }
-
-    function getVaultResponse(
-        Response[] memory responses,
-        address vault
-    ) public pure returns (Response memory r) {
-        for (uint256 i = 0; i < responses.length; i++) {
-            Response memory response = responses[i];
-            if (response.vault == vault) return response;
-        }
-    }
-
-    function convertTokenIntoEth(
-        Response[] memory responses,
-        address token,
-        uint256 amount
-    ) public view returns (uint256 ethAmount) {
-        Response memory r = getVaultResponse(responses, token);
-        if (r.vault != address(0))
-            return FullMath.mulDiv(amount, r.totalValueETH, r.totalSupply);
-        if (token == weth || token == steth) return amount;
-        if (token == wsteth) return IWSteth(wsteth).getStETHByWstETH(amount);
-        // by default == 1
-        return amount;
-    }
-
     function convertBaseTokenPriceToWethPrice(
         uint256 priceX96,
         address token
@@ -587,12 +427,15 @@ contract Collector is DefaultAccessControl {
                 );
         } else if (token == wsteth) {
             return IWSteth(wsteth).getStETHByWstETH(priceX96);
+        } else if (token == wbtc) {
+            (, int256 answer, , , ) = IAggregatorV3(
+                0xdeb288F737066589598e9214E782fa5A8eD689e8
+            ).latestRoundData();
+            return FullMath.mulDiv(priceX96, uint256(answer), 1e8);
         } else {
             revert("Unsupported token");
         }
     }
-
-    function test() external pure {}
 }
 
 interface IUniswapV3Pool {
