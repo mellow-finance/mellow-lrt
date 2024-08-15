@@ -30,9 +30,9 @@ library DeployConstants {
     address public constant MAINNET_TEST_DEPLOYER =
         0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 
-    address public constant MELLOW_LIDO_MULTISIG =
+    address public constant MELLOW_WSTETH_MULTISIG =
         0x9437B2a8cF3b69D782a61f9814baAbc172f72003;
-    address public constant MELLOW_LIDO_PROXY_MULTISIG =
+    address public constant MELLOW_WSTETH_PROXY_MULTISIG =
         0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
 
     address public constant Quasar_WSTETH_MULTISIG =
