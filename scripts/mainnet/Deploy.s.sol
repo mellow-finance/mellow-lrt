@@ -21,6 +21,10 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         symbols[0] = DeployConstants.Quasar_VAULT_SYMBOL;
         symbols[1] = DeployConstants.Bedrock_VAULT_SYMBOL;
 
+        uint256 maximalTotalSupplies = new string[](n);
+        maximalTotalSupplies[0] = DeployConstants.MAXIMAL_TOTAL_SUPPLY_QUASAR;
+        maximalTotalSupplies[1] = DeployConstants.MAXIMAL_TOTAL_SUPPLY_BEDROCK;
+
         DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
             .DeployParameters({
                 deployer: DeployConstants.MAINNET_DEPLOYER,
@@ -35,7 +39,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
                 wsteth: DeployConstants.WSTETH,
                 steth: DeployConstants.STETH,
                 weth: DeployConstants.WETH,
-                maximalTotalSupply: DeployConstants.MAXIMAL_TOTAL_SUPPLY,
+                maximalTotalSupply: 0,
                 initialDepositETH: DeployConstants.INITIAL_DEPOSIT_ETH,
                 firstDepositETH: DeployConstants.FIRST_DEPOSIT_ETH,
                 initializer: Initializer(
@@ -78,20 +82,12 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             deployParams.curator = curators[i];
             deployParams.lpTokenName = names[i];
             deployParams.lpTokenSymbol = symbols[i];
+            deployParams.maximalTotalSupply = maximalTotalSupplies[i];
 
             vm.recordLogs();
             (deployParams, setups[i]) = deploy(deployParams);
             validateParameters(deployParams, setups[i], 0);
             validateEvents(deployParams, setups[i], vm.getRecordedLogs());
-            setups[i].depositWrapper.deposit{
-                value: deployParams.firstDepositETH
-            }(
-                deployParams.deployer,
-                address(0),
-                deployParams.firstDepositETH,
-                0,
-                type(uint256).max
-            );
         }
 
         vm.stopBroadcast();
@@ -99,6 +95,8 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             logSetup(setups[i]);
         }
         logDeployParams(deployParams);
+
+        revert("success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {

@@ -84,6 +84,8 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             deployParams.maximalTotalSupply = maximalTotalSupplies[i];
 
             (deployParams, setups[i]) = deploy(deployParams);
+            validateParameters(deployParams, setups[i], 0);
+            validateEvents(deployParams, setups[i], vm.getRecordedLogs());
         }
 
 
@@ -93,7 +95,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         }
         logDeployParams(deployParams);
 
-        // revert("success");
+        revert("success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {

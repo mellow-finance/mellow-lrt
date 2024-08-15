@@ -98,7 +98,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         }
         logDeployParams(deployParams);
 
-        // revert("success");
+        revert("success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {
