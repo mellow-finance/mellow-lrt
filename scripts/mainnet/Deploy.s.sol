@@ -78,7 +78,11 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             memory setups = new DeployInterfaces.DeploySetup[](n);
         vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
         deployParams = commonContractsDeploy(deployParams);
+
+        uint256 index = 0;
+
         for (uint256 i = 0; i < n; i++) {
+            if (index != i) continue;
             deployParams.curator = curators[i];
             deployParams.lpTokenName = names[i];
             deployParams.lpTokenSymbol = symbols[i];
@@ -92,6 +96,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
 
         vm.stopBroadcast();
         for (uint256 i = 0; i < n; i++) {
+            if (index != i) continue;
             logSetup(setups[i]);
         }
         logDeployParams(deployParams);
