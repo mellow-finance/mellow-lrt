@@ -39,7 +39,7 @@ library DeployConstants {
     address public constant Quasar_WSTETH_MULTISIG =
         0x013B33aAdae8aBdc7c2B1529BB28a37299D6EadE;
     address public constant Bedrock_MULTISIG =
-        0x0000000000000000000000000000000000000000;
+        0x9275cC6de34471f4a669e9dc0F90994Ad6702DA9;
 
     // ---------- Ethereum Mainnet ----------
 
