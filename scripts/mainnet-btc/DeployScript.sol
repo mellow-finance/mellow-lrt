@@ -50,21 +50,18 @@ abstract contract DeployScript is CommonBase {
             DeployInterfaces.DeploySetup memory s
         )
     {
-        // {
-        //     // TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-        //     //     address(deployParams.initializer),
-        //     //     address(deployParams.deployer),
-        //     //     new bytes(0)
-        //     // );
-            TransparentUpgradeableProxy proxy = TransparentUpgradeableProxy(payable(
-                0x7F43fDe12A40dE708d908Fb3b9BFB8540d9Ce444
-            ));
+        {
+            TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+                address(deployParams.initializer),
+                address(deployParams.deployer),
+                new bytes(0)
+            );
 
-        //     // Initializer(address(proxy)).initialize(
-        //     //     deployParams.lpTokenName,
-        //     //     deployParams.lpTokenSymbol,
-        //     //     deployParams.deployer
-        //     // );
+            Initializer(address(proxy)).initialize(
+                deployParams.lpTokenName,
+                deployParams.lpTokenSymbol,
+                deployParams.deployer
+            );
 
             s.proxyAdmin = ProxyAdmin(
                 address(
@@ -75,244 +72,242 @@ abstract contract DeployScript is CommonBase {
                     )
                 )
             );
-        //     // s.proxyAdmin.upgradeAndCall(
-        //     //     ITransparentUpgradeableProxy(address(proxy)),
-        //     //     address(deployParams.initialImplementation),
-        //     //     new bytes(0)
-        //     // );
+            s.proxyAdmin.upgradeAndCall(
+                ITransparentUpgradeableProxy(address(proxy)),
+                address(deployParams.initialImplementation),
+                new bytes(0)
+            );
 
-        //     // s.proxyAdmin.transferOwnership(address(deployParams.proxyAdmin));
+            s.proxyAdmin.transferOwnership(address(deployParams.proxyAdmin));
             s.vault = Vault(payable(proxy));
-        // }
+        }
 
-        // // s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
-        // // s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
+        s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
+        s.vault.grantRole(s.vault.ADMIN_ROLE(), deployParams.admin);
 
         s.configurator = s.vault.configurator();
 
-        // // s.vault.addTvlModule(address(deployParams.erc20TvlModule));
-        // // s.vault.addTvlModule(address(deployParams.defaultBondTvlModule));
+        s.vault.addTvlModule(address(deployParams.erc20TvlModule));
+        s.vault.addTvlModule(address(deployParams.defaultBondTvlModule));
 
-        // // s.vault.addToken(deployParams.underlyingToken);
-        // // oracles setup
-        // {
-        //     // uint128[] memory ratiosX96 = new uint128[](1);
-        //     // ratiosX96[0] = 2 ** 96;
-        //     // deployParams.ratiosOracle.updateRatios(
-        //     //     address(s.vault),
-        //     //     true,
-        //     //     ratiosX96
-        //     // );
-        //     // ratiosX96[0] = 2 ** 96;
-        //     // deployParams.ratiosOracle.updateRatios(
-        //     //     address(s.vault),
-        //     //     false,
-        //     //     ratiosX96
-        //     // );
+        s.vault.addToken(deployParams.underlyingToken);
+        // oracles setup
+        {
+            uint128[] memory ratiosX96 = new uint128[](1);
+            ratiosX96[0] = 2 ** 96;
+            deployParams.ratiosOracle.updateRatios(
+                address(s.vault),
+                true,
+                ratiosX96
+            );
+            ratiosX96[0] = 2 ** 96;
+            deployParams.ratiosOracle.updateRatios(
+                address(s.vault),
+                false,
+                ratiosX96
+            );
 
-        //     // s.configurator.stageRatiosOracle(
-        //     //     address(deployParams.ratiosOracle)
-        //     // );
-        //     // s.configurator.commitRatiosOracle();
+            s.configurator.stageRatiosOracle(
+                address(deployParams.ratiosOracle)
+            );
+            s.configurator.commitRatiosOracle();
 
-        //     address[] memory tokens = new address[](1);
-        //     tokens[0] = deployParams.underlyingToken;
-        //     IChainlinkOracle.AggregatorData[]
-        //         memory data = new IChainlinkOracle.AggregatorData[](1);
-        //     data[0].aggregatorV3 = address(deployParams.constantAggregatorV3);
-        //     data[0].maxAge = 0;
+            address[] memory tokens = new address[](1);
+            tokens[0] = deployParams.underlyingToken;
+            IChainlinkOracle.AggregatorData[]
+                memory data = new IChainlinkOracle.AggregatorData[](1);
+            data[0].aggregatorV3 = address(deployParams.constantAggregatorV3);
+            data[0].maxAge = 0;
 
-        //     // deployParams.priceOracle.setBaseToken(
-        //     //     address(s.vault),
-        //     //     deployParams.underlyingToken
-        //     // );
-        //     deployParams.priceOracle.setChainlinkOracles(
-        //         address(s.vault),
-        //         tokens,
-        //         data
-        //     );
+            deployParams.priceOracle.setBaseToken(
+                address(s.vault),
+                deployParams.underlyingToken
+            );
+            deployParams.priceOracle.setChainlinkOracles(
+                address(s.vault),
+                tokens,
+                data
+            );
 
-        //     s.configurator.stagePriceOracle(address(deployParams.priceOracle));
-        //     s.configurator.commitPriceOracle();
-        // }
+            s.configurator.stagePriceOracle(address(deployParams.priceOracle));
+            s.configurator.commitPriceOracle();
+        }
 
-        // // setting initial total supply
-        // {
-        //     s.configurator.stageMaximalTotalSupply(
-        //         deployParams.maximalTotalSupply
-        //     );
-        //     s.configurator.commitMaximalTotalSupply();
-        // }
+        // setting initial total supply
+        {
+            s.configurator.stageMaximalTotalSupply(
+                deployParams.maximalTotalSupply
+            );
+            s.configurator.commitMaximalTotalSupply();
+        }
 
-        // // setting params for wsteth default bond in defaultBondTvlModule
-        // {
-        //     address[] memory supportedBonds = new address[](1);
-        //     supportedBonds[0] = deployParams.defaultBond;
-        //     deployParams.defaultBondTvlModule.setParams(
-        //         address(s.vault),
-        //         supportedBonds
-        //     );
-        // }
+        // setting params for wsteth default bond in defaultBondTvlModule
+        {
+            address[] memory supportedBonds = new address[](1);
+            supportedBonds[0] = deployParams.defaultBond;
+            deployParams.defaultBondTvlModule.setParams(
+                address(s.vault),
+                supportedBonds
+            );
+        }
 
-        // s.configurator.stageDelegateModuleApproval(
-        //     address(deployParams.defaultBondModule)
-        // );
-        // s.configurator.commitDelegateModuleApproval(
-        //     address(deployParams.defaultBondModule)
-        // );
+        s.configurator.stageDelegateModuleApproval(
+            address(deployParams.defaultBondModule)
+        );
+        s.configurator.commitDelegateModuleApproval(
+            address(deployParams.defaultBondModule)
+        );
 
-        // s.defaultBondStrategy = new DefaultBondStrategy(
-        //     deployParams.deployer,
-        //     s.vault,
-        //     deployParams.erc20TvlModule,
-        //     deployParams.defaultBondModule
-        // );
+        s.defaultBondStrategy = new DefaultBondStrategy(
+            deployParams.deployer,
+            s.vault,
+            deployParams.erc20TvlModule,
+            deployParams.defaultBondModule
+        );
 
-        // s.defaultBondStrategy.grantRole(
-        //     s.defaultBondStrategy.ADMIN_ROLE(),
-        //     deployParams.admin
-        // );
-        // s.defaultBondStrategy.grantRole(
-        //     s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
-        //     deployParams.deployer
-        // );
+        s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.ADMIN_ROLE(),
+            deployParams.admin
+        );
+        s.defaultBondStrategy.grantRole(
+            s.defaultBondStrategy.ADMIN_DELEGATE_ROLE(),
+            deployParams.deployer
+        );
 
-        // for (uint256 i = 0; i < deployParams.curators.length; i++) {
-        //     address curator = deployParams.curators[i];
-        //     s.defaultBondStrategy.grantRole(
-        //         s.defaultBondStrategy.OPERATOR(),
-        //         curator
-        //     );
-        // }
-        // {
-        //     s.configurator.stageDepositCallback(address(s.defaultBondStrategy));
-        //     s.configurator.commitDepositCallback();
-        // }
+        for (uint256 i = 0; i < deployParams.curators.length; i++) {
+            address curator = deployParams.curators[i];
+            s.defaultBondStrategy.grantRole(
+                s.defaultBondStrategy.OPERATOR(),
+                curator
+            );
+        }
+        {
+            s.configurator.stageDepositCallback(address(s.defaultBondStrategy));
+            s.configurator.commitDepositCallback();
+        }
 
-        // {
-        //     IDefaultBondStrategy.Data[]
-        //         memory data = new IDefaultBondStrategy.Data[](1);
-        //     data[0].bond = deployParams.defaultBond;
-        //     data[0].ratioX96 = DeployConstants.Q96;
-        //     s.defaultBondStrategy.setData(deployParams.underlyingToken, data);
-        // }
+        {
+            IDefaultBondStrategy.Data[]
+                memory data = new IDefaultBondStrategy.Data[](1);
+            data[0].bond = deployParams.defaultBond;
+            data[0].ratioX96 = DeployConstants.Q96;
+            s.defaultBondStrategy.setData(deployParams.underlyingToken, data);
+        }
 
-        // // validators setup
-        // s.validator = new ManagedValidator(deployParams.deployer);
-        // s.validator.grantRole(
-        //     deployParams.admin,
-        //     DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
-        // );
-        // {
-        //     s.validator.grantRole(
-        //         address(s.defaultBondStrategy),
-        //         DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
-        //     );
-        //     s.validator.grantContractRole(
-        //         address(s.vault),
-        //         DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
-        //     );
+        //validators setup
+        s.validator = new ManagedValidator(deployParams.deployer);
+        s.validator.grantRole(
+            deployParams.admin,
+            DeployConstants.ADMIN_ROLE_BIT // ADMIN_ROLE_MASK = (1 << 255)
+        );
+        {
+            s.validator.grantRole(
+                address(s.defaultBondStrategy),
+                DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
+            );
+            s.validator.grantContractRole(
+                address(s.vault),
+                DeployConstants.DEFAULT_BOND_STRATEGY_ROLE_BIT
+            );
 
-        //     s.validator.grantRole(
-        //         address(s.vault),
-        //         DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
-        //     );
-        //     s.validator.grantContractRole(
-        //         address(deployParams.defaultBondModule),
-        //         DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
-        //     );
+            s.validator.grantRole(
+                address(s.vault),
+                DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
+            );
+            s.validator.grantContractRole(
+                address(deployParams.defaultBondModule),
+                DeployConstants.DEFAULT_BOND_MODULE_ROLE_BIT
+            );
 
-        //     s.validator.grantPublicRole(DeployConstants.DEPOSITOR_ROLE_BIT);
-        //     s.validator.grantContractSignatureRole(
-        //         address(s.vault),
-        //         IVault.deposit.selector,
-        //         DeployConstants.DEPOSITOR_ROLE_BIT
-        //     );
+            s.validator.grantPublicRole(DeployConstants.DEPOSITOR_ROLE_BIT);
+            s.validator.grantContractSignatureRole(
+                address(s.vault),
+                IVault.deposit.selector,
+                DeployConstants.DEPOSITOR_ROLE_BIT
+            );
 
-        //     s.configurator.stageValidator(address(s.validator));
-        //     s.configurator.commitValidator();
-        // }
+            s.configurator.stageValidator(address(s.validator));
+            s.configurator.commitValidator();
+        }
 
-        // s.vault.grantRole(s.vault.OPERATOR(), address(s.defaultBondStrategy));
+        s.vault.grantRole(s.vault.OPERATOR(), address(s.defaultBondStrategy));
 
-        // // setting all configurator
-        // {
-        //     s.configurator.stageDepositCallbackDelay(1 days);
-        //     s.configurator.commitDepositCallbackDelay();
+        // setting all configurator
+        {
+            s.configurator.stageDepositCallbackDelay(1 days);
+            s.configurator.commitDepositCallbackDelay();
 
-        //     s.configurator.stageWithdrawalCallbackDelay(1 days);
-        //     s.configurator.commitWithdrawalCallbackDelay();
+            s.configurator.stageWithdrawalCallbackDelay(1 days);
+            s.configurator.commitWithdrawalCallbackDelay();
 
-        //     s.configurator.stageWithdrawalFeeD9Delay(30 days);
-        //     s.configurator.commitWithdrawalFeeD9Delay();
+            s.configurator.stageWithdrawalFeeD9Delay(30 days);
+            s.configurator.commitWithdrawalFeeD9Delay();
 
-        //     s.configurator.stageMaximalTotalSupplyDelay(1 hours);
-        //     s.configurator.commitMaximalTotalSupplyDelay();
+            s.configurator.stageMaximalTotalSupplyDelay(1 hours);
+            s.configurator.commitMaximalTotalSupplyDelay();
 
-        //     s.configurator.stageDepositsLockedDelay(1 hours);
-        //     s.configurator.commitDepositsLockedDelay();
+            s.configurator.stageDepositsLockedDelay(1 hours);
+            s.configurator.commitDepositsLockedDelay();
 
-        //     s.configurator.stageTransfersLockedDelay(365 days);
-        //     s.configurator.commitTransfersLockedDelay();
+            s.configurator.stageTransfersLockedDelay(365 days);
+            s.configurator.commitTransfersLockedDelay();
 
-        //     s.configurator.stageDelegateModuleApprovalDelay(1 days);
-        //     s.configurator.commitDelegateModuleApprovalDelay();
+            s.configurator.stageDelegateModuleApprovalDelay(1 days);
+            s.configurator.commitDelegateModuleApprovalDelay();
 
-        //     s.configurator.stageRatiosOracleDelay(30 days);
-        //     s.configurator.commitRatiosOracleDelay();
+            s.configurator.stageRatiosOracleDelay(30 days);
+            s.configurator.commitRatiosOracleDelay();
 
-        //     s.configurator.stagePriceOracleDelay(30 days);
-        //     s.configurator.commitPriceOracleDelay();
+            s.configurator.stagePriceOracleDelay(30 days);
+            s.configurator.commitPriceOracleDelay();
 
-        //     s.configurator.stageValidatorDelay(30 days);
-        //     s.configurator.commitValidatorDelay();
+            s.configurator.stageValidatorDelay(30 days);
+            s.configurator.commitValidatorDelay();
 
-        //     s.configurator.stageEmergencyWithdrawalDelay(90 days);
-        //     s.configurator.commitEmergencyWithdrawalDelay();
+            s.configurator.stageEmergencyWithdrawalDelay(90 days);
+            s.configurator.commitEmergencyWithdrawalDelay();
 
-        //     s.configurator.stageBaseDelay(30 days);
-        //     s.configurator.commitBaseDelay();
-        // }
+            s.configurator.stageBaseDelay(30 days);
+            s.configurator.commitBaseDelay();
+        }
 
-        // // initial deposit
-        // {
-        //     require(
-        //         deployParams.initialDeposit > 0,
-        //         "Invalid deploy params. Initial deposit value is 0"
-        //     );
+        // initial deposit
+        {
+            require(
+                deployParams.initialDeposit > 0,
+                "Invalid deploy params. Initial deposit value is 0"
+            );
 
-        //     require(
-        //         deployParams.initialDeposit <=
-        //             IERC20(deployParams.underlyingToken).balanceOf(
-        //                 deployParams.deployer
-        //             ),
-        //         "Insufficient balance for initial deposit"
-        //     );
+            require(
+                deployParams.initialDeposit <=
+                    IERC20(deployParams.underlyingToken).balanceOf(
+                        deployParams.deployer
+                    ),
+                "Insufficient balance for initial deposit"
+            );
 
-        //     IERC20(deployParams.underlyingToken).safeIncreaseAllowance(
-        //         address(s.vault),
-        //         deployParams.initialDeposit
-        //     );
+            IERC20(deployParams.underlyingToken).safeIncreaseAllowance(
+                address(s.vault),
+                deployParams.initialDeposit
+            );
 
-        //     uint256[] memory amounts = new uint256[](1);
-        //     amounts[0] = deployParams.initialDeposit;
-        //     s.vault.deposit(
-        //         address(s.vault),
-        //         amounts,
-        //         deployParams.initialDeposit * DeployConstants.INITIAL_DEPOSIT_MULITPLIER,
-        //         type(uint256).max
-        //     );
-        // }
+             uint256[] memory amounts = new uint256[](1);
+             amounts[0] = deployParams.initialDeposit;
+             s.vault.deposit(
+                 address(s.vault),
+                 amounts,
+                 deployParams.initialDeposit * DeployConstants.INITIAL_DEPOSIT_MULITPLIER,
+                 type(uint256).max
+             );
+         }
 
-        // s.vault.renounceRole(s.vault.ADMIN_ROLE(), deployParams.deployer);
-        s.vault = Vault(payable(0x7F43fDe12A40dE708d908Fb3b9BFB8540d9Ce444));
+        s.vault.renounceRole(s.vault.ADMIN_ROLE(), deployParams.deployer);
         s.vault.renounceRole(
             s.vault.ADMIN_DELEGATE_ROLE(),
             deployParams.deployer
         );
         s.vault.renounceRole(s.vault.OPERATOR(), deployParams.deployer);
 
-        s.defaultBondStrategy = DefaultBondStrategy(0x4b53eD612a4f03D573D2690FEc00bD6f9e7a411F);
         s.defaultBondStrategy.renounceRole(
             s.defaultBondStrategy.ADMIN_ROLE(),
             deployParams.deployer
@@ -325,7 +320,6 @@ abstract contract DeployScript is CommonBase {
             s.defaultBondStrategy.OPERATOR(),
             deployParams.deployer
         );
-        s.validator = ManagedValidator(0x339a1510aA77776D7330324026966e7fB2cAB0dF);
         s.validator.revokeRole(
             deployParams.deployer,
             DeployConstants.ADMIN_ROLE_BIT

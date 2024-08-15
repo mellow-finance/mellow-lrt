@@ -12,7 +12,7 @@ library DeployConstants {
     uint8 public constant ADMIN_ROLE_BIT = 255;
 
     address public constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
-    uint256 public constant WBTC_VAULT_LIMIT = 500 ether; // 1000 btc
+    uint256 public constant WBTC_VAULT_LIMIT = 500 ether; // 500 btc
     uint256 public constant INITIAL_DEPOSIT_MULITPLIER = 1e10; // 1e18 (eth) / 1e8 (wbtc)
 
     address public constant WBTC_DEFAULT_BOND = 0x971e5b5D4baa5607863f3748FeBf287C7bf82618;

@@ -73,7 +73,8 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         DeployInterfaces.DeploySetup[]
             memory setups = new DeployInterfaces.DeploySetup[](n);
 
-        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
+       // vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
+        vm.startPrank(DeployConstants.MAINNET_DEPLOYER);
 
         deployParams = commonContractsDeploy(deployParams);
         uint256 index = 0;
@@ -91,7 +92,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             validateEvents(deployParams, setups[i], vm.getRecordedLogs());
         }
 
-        vm.stopBroadcast();
+        // vm.stopBroadcast();
         for (uint256 i = 0; i < n; i++) {
             if (i != index) continue;
             logSetup(setups[i]);
@@ -124,9 +125,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         console2.log("Deployer: ", address(deployParams.deployer));
         console2.log("ProxyAdmin: ", address(deployParams.proxyAdmin));
         console2.log("Admin: ", address(deployParams.admin));
-        console2.log("Curator 0: ", address(deployParams.curators[0]));
-        console2.log("Curator 1: ", address(deployParams.curators[1]));
-        console2.log("Curator 2: ", address(deployParams.curators[2]));
+        console2.log("Curator : ", address(deployParams.curators[0]));
         console2.log(
             "DefaultBondFactory: ",
             address(deployParams.defaultBondFactory)

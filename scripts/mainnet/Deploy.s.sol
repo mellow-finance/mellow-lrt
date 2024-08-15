@@ -21,7 +21,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         symbols[0] = DeployConstants.Quasar_VAULT_SYMBOL;
         symbols[1] = DeployConstants.Bedrock_VAULT_SYMBOL;
 
-        uint256 maximalTotalSupplies = new string[](n);
+        uint256[] memory maximalTotalSupplies = new uint256[](n);
         maximalTotalSupplies[0] = DeployConstants.MAXIMAL_TOTAL_SUPPLY_QUASAR;
         maximalTotalSupplies[1] = DeployConstants.MAXIMAL_TOTAL_SUPPLY_BEDROCK;
 
@@ -76,11 +76,11 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
 
         DeployInterfaces.DeploySetup[]
             memory setups = new DeployInterfaces.DeploySetup[](n);
-        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
+        //vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
+        vm.startPrank(DeployConstants.MAINNET_DEPLOYER);
         deployParams = commonContractsDeploy(deployParams);
 
-        uint256 index = 0;
-
+        uint256 index = 1;
         for (uint256 i = 0; i < n; i++) {
             if (index != i) continue;
             deployParams.curator = curators[i];
@@ -94,7 +94,7 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             validateEvents(deployParams, setups[i], vm.getRecordedLogs());
         }
 
-        vm.stopBroadcast();
+        //vm.stopBroadcast();
         for (uint256 i = 0; i < n; i++) {
             if (index != i) continue;
             logSetup(setups[i]);

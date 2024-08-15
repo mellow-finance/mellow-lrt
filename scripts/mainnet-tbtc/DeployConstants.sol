@@ -12,9 +12,9 @@ library DeployConstants {
     uint8 public constant ADMIN_ROLE_BIT = 255;
 
     address public constant TBTC = 0x18084fbA666a33d37592fA2633fD49a74DD93a88;
-    uint256 public constant TBTC_VAULT_LIMIT = 100 ether;
+    uint256 public constant TBTC_VAULT_LIMIT = 100 ether; // 100 btc
 
-    uint256 public constant INITIAL_DEPOSIT = 1 gwei;
+    uint256 public constant INITIAL_DEPOSIT = 10 gwei;
 
     address public constant DEFAULT_BOND_FACTORY =
         0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
