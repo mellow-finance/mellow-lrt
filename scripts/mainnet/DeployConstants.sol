@@ -14,7 +14,7 @@ library DeployConstants {
 
     uint256 public constant INITIAL_DEPOSIT_ETH = 10 gwei;
     uint256 public constant FIRST_DEPOSIT_ETH = 1 ether;
-    uint256 public constant MAXIMAL_TOTAL_SUPPLY = 1 ether; // only for new batch
+    uint256 public constant MAXIMAL_TOTAL_SUPPLY = 10000 ether;
 
     address public constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -35,63 +35,22 @@ library DeployConstants {
     address public constant MELLOW_LIDO_PROXY_MULTISIG =
         0x81698f87C6482bF1ce9bFcfC0F103C4A0Adf0Af0;
 
-    //  batch 1
-    address public constant STEAKHOUSE_MULTISIG =
-        0x2afc096981c2CFe3501bE4054160048718F6C0C8;
-    address public constant RE7_MULTISIG =
-        0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
-    address public constant AMPHOR_MULTISIG =
-        0xA1E38210B06A05882a7e7Bfe167Cd67F07FA234A;
-    address public constant P2P_MULTISIG =
-        0x4a3c7F2470Aa00ebE6aE7cB1fAF95964b9de1eF4;
-
-    // batch 2
-    address public constant INFSTONES_MULTISIG =
-        0xD3895c43E886778e7e1E099c280a8c5Aa5B2a4D8;
-    address public constant RENZO_MULTISIG =
-        0x6e5CaD73D00Bc8340f38afb61Fc5E34f7193F599;
-    address public constant CHORUS_ONE_MULTISIG =
-        0x3Ea145D6Cea2e939d866bA71136dca6a1B96919f;
-    address public constant LUGANODES_MULTISIG =
-        0x1FBBc71B60A499c09D454725AcF1d6931515671A;
+    address public constant Quasar_WSTETH_MULTISIG =
+        0x013B33aAdae8aBdc7c2B1529BB28a37299D6EadE;
+    address public constant Bedrock_MULTISIG =
+        0x0000000000000000000000000000000000000000;
 
     // ---------- Ethereum Mainnet ----------
 
-    // Steakhouse
-    string public constant STEAKHOUSE_VAULT_NAME =
-        "Steakhouse Resteaking Vault";
-    string public constant STEAKHOUSE_VAULT_SYMBOL = "steakLRT";
+    // Quasar_WSTETH
+    string public constant Quasar_VAULT_NAME = "unified restaked LST";
+    string public constant Quasar_VAULT_SYMBOL = "urLST";
 
-    // Re7
-    string public constant RE7_VAULT_NAME = "Re7 Labs LRT";
-    string public constant RE7_VAULT_SYMBOL = "Re7LRT";
-
-    // Amphor
-    string public constant AMPHOR_VAULT_NAME = "Amphor Restaked ETH";
-    string public constant AMPHOR_VAULT_SYMBOL = "amphrETH";
-
-    // P2P
-    string public constant P2P_VAULT_NAME = "Restaking Vault ETH";
-    string public constant P2P_VAULT_SYMBOL = "rstETH";
+    // Bedrock
+    string public constant Bedrock_VAULT_NAME = "Rockmelon ETH";
+    string public constant Bedrock_VAULT_SYMBOL = "roETH";
 
     // Mellow
     string public constant MELLOW_VAULT_NAME = "Mellow Test ETH";
     string public constant MELLOW_VAULT_SYMBOL = "mETH (test)";
-
-    // Infstones
-    string public constant INFSTONES_VAULT_NAME = "InfStones Restaked ETH";
-    string public constant INFSTONES_VAULT_SYMBOL = "ifsETH";
-
-    // Renzo
-    string public constant RENZO_VAULT_NAME = "Renzo Restaked LST ";
-    string public constant RENZO_VAULT_SYMBOL = "pzETH";
-
-    // Chorus one
-    string public constant CHORUS_ONE_VAULT_NAME =
-        "Chorus One Restaking Vault ETH";
-    string public constant CHORUS_ONE_VAULT_SYMBOL = "coETH";
-
-    // Luganodes
-    string public constant LUGANODES_VAULT_NAME = "LugaETH";
-    string public constant LUGANODES_VAULT_SYMBOL = "LugaETH";
 }

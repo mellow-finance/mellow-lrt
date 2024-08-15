@@ -8,24 +8,18 @@ import "./EventValidator.sol";
 
 contract Deploy is Script, DeployScript, Validator, EventValidator {
     function run() external {
-        uint256 n = 4;
+        uint256 n = 2;
         address[] memory curators = new address[](n);
-        curators[0] = DeployConstants.INFSTONES_MULTISIG;
-        curators[1] = DeployConstants.RENZO_MULTISIG;
-        curators[2] = DeployConstants.CHORUS_ONE_MULTISIG;
-        curators[3] = DeployConstants.LUGANODES_MULTISIG;
+        curators[0] = DeployConstants.Quasar_WSTETH_MULTISIG;
+        curators[1] = DeployConstants.Bedrock_MULTISIG;
 
         string[] memory names = new string[](n);
-        names[0] = DeployConstants.INFSTONES_VAULT_NAME;
-        names[1] = DeployConstants.RENZO_VAULT_NAME;
-        names[2] = DeployConstants.CHORUS_ONE_VAULT_NAME;
-        names[3] = DeployConstants.LUGANODES_VAULT_NAME;
+        names[0] = DeployConstants.Quasar_VAULT_NAME;
+        names[1] = DeployConstants.Bedrock_VAULT_NAME;
 
         string[] memory symbols = new string[](n);
-        symbols[0] = DeployConstants.INFSTONES_VAULT_SYMBOL;
-        symbols[1] = DeployConstants.RENZO_VAULT_SYMBOL;
-        symbols[2] = DeployConstants.CHORUS_ONE_VAULT_SYMBOL;
-        symbols[3] = DeployConstants.LUGANODES_VAULT_SYMBOL;
+        symbols[0] = DeployConstants.Quasar_VAULT_SYMBOL;
+        symbols[1] = DeployConstants.Bedrock_VAULT_SYMBOL;
 
         DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
             .DeployParameters({
