@@ -10,6 +10,10 @@ import "../../../src/interfaces/oracles/IChainlinkOracle.sol";
 
 import "../../../src/libraries/external/FullMath.sol";
 
+interface IOracle {
+    function priceX96() external view returns (uint256);
+}
+
 contract Collector {
     struct Response {
         address vault;
@@ -35,47 +39,49 @@ contract Collector {
         uint256 lpPriceD18; // LP price in USDC weis 1e8 (due to chainlink decimals)
         uint256 lpPriceETHD18; // LP price in ETH weis 1e8 (due to chainlink decimals)
         uint256 lpPriceWSTETHD18; // LP price in WSTETH weis 1e8 (due to chainlink decimals)
-        uint256 lpPriceBaseTokenD18; // LP price in Base token weis 1e8 (due to chainlink decimals)
         bool shouldCloseWithdrawalRequest; // if the withdrawal request should be closed
         IVault.WithdrawalRequest withdrawalRequest; // withdrawal request
-        bool isDefi; // if the vault address is an address of some DeFi pool
     }
 
-    uint256 public constant Q96 = 2 ** 96;
-    uint256 public constant D9 = 1e9;
-    uint256 public constant D18 = 1e18;
+    uint256 private constant Q96 = 2 ** 96;
+    uint256 private constant D9 = 1e9;
+    uint256 private constant D18 = 1e18;
 
     address public immutable wsteth;
     address public immutable weth;
     address public immutable steth;
-    address public immutable ena;
-    address public immutable susde;
-    address public immutable wbtc;
-
-    IAggregatorV3 public immutable wstethOracle;
     IAggregatorV3 public immutable wethOracle;
-    IAggregatorV3 public immutable wbtcOracle;
+
+    address public owner;
+    mapping(address token => address oracle) public oracles;
 
     constructor(
         address wsteth_,
         address weth_,
         address steth_,
-        address ena_,
-        address susde_,
-        address wbtc_,
-        IAggregatorV3 _wstethOracle,
         IAggregatorV3 _wethToUSDOracle,
-        IAggregatorV3 _wbtcToUSDOracle
+        address owner_
     ) {
         wsteth = wsteth_;
         weth = weth_;
         steth = steth_;
-        ena = ena_;
-        susde = susde_;
-        wbtc = wbtc_;
-        wstethOracle = _wstethOracle;
         wethOracle = _wethToUSDOracle;
-        wbtcOracle = _wbtcToUSDOracle;
+        owner = owner_;
+    }
+
+    function setOracles(
+        address[] calldata tokens,
+        address[] calldata oracles_
+    ) external {
+        require(msg.sender == owner, "frb");
+        for (uint256 i = 0; i < tokens.length; i++) {
+            oracles[tokens[i]] = oracles_[i];
+        }
+    }
+
+    function setOwner(address owner_) external {
+        require(msg.sender == owner, "frb");
+        owner = owner_;
     }
 
     function collect(
@@ -290,27 +296,18 @@ contract Collector {
             return (false, false, false, 0, 0);
         isDepositPossible = true;
         isDepositorWhitelisted = true;
-        uint256 depositValue = amount;
         if (token == wsteth) {
-            (, int256 sAnswer, , , ) = wstethOracle.latestRoundData();
-            uint256 answer = uint256(sAnswer);
-            depositValue = FullMath.mulDiv(depositValue, answer, D18);
-        } else {
-            if (token != address(0) && token != weth && token != steth) {
-                return (true, true, false, 0, 0);
-            }
+            amount = IWSteth(wsteth).getStETHByWstETH(amount);
+        } else if (token != address(0) && token != weth && token != steth) {
+            return (true, true, false, 0, 0);
         }
         isWhitelistedToken = true;
         address[] memory vaults = new address[](1);
         vaults[0] = vault;
         Response memory response = collect(address(0), vaults)[0];
         uint256 totalValue = response.totalValueETH;
-        lpAmount = FullMath.mulDiv(
-            depositValue,
-            response.totalSupply,
-            totalValue
-        );
-        depositValueUSDC = convertWethToUSDC(depositValue);
+        lpAmount = FullMath.mulDiv(amount, response.totalSupply, totalValue);
+        depositValueUSDC = convertWethToUSDC(amount);
     }
 
     struct FetchDepositAmountsResponse {
@@ -397,62 +394,7 @@ contract Collector {
         address token
     ) public view returns (uint256 wethPriceX96) {
         if (token == weth) return priceX96;
-
-        if (token == ena) {
-            IUniswapV3Pool pool = IUniswapV3Pool(
-                0xc3Db44ADC1fCdFd5671f555236eae49f4A8EEa18
-            );
-            (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-            uint256 enaToWethPriceX96 = FullMath.mulDiv(
-                sqrtPriceX96,
-                sqrtPriceX96,
-                Q96
-            );
-            return FullMath.mulDiv(priceX96, enaToWethPriceX96, Q96);
-        } else if (token == susde) {
-            IUniswapV3Pool pool = IUniswapV3Pool(
-                0x7C45F7ff7dDeaC1af333E469f4B99bbd75Ee5495
-            );
-            (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-            uint256 wstethToSusdePriceX96 = FullMath.mulDiv(
-                sqrtPriceX96,
-                sqrtPriceX96,
-                Q96
-            );
-
-            return
-                convertBaseTokenPriceToWethPrice(
-                    FullMath.mulDiv(priceX96, Q96, wstethToSusdePriceX96),
-                    wsteth
-                );
-        } else if (token == wsteth) {
-            return IWSteth(wsteth).getStETHByWstETH(priceX96);
-        } else if (token == wbtc) {
-            (, int256 answer, , , ) = IAggregatorV3(
-                0xdeb288F737066589598e9214E782fa5A8eD689e8
-            ).latestRoundData();
-            return FullMath.mulDiv(priceX96, uint256(answer), 1e8);
-        } else {
-            revert("Unsupported token");
-        }
+        uint256 tokenToEthPrice = IOracle(oracles[token]).priceX96();
+        return Math.mulDiv(priceX96, tokenToEthPrice, Q96);
     }
-}
-
-interface IUniswapV3Pool {
-    function slot0()
-        external
-        view
-        returns (
-            uint160 sqrtPriceX96,
-            int24 tick,
-            uint16 observationIndex,
-            uint16 observationCardinality,
-            uint16 observationCardinalityNext,
-            uint8 feeProtocol,
-            bool unlocked
-        );
-
-    function token0() external view returns (address);
-
-    function token1() external view returns (address);
 }
