@@ -11,13 +11,13 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         uint256 n = 1;
 
         address[] memory curators = new address[](1);
-        curators[0] = DeployConstants.WBTC_CURATOR_RE7;
+        curators[0] = DeployConstants.MEV_WBTC_CURATOR;
 
         string[] memory names = new string[](n);
-        names[0] = DeployConstants.WBTC_RE7_VAULT_NAME;
+        names[0] = DeployConstants.MEV_WBTC_VAULT_NAME;
 
         string[] memory symbols = new string[](n);
-        symbols[0] = DeployConstants.WBTC_RE7_VAULT_SYMBOL;
+        symbols[0] = DeployConstants.MEV_WBTC_VAULT_SYMBOL;
 
         address[] memory underlyingTokens = new address[](n);
         underlyingTokens[0] = DeployConstants.WBTC;
