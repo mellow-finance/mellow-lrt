@@ -44,8 +44,8 @@ library DeployConstants {
     // ---------- Ethereum Mainnet ----------
 
     // Quasar_WSTETH
-    string public constant Quasar_VAULT_NAME = "unified restaked LST";
-    string public constant Quasar_VAULT_SYMBOL = "urLST";
+    string public constant Quasar_VAULT_NAME = "unified restaked LRT";
+    string public constant Quasar_VAULT_SYMBOL = "urLRT";
 
     // Bedrock
     string public constant Bedrock_VAULT_NAME = "Rockmelon ETH";

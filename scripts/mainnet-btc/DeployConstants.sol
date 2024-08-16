@@ -30,7 +30,7 @@ library DeployConstants {
     // ---------- Ethereum Mainnet ----------
 
     // MEV wBTC vault
-    string public constant MEV_WBTC_VAULT_NAME = "amphor restaked BTC";
+    string public constant MEV_WBTC_VAULT_NAME = "Amphor Restaked BTC";
     string public constant MEV_WBTC_VAULT_SYMBOL = "amphrBTC";
 
 }

@@ -25,6 +25,7 @@
     "deploy:mainnet:symbiotic": "forge script --use 0.8.25 scripts/mainnet/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:mainnet:ethena:symbiotic": "forge script --use 0.8.25 scripts/mainnet-ethena/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2) --evm-version shanghai",
     "deploy:mainnet:btc:symbiotic": "forge script --use 0.8.25 scripts/mainnet-btc/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2) --evm-version shanghai",
+    "deploy:mainnet:tbtc:symbiotic": "forge script --use 0.8.25 scripts/mainnet-tbtc/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2) --evm-version shanghai",
     "collect-events": "python3 scripts/mainnet/events_parser/parser.py",
     "verify-vaults-state": "forge script --use 0.8.25 scripts/mainnet/OnchainValidationScript.sol --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) -vvv",
     "compile": "forge build",

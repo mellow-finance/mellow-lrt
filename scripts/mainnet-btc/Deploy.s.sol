@@ -73,8 +73,8 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
         DeployInterfaces.DeploySetup[]
             memory setups = new DeployInterfaces.DeploySetup[](n);
 
-       // vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
-        vm.startPrank(DeployConstants.MAINNET_DEPLOYER);
+        vm.startBroadcast(uint256(bytes32(vm.envBytes("MAINNET_DEPLOYER"))));
+        //vm.startPrank(DeployConstants.MAINNET_DEPLOYER);
 
         deployParams = commonContractsDeploy(deployParams);
         for (uint256 i = 0; i < n; i++) {
@@ -89,13 +89,13 @@ contract Deploy is Script, DeployScript, Validator, EventValidator {
             validateEvents(deployParams, setups[i], vm.getRecordedLogs());
         }
 
-        // vm.stopBroadcast();
+        vm.stopBroadcast();
         for (uint256 i = 0; i < n; i++) {
             logSetup(setups[i]);
         }
         logDeployParams(deployParams);
 
-        revert("success");
+        //revert("success");
     }
 
     function logSetup(DeployInterfaces.DeploySetup memory setup) internal view {
