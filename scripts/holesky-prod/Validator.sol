@@ -78,17 +78,13 @@ abstract contract Validator {
                 "DefaultBondStrategy: more than one has ADMIN_DELEGATE_ROLE"
             );
             require(
-                strategy.getRoleMemberCount(OPERATOR_ROLE) ==
-                    deployParams.curators.length,
+                strategy.getRoleMemberCount(OPERATOR_ROLE) == 1,
                 "DefaultBondStrategy: OPERATOR_ROLE count is not equal to 1"
             );
-
-            for (uint256 i = 0; i < deployParams.curators.length; i++) {
-                require(
-                    strategy.hasRole(OPERATOR_ROLE, deployParams.curators[i]),
-                    "DefaultBondStrategy: curator has no OPERATOR_ROLE"
-                );
-            }
+            require(
+                strategy.hasRole(OPERATOR_ROLE, deployParams.curator),
+                "DefaultBondStrategy: curator has no OPERATOR_ROLE"
+            );
         }
 
         // Managed validator permissions
@@ -107,9 +103,9 @@ abstract contract Validator {
                 validator.userRoles(deployParams.admin) == ADMIN_ROLE_MASK,
                 "Admin has no roles"
             );
-            for (uint256 i = 0; i < deployParams.curators.length; i++) {
+            if (deployParams.curator != deployParams.admin) {
                 require(
-                    validator.userRoles(deployParams.curators[i]) == 0,
+                    validator.userRoles(deployParams.curator) == 0,
                     "Curator has roles"
                 );
             }
@@ -158,25 +154,51 @@ abstract contract Validator {
             );
             require(
                 setup.vault.balanceOf(address(setup.vault)) ==
-                    deployParams.initialDeposit *
-                        DeployConstants.INITIAL_DEPOSIT_MULITPLIER,
+                    setup.wstethAmountDeposited,
                 "Invalid vault balance"
             );
             require(
-                setup.vault.totalSupply() ==
-                    deployParams.initialDeposit *
-                        DeployConstants.INITIAL_DEPOSIT_MULITPLIER,
+                setup.vault.totalSupply() == setup.wstethAmountDeposited,
                 "Invalid total supply"
             );
             if (
-                IDefaultBond(deployParams.defaultBond).limit() !=
-                IDefaultBond(deployParams.defaultBond).totalSupply()
+                IDefaultBond(deployParams.wstethDefaultBond).limit() !=
+                IDefaultBond(deployParams.wstethDefaultBond).totalSupply()
             ) {
                 require(
-                    IERC20(deployParams.underlyingToken).balanceOf(
+                    IERC20(deployParams.wsteth).balanceOf(
                         address(setup.vault)
                     ) == 0,
-                    "Invalid underlyingToken balance of vault"
+                    "Invalid wsteth balance of vault"
+                );
+            }
+            uint256 fullWstethBalance = IERC20(deployParams.wstethDefaultBond)
+                .balanceOf(address(setup.vault)) +
+                IERC20(deployParams.wsteth).balanceOf(address(setup.vault));
+            require(
+                fullWstethBalance == setup.wstethAmountDeposited,
+                "Invalid fullWstethBalance balance"
+            );
+            if (
+                IDefaultBond(deployParams.wstethDefaultBond).limit() !=
+                IDefaultBond(deployParams.wstethDefaultBond).totalSupply()
+            ) {
+                require(
+                    IERC20(deployParams.wsteth).balanceOf(
+                        deployParams.wstethDefaultBond
+                    ) >= fullWstethBalance,
+                    "Invalid wsteth balance of bond"
+                );
+            }
+            uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
+                .getStETHByWstETH(fullWstethBalance);
+            // at most 2 weis loss due to eth->steth && steth->wsteth conversions
+            if (validationFlags & 2 == 0) {
+                require(
+                    deployParams.initialDepositETH - 2 wei <=
+                        expectedStethAmount &&
+                        expectedStethAmount <= deployParams.initialDepositETH,
+                    "Invalid steth amount"
                 );
             }
         }
@@ -209,8 +231,8 @@ abstract contract Validator {
                     "Invalid length of underlyingTokens"
                 );
                 require(
-                    underlyingTokens[0] == deployParams.underlyingToken,
-                    "invalid underlying token"
+                    underlyingTokens[0] == deployParams.wsteth,
+                    "Underlying token is not wsteth"
                 );
             }
             {
@@ -253,19 +275,27 @@ abstract contract Validator {
                     "Invalid length of underlyingTvlTokens"
                 );
                 require(
-                    underlyingTvlTokens[0] == deployParams.underlyingToken,
-                    "invalid underlying tvl token"
+                    underlyingTvlTokens[0] == deployParams.wsteth,
+                    "Underlying tvl token is not wsteth"
                 );
 
                 require(
                     underlyingTvlValues.length == 1,
                     "Invalid length of underlyingTvlValues"
                 );
-
-                require(
-                    underlyingTvlValues[0] == deployParams.initialDeposit,
-                    "Invalid initial underlying tvl"
-                );
+                uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
+                    .getStETHByWstETH(underlyingTvlValues[0]);
+                // valid only for tests or right after deployment
+                // after that getStETHByWstETH will return different ratios due to rebase logic
+                if (validationFlags & 2 == 0) {
+                    require(
+                        deployParams.initialDepositETH - 2 wei <=
+                            expectedStethAmount &&
+                            expectedStethAmount <=
+                            deployParams.initialDepositETH,
+                        "Invalid initialDepositETH"
+                    );
+                }
             }
 
             {
@@ -282,38 +312,41 @@ abstract contract Validator {
                     "Invalid baseTvlValues count"
                 );
 
-                uint256 underlyingTokenIndex = deployParams.underlyingToken <
-                    deployParams.defaultBond
+                uint256 wstethIndex = deployParams.wsteth <
+                    deployParams.wstethDefaultBond
                     ? 0
                     : 1;
 
                 require(
-                    baseTvlTokens[underlyingTokenIndex] ==
-                        deployParams.underlyingToken,
+                    baseTvlTokens[wstethIndex] == deployParams.wsteth,
                     "BaseTvlTokens is not wsteth"
                 );
                 require(
-                    baseTvlTokens[underlyingTokenIndex ^ 1] ==
-                        deployParams.defaultBond,
-                    "Invalid defaultBond"
-                );
-
-                require(
-                    baseTvlValues[underlyingTokenIndex] +
-                        baseTvlValues[underlyingTokenIndex ^ 1] ==
-                        deployParams.initialDeposit,
-                    "Invalid initial total value"
+                    baseTvlTokens[wstethIndex ^ 1] ==
+                        deployParams.wstethDefaultBond,
+                    "Invalid wstethDefaultBond"
                 );
 
                 if (
-                    IDefaultBond(deployParams.defaultBond).limit() !=
-                    IDefaultBond(deployParams.defaultBond).totalSupply()
+                    IDefaultBond(deployParams.wstethDefaultBond).limit() !=
+                    IDefaultBond(deployParams.wstethDefaultBond).totalSupply()
                 ) {
-                    require(baseTvlValues[underlyingTokenIndex] == 0);
-                } else {
+                    require(baseTvlValues[wstethIndex] == 0);
+                }
+
+                uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
+                    .getStETHByWstETH(
+                        baseTvlValues[wstethIndex] +
+                            baseTvlValues[wstethIndex ^ 1]
+                    );
+                // valid only for tests or right after deployment
+                // after that getStETHByWstETH will return different ratios due to rebase logic
+                if (validationFlags & 2 == 0) {
                     require(
-                        baseTvlValues[underlyingTokenIndex] ==
-                            deployParams.initialDeposit
+                        deployParams.initialDepositETH - 2 wei <=
+                            expectedStethAmount &&
+                            expectedStethAmount <=
+                            deployParams.initialDepositETH
                     );
                 }
             }
@@ -321,15 +354,12 @@ abstract contract Validator {
             {
                 if (validationFlags & 2 == 0) {
                     require(
-                        setup.vault.totalSupply() ==
-                            deployParams.initialDeposit *
-                                DeployConstants.INITIAL_DEPOSIT_MULITPLIER
+                        setup.vault.totalSupply() == setup.wstethAmountDeposited
                     );
                     require(setup.vault.balanceOf(deployParams.deployer) == 0);
                     require(
                         setup.vault.balanceOf(address(setup.vault)) ==
-                            deployParams.initialDeposit *
-                                DeployConstants.INITIAL_DEPOSIT_MULITPLIER
+                            setup.wstethAmountDeposited
                     );
                 }
 
@@ -338,7 +368,7 @@ abstract contract Validator {
                     .calculateStack();
 
                 address[] memory expectedTokens = new address[](1);
-                expectedTokens[0] = deployParams.underlyingToken;
+                expectedTokens[0] = deployParams.wsteth;
                 require(
                     stack.tokensHash == keccak256(abi.encode(stack.tokens)),
                     "Invalid tokens hash"
@@ -350,13 +380,13 @@ abstract contract Validator {
 
                 if (validationFlags & 2 == 0) {
                     require(
-                        stack.totalSupply ==
-                            deployParams.initialDeposit *
-                                DeployConstants.INITIAL_DEPOSIT_MULITPLIER,
+                        stack.totalSupply == setup.wstethAmountDeposited,
                         "Invalid total supply"
                     );
                     require(
-                        stack.totalValue == deployParams.initialDeposit,
+                        deployParams.initialDepositETH - 2 wei <=
+                            stack.totalValue &&
+                            stack.totalValue <= deployParams.initialDepositETH,
                         "Invalid total value"
                     );
                 }
@@ -376,8 +406,8 @@ abstract contract Validator {
                 );
 
                 if (
-                    IDefaultBond(deployParams.defaultBond).limit() !=
-                    IDefaultBond(deployParams.defaultBond).totalSupply()
+                    IDefaultBond(deployParams.wstethDefaultBond).limit() !=
+                    IDefaultBond(deployParams.wstethDefaultBond).totalSupply()
                 ) {
                     require(
                         stack.erc20Balances[0] == 0,
@@ -385,10 +415,24 @@ abstract contract Validator {
                     );
                 }
 
+                uint256 expectedStethAmount = IWSteth(deployParams.wsteth)
+                    .getStETHByWstETH(DeployConstants.Q96);
                 require(
-                    stack.ratiosX96Value == DeployConstants.Q96,
+                    stack.ratiosX96Value > 0 &&
+                        stack.ratiosX96Value <= expectedStethAmount,
                     "Invalid ratiosX96Value"
                 );
+                require(
+                    (expectedStethAmount - stack.ratiosX96Value) <
+                        stack.ratiosX96Value / 1e10,
+                    "Invalid ratiosX96Value"
+                );
+
+                require(
+                    stack.timestamp == block.timestamp,
+                    "Invalid timestamp"
+                );
+                require(stack.feeD9 == 0, "Invalid feeD9");
             }
         }
 
@@ -398,7 +442,7 @@ abstract contract Validator {
             require(setup.configurator.depositCallbackDelay() == 1 days);
             require(setup.configurator.withdrawalCallbackDelay() == 1 days);
             require(setup.configurator.withdrawalFeeD9Delay() == 30 days);
-            require(setup.configurator.maximalTotalSupplyDelay() == 1 hours); // NOTE: 1 hour delay for changing maximalTotalSupply
+            require(setup.configurator.maximalTotalSupplyDelay() == 1 days);
             require(setup.configurator.isDepositLockedDelay() == 1 hours);
             require(setup.configurator.areTransfersLockedDelay() == 365 days);
             require(setup.configurator.delegateModuleApprovalDelay() == 1 days);
@@ -453,17 +497,17 @@ abstract contract Validator {
 
             bytes memory tokenToDataBytes = setup
                 .defaultBondStrategy
-                .tokenToData(deployParams.underlyingToken);
+                .tokenToData(deployParams.wsteth);
             require(tokenToDataBytes.length != 0);
             IDefaultBondStrategy.Data[] memory data = abi.decode(
                 tokenToDataBytes,
                 (IDefaultBondStrategy.Data[])
             );
             require(data.length == 1);
-            require(data[0].bond == deployParams.defaultBond);
+            require(data[0].bond == deployParams.wstethDefaultBond);
             require(data[0].ratioX96 == DeployConstants.Q96);
             require(
-                IDefaultCollateralFactory(deployParams.defaultBondFactory)
+                IDefaultCollateralFactory(deployParams.wstethDefaultBondFactory)
                     .isEntity(data[0].bond)
             );
         }
@@ -471,11 +515,11 @@ abstract contract Validator {
         // ConstantsAggregatorV3 values:
         {
             require(
-                ConstantAggregatorV3(address(deployParams.constantAggregatorV3))
+                ConstantAggregatorV3(address(deployParams.wethAggregatorV3))
                     .decimals() == 18
             );
             require(
-                ConstantAggregatorV3(address(deployParams.constantAggregatorV3))
+                ConstantAggregatorV3(address(deployParams.wethAggregatorV3))
                     .answer() == 1 ether
             );
 
@@ -485,10 +529,45 @@ abstract contract Validator {
                 uint256 startedAt,
                 uint256 updatedAt,
                 uint80 answeredInRound
-            ) = ConstantAggregatorV3(address(deployParams.constantAggregatorV3))
+            ) = ConstantAggregatorV3(address(deployParams.wethAggregatorV3))
                     .latestRoundData();
             require(roundId == 0);
             require(answer == 1 ether);
+            require(startedAt == block.timestamp);
+            require(updatedAt == block.timestamp);
+            require(answeredInRound == 0);
+        }
+
+        // WStethRatiosAggregatorV3 values:
+        {
+            require(
+                WStethRatiosAggregatorV3(
+                    address(deployParams.wstethAggregatorV3)
+                ).decimals() == 18
+            );
+
+            require(
+                WStethRatiosAggregatorV3(
+                    address(deployParams.wstethAggregatorV3)
+                ).wsteth() == deployParams.wsteth
+            );
+
+            (
+                uint80 roundId,
+                int256 answer,
+                uint256 startedAt,
+                uint256 updatedAt,
+                uint80 answeredInRound
+            ) = WStethRatiosAggregatorV3(
+                    address(deployParams.wstethAggregatorV3)
+                ).latestRoundData();
+            require(roundId == 0);
+            require(
+                answer ==
+                    int256(
+                        IWSteth(deployParams.wsteth).getStETHByWstETH(1 ether)
+                    )
+            );
             require(startedAt == block.timestamp);
             require(updatedAt == block.timestamp);
             require(answeredInRound == 0);
@@ -498,33 +577,69 @@ abstract contract Validator {
         {
             require(
                 deployParams.priceOracle.baseTokens(address(setup.vault)) ==
-                    deployParams.underlyingToken
+                    deployParams.weth
             );
 
             require(
                 deployParams
                     .priceOracle
-                    .aggregatorsData(
-                        address(setup.vault),
-                        deployParams.underlyingToken
-                    )
-                    .aggregatorV3 == address(deployParams.constantAggregatorV3)
+                    .aggregatorsData(address(setup.vault), deployParams.weth)
+                    .aggregatorV3 == address(deployParams.wethAggregatorV3)
             );
             require(
                 deployParams
                     .priceOracle
-                    .aggregatorsData(
-                        address(setup.vault),
-                        deployParams.underlyingToken
-                    )
+                    .aggregatorsData(address(setup.vault), deployParams.weth)
+                    .maxAge == 0
+            );
+            require(
+                deployParams
+                    .priceOracle
+                    .aggregatorsData(address(setup.vault), deployParams.wsteth)
+                    .aggregatorV3 == address(deployParams.wstethAggregatorV3)
+            );
+            require(
+                deployParams
+                    .priceOracle
+                    .aggregatorsData(address(setup.vault), deployParams.wsteth)
                     .maxAge == 0
             );
 
             require(
                 deployParams.priceOracle.priceX96(
                     address(setup.vault),
-                    deployParams.underlyingToken
+                    deployParams.weth
                 ) == DeployConstants.Q96
+            );
+
+            require(
+                deployParams.priceOracle.priceX96(
+                    address(setup.vault),
+                    deployParams.wsteth
+                ) ==
+                    (IWSteth(deployParams.wsteth).getStETHByWstETH(1 ether) *
+                        DeployConstants.Q96) /
+                        1 ether
+            );
+        }
+
+        // DepositWrapper values
+        {
+            require(
+                address(setup.depositWrapper.vault()) == address(setup.vault),
+                "Invalid vault"
+            );
+            require(
+                setup.depositWrapper.weth() == deployParams.weth,
+                "Invalid weth"
+            );
+            require(
+                setup.depositWrapper.wsteth() == deployParams.wsteth,
+                "Invalid wsteth"
+            );
+            require(
+                setup.depositWrapper.steth() == deployParams.steth,
+                "Invalid steth"
             );
         }
 

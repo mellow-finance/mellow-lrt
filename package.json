@@ -11,9 +11,7 @@
     "prettier-plugin-solidity": "^1.0.0-beta.13"
   },
   "scripts": {
-    "prettier": "prettier --write ./src/** && prettier --write ./tests/** && prettier --write ./scripts/**",
-    "prettier:check": "prettier --check ./src/** && prettier --check ./tests/**",
-    "prettier:changed": "prettier --write $(git status | grep '\\.sol' | grep -v 'deleted:' | cut -d ' ' -f 4)",
+    "prettier": "prettier --write ./src/** ./tests/** ./scripts/** --cache --loglevel warn -u",
     "test:fuzz": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017905 --match-path ./tests/mainnet/e2e/FuzzingDepositWithdrawTest.t.sol",
     "test:gas": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017905 --match-path ./tests/mainnet/unit/GasUsedTest.t.sol",
     "test:solvency": " forge test -vv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 20017905 --match-path ./tests/mainnet/e2e/SolvencyTest.t.sol",
@@ -23,6 +21,7 @@
     "deploy:holesky": "forge script --use 0.8.25 scripts/holesky/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vv",
     "deploy:holesky:symbiotic": "forge script --use 0.8.25 scripts/holesky/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
     "deploy:mainnet:symbiotic": "forge script --use 0.8.25 scripts/mainnet/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
+    "deploy:holesky-prod:symbiotic": "forge script --use 0.8.25 scripts/holesky-prod/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast  --legacy -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:mainnet:ethena:symbiotic": "forge script --use 0.8.25 scripts/mainnet-ethena/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2) --evm-version shanghai",
     "deploy:mainnet:btc:symbiotic": "forge script --use 0.8.25 scripts/mainnet-btc/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2) --evm-version shanghai",
     "collect-events": "python3 scripts/mainnet/events_parser/parser.py",

@@ -15,22 +15,26 @@ library DeployConstants {
     uint256 public constant WBTC_VAULT_LIMIT = 1000 ether; // 1000 btc
     uint256 public constant INITIAL_DEPOSIT_MULITPLIER = 1e10; // 1e18 (eth) / 1e8 (wbtc)
 
-    address public constant WBTC_DEFAULT_BOND = 0x971e5b5D4baa5607863f3748FeBf287C7bf82618;
+    address public constant WBTC_DEFAULT_BOND =
+        0x971e5b5D4baa5607863f3748FeBf287C7bf82618;
     uint256 public constant INITIAL_DEPOSIT = 1000 wei;
-    address public constant DEFAULT_BOND_FACTORY = 0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
+    address public constant DEFAULT_BOND_FACTORY =
+        0x1BC8FCFbE6Aa17e4A7610F51B888f34583D202Ec;
 
     address public constant MAINNET_DEPLOYER =
         0x188858AC61a74350116d1CB6958fBc509FD6afA1;
 
-    address public constant WBTC_CURATOR_RE7 = 0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
+    address public constant WBTC_CURATOR_RE7 =
+        0xE86399fE6d7007FdEcb08A2ee1434Ee677a04433;
 
-    address public constant MELLOW_WBTC_PROXY_MULTISIG = 0x002910769444bd0D715CC4c6f2A90D92C5e6695e; // TODO
-    address public constant MELLOW_WBTC_MULTISIG = 0x6aD30f260c5081Cae68962e2f1730a3727987Deb; // TODO
+    address public constant MELLOW_WBTC_PROXY_MULTISIG =
+        0x002910769444bd0D715CC4c6f2A90D92C5e6695e; // TODO
+    address public constant MELLOW_WBTC_MULTISIG =
+        0x6aD30f260c5081Cae68962e2f1730a3727987Deb; // TODO
 
     // ---------- Ethereum Mainnet ----------
 
     // Ethena ENA vault
     string public constant WBTC_RE7_VAULT_NAME = "Re7 Labs Restaked wBTC";
     string public constant WBTC_RE7_VAULT_SYMBOL = "Re7rwBTC";
-
 }

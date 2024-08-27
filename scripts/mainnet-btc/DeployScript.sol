@@ -56,9 +56,9 @@ abstract contract DeployScript is CommonBase {
         //     //     address(deployParams.deployer),
         //     //     new bytes(0)
         //     // );
-            TransparentUpgradeableProxy proxy = TransparentUpgradeableProxy(payable(
-                0x7F43fDe12A40dE708d908Fb3b9BFB8540d9Ce444
-            ));
+        TransparentUpgradeableProxy proxy = TransparentUpgradeableProxy(
+            payable(0x7F43fDe12A40dE708d908Fb3b9BFB8540d9Ce444)
+        );
 
         //     // Initializer(address(proxy)).initialize(
         //     //     deployParams.lpTokenName,
@@ -66,15 +66,13 @@ abstract contract DeployScript is CommonBase {
         //     //     deployParams.deployer
         //     // );
 
-            s.proxyAdmin = ProxyAdmin(
-                address(
-                    uint160(
-                        uint256(
-                            vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT)
-                        )
-                    )
+        s.proxyAdmin = ProxyAdmin(
+            address(
+                uint160(
+                    uint256(vm.load(address(proxy), ERC1967Utils.ADMIN_SLOT))
                 )
-            );
+            )
+        );
         //     // s.proxyAdmin.upgradeAndCall(
         //     //     ITransparentUpgradeableProxy(address(proxy)),
         //     //     address(deployParams.initialImplementation),
@@ -82,7 +80,7 @@ abstract contract DeployScript is CommonBase {
         //     // );
 
         //     // s.proxyAdmin.transferOwnership(address(deployParams.proxyAdmin));
-            s.vault = Vault(payable(proxy));
+        s.vault = Vault(payable(proxy));
         // }
 
         // // s.vault.grantRole(s.vault.ADMIN_DELEGATE_ROLE(), deployParams.deployer);
@@ -312,7 +310,9 @@ abstract contract DeployScript is CommonBase {
         );
         s.vault.renounceRole(s.vault.OPERATOR(), deployParams.deployer);
 
-        s.defaultBondStrategy = DefaultBondStrategy(0x4b53eD612a4f03D573D2690FEc00bD6f9e7a411F);
+        s.defaultBondStrategy = DefaultBondStrategy(
+            0x4b53eD612a4f03D573D2690FEc00bD6f9e7a411F
+        );
         s.defaultBondStrategy.renounceRole(
             s.defaultBondStrategy.ADMIN_ROLE(),
             deployParams.deployer
@@ -325,7 +325,9 @@ abstract contract DeployScript is CommonBase {
             s.defaultBondStrategy.OPERATOR(),
             deployParams.deployer
         );
-        s.validator = ManagedValidator(0x339a1510aA77776D7330324026966e7fB2cAB0dF);
+        s.validator = ManagedValidator(
+            0x339a1510aA77776D7330324026966e7fB2cAB0dF
+        );
         s.validator.revokeRole(
             deployParams.deployer,
             DeployConstants.ADMIN_ROLE_BIT
