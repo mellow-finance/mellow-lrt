@@ -75,7 +75,8 @@ contract StakingModule is IStakingModule, DefaultModule {
                         stakingModuleId,
                         wethBalance + bufferedEther - unfinalizedStETH
                     ),
-                depositSecurityModule.getMaxDeposits()
+                IStakingRouter(depositSecurityModule.STAKING_ROUTER())
+                    .getStakingModuleMaxDepositsPerBlock(stakingModuleId)
             );
             amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
         }
