@@ -1,24 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "../Vault.sol";
+import {IVault} from "../interfaces/IVault.sol";
 
 contract DVstETHOpeartor {
-    Vault public immutable vault =
-        Vault(payable(0x5E362eb2c0706Bd1d134689eC75176018385430B));
+    IVault public constant vault =
+        IVault(0x5E362eb2c0706Bd1d134689eC75176018385430B);
 
-    function process() external {
-        address[] memory users = new address[](1);
-        users[0] = msg.sender;
-        IVault.WithdrawalRequest memory withdrawalRequest = vault
-            .withdrawalRequest(users[0]);
-        if (
-            withdrawalRequest.timestamp == 0 ||
-            withdrawalRequest.timestamp == block.timestamp
-        ) {
-            revert("DVstETHOpeartor: invalid state");
+    function process(address[] calldata users) external {
+        uint256 latestTimestamp = block.timestamp - 1 hours;
+        for (uint256 i = 0; i < users.length; i++) {
+            uint256 timestamp = vault.withdrawalRequest(users[i]).timestamp;
+            if (timestamp == 0 || timestamp > latestTimestamp) {
+                revert("DVstETHOpeartor: invalid withdrawal requets timestamp");
+            }
         }
-        bool[] memory statuses = vault.processWithdrawals(users);
-        require(statuses[0], "DVstETHOpeartor: withdrawal failed");
+        vault.processWithdrawals(users);
     }
 }
