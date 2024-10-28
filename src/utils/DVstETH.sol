@@ -2,116 +2,51 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/IVault.sol";
-import "./DefaultAccessControl.sol";
 import "../interfaces/modules/obol/IStakingModule.sol";
+import "./DefaultAccessControl.sol";
 
 interface IMutableStakingModule {
-    function getDepositableEtherOrRevert(
+    function getAmountForStake(
         bytes calldata data
     ) external view returns (uint256 amount); // revert if not in the right state
-    function deposit(bytes calldata data) external; // deposits amount of ether into SDVT Module
-}
-
-contract DVstETHStakingModuleV2 is IMutableStakingModule {
-    address public immutable weth;
-    address public immutable steth;
-    address public immutable wsteth;
-    ILidoLocator public immutable lidoLocator;
-    IWithdrawalQueue public immutable withdrawalQueue;
-    uint256 public immutable stakingModuleId;
-
-    constructor(
-        address weth_,
-        address steth_,
-        address wsteth_,
-        ILidoLocator lidoLocator_,
-        IWithdrawalQueue withdrawalQueue_,
-        uint256 stakingModuleId_
-    ) {
-        weth = weth_;
-        steth = steth_;
-        wsteth = wsteth_;
-        lidoLocator = lidoLocator_;
-        withdrawalQueue = withdrawalQueue_;
-        stakingModuleId = stakingModuleId_;
-    }
-
-    struct Data {
-        uint256 blockNumber;
-        bytes32 blockHash;
-        bytes32 depositRoot;
-        uint256 nonce;
-        bytes depositCalldata;
-        IDepositSecurityModule.Signature[] sortedGuardianSignatures;
-    }
-
-    function getDepositableEtherOrRevert(
-        bytes calldata data_
-    ) external view returns (uint256 amount) {
-        Data memory data = abi.decode(data_, (Data));
-        IDepositSecurityModule depositSecurityModule = IDepositSecurityModule(
-            lidoLocator.depositSecurityModule()
-        );
-        if (
-            IDepositContract(depositSecurityModule.DEPOSIT_CONTRACT())
-                .get_deposit_root() != data.depositRoot
-        ) {
-            revert("Invalid deposit root");
-        }
-        {
-            uint256 wethBalance = IERC20(weth).balanceOf(address(this));
-            uint256 unfinalizedStETH = withdrawalQueue.unfinalizedStETH();
-            uint256 bufferedEther = ISteth(steth).getBufferedEther();
-            if (bufferedEther < unfinalizedStETH)
-                revert("Invalid withdrawal queue state");
-            uint256 maxDepositsCount = Math.min(
-                IStakingRouter(depositSecurityModule.STAKING_ROUTER())
-                    .getStakingModuleMaxDepositsCount(
-                        stakingModuleId,
-                        wethBalance + bufferedEther - unfinalizedStETH
-                    ),
-                depositSecurityModule.getMaxDeposits()
-            );
-            amount = Math.min(wethBalance, 32 ether * maxDepositsCount);
-        }
-        if (amount == 0) revert("Invalid amount");
-        return amount;
-    }
-
-    function deposit(bytes calldata data) external {
-        Data memory data_ = abi.decode(data, (Data));
-        IDepositSecurityModule(lidoLocator.depositSecurityModule())
-            .depositBufferedEther(
-                data_.blockNumber,
-                data_.blockHash,
-                data_.depositRoot,
-                stakingModuleId,
-                data_.nonce,
-                data_.depositCalldata,
-                data_.sortedGuardianSignatures
-            );
-    }
 }
 
 contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using Math for uint256;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant steth = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant wsteth = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
+    /*
+        Storage slots:
+
+        inheritances:
+        0-4: ERC20 - first slots [0-4]
+        5-6: DefaultAccessControl - first slots [5-6]
+        7: ReentrancyGuard - first slots [7]
+
+        own and reserved (deprecated) slots:
+        8: NOTE: _reserved0     - IVaultConfigurator public configurator
+        9: withdrawalRequests   - mapping(address => IVault.WithdrawalRequest)
+        10-11: _pendingWithdrawers  - EnumerableSet.AddressSet.(bytes32[])_values
+        12: NOTE: _reserved1[0]  - address[] private _underlyingTokens;
+        13: NOTE: _reserved1[1]  - mapping(address => bool) private _isUnderlyingToken;
+        14-15: NOTE: _reserved1[2]  - EnumerableSet.AddressSet.(bytes32[])_values private _tvlModules;
+    */
+
     bytes32 private _reserved0;
     mapping(address user => IVault.WithdrawalRequest) public withdrawalRequests;
-    bytes32[6] private _reserved1;
+    EnumerableSet.AddressSet private _pendingWithdrawers;
+    bytes32[4] private _reserved1;
     uint256 public withdrawalDelay;
-    IMutableStakingModule public stakingModule;
+    uint256 public totalSupplyLimit;
+    address public stakingModule;
 
-    constructor(
-        address admin
-    )
-        ERC20("Decentralized Validator Token", "DVstETH")
-        DefaultAccessControl(admin)
-    {}
+    // singleton constructor
+    constructor() ERC20("", "") DefaultAccessControl(address(0xdead)) {}
 
     modifier checkDeadline(uint256 deadline) {
         require(block.timestamp <= deadline, "DVstETH: EXPIRED");
@@ -124,14 +59,22 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         withdrawalDelay = newWithdrawalDelay;
     }
 
-    function setStakingModule(IMutableStakingModule newStakingModule) external {
+    // NOTE: high impact
+    function setStakingModule(address newStakingModule) external {
         _requireAdmin();
         stakingModule = newStakingModule;
     }
 
+    // NOTE: no stage-commit logic
+    function setTotalSupplyLimit(uint256 newTotalSupplyLimit) external {
+        _requireAdmin();
+        totalSupplyLimit = newTotalSupplyLimit;
+    }
+
+    // NOTE: no deposit whitelist
     function deposit(
         address to,
-        uint256[] memory amounts,
+        uint256[] calldata amounts,
         uint256 minLpAmount,
         uint256 deadline,
         uint256 referralCode
@@ -142,35 +85,41 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         checkDeadline(deadline)
         returns (uint256 lpAmount)
     {
-        require(amounts.length == 1, "DVstETH: INVALID_AMOUNTS_LENGTH");
-        uint256 amount = amounts[0];
-        require(amount != 0);
+        require(
+            amounts.length == 2 && amounts[0] == 0 && amounts[1] != 0,
+            "DVstETH: INVALID_DEPOSIT_AMOUNTS"
+        );
+        uint256 amount = amounts[1];
         address this_ = address(this);
         if (msg.value == amount) {
             // eth deposit
             IWeth(weth).deposit{value: amount}();
         } else {
             // weth deposit
-            require(msg.value == 0);
+            require(msg.value == 0, "DVstETH: INVALID_MSG_VALUE");
             IERC20(weth).safeTransferFrom(msg.sender, this_, amount);
         }
         uint256 totalAssets = IERC20(weth).balanceOf(this_) +
             IWSteth(wsteth).getStETHByWstETH(IERC20(wsteth).balanceOf(this_));
-        lpAmount = Math.mulDiv(amount, totalSupply(), totalAssets);
+        uint256 totalSupply_ = totalSupply();
+        lpAmount = amount.mulDiv(totalSupply_, totalAssets);
+        require(
+            totalSupply_ + lpAmount <= totalSupplyLimit,
+            "DVstETH: EXCEEDS_MAXIMAL_TOTAL_SUPPLY_LIMIT"
+        );
         require(lpAmount >= minLpAmount, "DVstETH: INSUFFICIENT_LP_AMOUNT");
         _mint(to, lpAmount);
         emit IVault.Deposit(to, amounts, lpAmount, referralCode);
     }
 
-    function submit(uint256 amount) public {
+    function submit(uint256 amount) external {
         _requireAtLeastOperator();
         _submit(amount);
     }
 
-    function submitAndDeposit(bytes calldata data) public {
-        uint256 amount = stakingModule.getDepositableEtherOrRevert(data);
-        _submit(amount);
-        stakingModule.deposit(data);
+    // NOTE: permissionless function
+    function submit(bytes calldata data) external {
+        _submit(IMutableStakingModule(stakingModule).getAmountForStake(data));
     }
 
     function _submit(uint256 amount) private {
@@ -183,7 +132,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
     function registerWithdrawal(
         address to,
         uint256 lpAmount,
-        uint256[] memory minAmounts,
+        uint256[] calldata minAmounts,
         uint256 deadline,
         uint256 requestDeadline,
         bool closePrevious
@@ -193,20 +142,20 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         checkDeadline(deadline)
         checkDeadline(requestDeadline)
     {
-        require(minAmounts.length == 1, "DVstETH: INVALID_MIN_AMOUNTS_LENGTH");
+        require(
+            minAmounts.length == 2 && minAmounts[0] != 0 && minAmounts[1] == 0,
+            "DVstETH: INVALID_MIN_AMOUNTS"
+        );
         address sender = msg.sender;
         address this_ = address(this);
-        uint256 previousWithdrawalRequest = withdrawalRequests[sender].lpAmount;
-        if (previousWithdrawalRequest != 0) {
+        if (!_pendingWithdrawers.add(sender)) {
             require(
                 closePrevious,
                 "DVstETH: PREVIOUS_WITHDRAWAL_REQUEST_EXISTS"
             );
-            _transfer(this_, sender, previousWithdrawalRequest);
-            delete withdrawalRequests[sender];
+            _transfer(this_, sender, withdrawalRequests[sender].lpAmount);
         }
-
-        lpAmount = Math.min(lpAmount, balanceOf(sender));
+        lpAmount = lpAmount.min(balanceOf(sender));
         require(lpAmount != 0, "DVstETH: INSUFFICIENT_LP_AMOUNT");
         _transfer(sender, this_, lpAmount);
         withdrawalRequests[sender] = IVault.WithdrawalRequest({
@@ -217,6 +166,21 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
             deadline: deadline,
             timestamp: block.timestamp
         });
+    }
+
+    function cancelWithdrawalRequest() external nonReentrant {
+        _cancelWithdrawalRequest(msg.sender);
+    }
+
+    function _cancelWithdrawalRequest(address sender) private {
+        require(
+            _pendingWithdrawers.remove(sender),
+            "DVstETH: NO_WITHDRAWAL_REQUEST"
+        );
+        IVault.WithdrawalRequest memory request = withdrawalRequests[sender];
+        delete withdrawalRequests[sender];
+        _transfer(address(this), sender, request.lpAmount);
+        emit IVault.WithdrawalRequestCanceled(sender, tx.origin);
     }
 
     function processWithdrawals(
@@ -237,20 +201,19 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
             if (request.lpAmount == 0 || request.timestamp > latestTimestamp) {
                 continue;
             }
-            uint256 amount = Math.mulDiv(
+            uint256 amount = totalAssets_.mulDiv(
                 request.lpAmount,
-                totalAssets_,
                 totalSupply_
             );
+            if (amount > wstethBalance) {
+                continue;
+            }
+            _pendingWithdrawers.remove(user);
             if (
                 block.timestamp > request.deadline ||
                 amount < request.minAmounts[0]
             ) {
-                _transfer(this_, user, request.lpAmount);
-                delete withdrawalRequests[user];
-                continue;
-            }
-            if (amount > wstethBalance) {
+                _cancelWithdrawalRequest(user);
                 continue;
             }
             wstethBalance -= amount;
@@ -262,7 +225,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         }
     }
 
-    function recieve() external payable {
+    receive() external payable {
         require(msg.sender == weth, "DVstETH: INVALID_SENDER");
     }
 }
