@@ -36,18 +36,20 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         7: ReentrancyGuard - first slots [7]
 
         own and reserved (deprecated) slots:
-        8: NOTE: _reserved0     - IVaultConfigurator public configurator
-        9: withdrawalRequests   - mapping(address => IVault.WithdrawalRequest)
+        8: IVaultConfigurator public configurator
+        9: mapping(address => IVault.WithdrawalRequest) withdrawalRequests;
         10-11: _pendingWithdrawers  - EnumerableSet.AddressSet.(bytes32[])_values
         12: NOTE: _reserved1[0]  - address[] private _underlyingTokens;
         13: NOTE: _reserved1[1]  - mapping(address => bool) private _isUnderlyingToken;
         14-15: NOTE: _reserved1[2]  - EnumerableSet.AddressSet.(bytes32[])_values private _tvlModules;
     */
 
-    bytes32 private _reserved0;
-    mapping(address user => IVault.WithdrawalRequest) public withdrawalRequests;
+    IVaultConfigurator public configurator; // backward compatibility
+    mapping(address => IVault.WithdrawalRequest) private _withdrawalRequest;
     EnumerableSet.AddressSet private _pendingWithdrawers;
-    bytes32[4] private _reserved1;
+    address[] private _underlyingTokens; // backward compatibility
+    mapping(address => bool) private _isUnderlyingToken; // backward compatibility
+    EnumerableSet.AddressSet private _tvlModules; // backward compatibility
     uint256 public withdrawalDelay;
     uint256 public totalSupplyLimit;
     uint256 public emergencyWithdrawalDelay;
@@ -171,7 +173,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
                 overridePrevious,
                 "DVstETH: PREVIOUS_WITHDRAWAL_REQUEST_EXISTS"
             );
-            existingRequest = withdrawalRequests[sender].lpAmount;
+            existingRequest = _withdrawalRequest[sender].lpAmount;
             emit IVault.WithdrawalRequestCanceled(sender, tx.origin);
         }
         lpAmount = lpAmount.min(balanceOf(sender) + existingRequest);
@@ -181,7 +183,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         } else if (existingRequest < lpAmount) {
             _transfer(sender, this_, lpAmount - existingRequest);
         }
-        withdrawalRequests[sender] = IVault.WithdrawalRequest({
+        _withdrawalRequest[sender] = IVault.WithdrawalRequest({
             to: to,
             lpAmount: lpAmount,
             tokensHash: bytes32(0),
@@ -189,7 +191,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
             deadline: deadline,
             timestamp: block.timestamp
         });
-        emit IVault.WithdrawalRequested(sender, withdrawalRequests[sender]);
+        emit IVault.WithdrawalRequested(sender, _withdrawalRequest[sender]);
     }
 
     function cancelWithdrawalRequest() external nonReentrant {
@@ -201,8 +203,8 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
             _pendingWithdrawers.remove(sender),
             "DVstETH: NO_WITHDRAWAL_REQUEST"
         );
-        IVault.WithdrawalRequest memory request = withdrawalRequests[sender];
-        delete withdrawalRequests[sender];
+        IVault.WithdrawalRequest memory request = _withdrawalRequest[sender];
+        delete _withdrawalRequest[sender];
         _transfer(address(this), sender, request.lpAmount);
         emit IVault.WithdrawalRequestCanceled(sender, tx.origin);
     }
@@ -220,7 +222,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 timestamp = block.timestamp;
         address sender = msg.sender;
         address this_ = address(this);
-        IVault.WithdrawalRequest memory request = withdrawalRequests[sender];
+        IVault.WithdrawalRequest memory request = _withdrawalRequest[sender];
         require(request.lpAmount != 0, "DVstETH: NO_WITHDRAWAL_REQUEST");
         if (timestamp > request.deadline) {
             _cancelWithdrawalRequest(sender);
@@ -253,7 +255,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         IERC20(wsteth).safeTransfer(request.to, actualAmounts[0]);
         IERC20(weth).safeTransfer(request.to, actualAmounts[1]);
 
-        delete withdrawalRequests[sender];
+        delete _withdrawalRequest[sender];
         _pendingWithdrawers.remove(sender);
         _burn(this_, request.lpAmount);
         emit IVault.EmergencyWithdrawal(sender, request, actualAmounts);
@@ -273,7 +275,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
             IWSteth(wsteth).getStETHByWstETH(wethBalance);
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
-            IVault.WithdrawalRequest memory request = withdrawalRequests[user];
+            IVault.WithdrawalRequest memory request = _withdrawalRequest[user];
             if (request.lpAmount == 0 || request.timestamp > latestTimestamp) {
                 continue;
             }
@@ -297,7 +299,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
             _burn(this_, request.lpAmount);
             IERC20(wsteth).safeTransfer(request.to, amount);
             statuses[i] = true;
-            delete withdrawalRequests[user];
+            delete _withdrawalRequest[user];
         }
 
         emit IVault.WithdrawalsProcessed(users, statuses);
@@ -305,5 +307,59 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
 
     receive() external payable {
         require(msg.sender == weth, "DVstETH: INVALID_SENDER");
+    }
+
+    // -------- BACKWARD COMPATIBILITY --------
+
+    function withdrawalRequest(
+        address user
+    ) external view returns (IVault.WithdrawalRequest memory) {
+        return _withdrawalRequest[user];
+    }
+
+    function pendingWithdrawersCount() external view returns (uint256) {
+        return _pendingWithdrawers.length();
+    }
+
+    function pendingWithdrawers(
+        uint256 limit,
+        uint256 offset
+    ) external view returns (address[] memory result) {
+        EnumerableSet.AddressSet storage withdrawers_ = _pendingWithdrawers;
+        uint256 count = withdrawers_.length();
+        if (offset >= count || limit == 0) return result;
+        count -= offset;
+        if (count > limit) count = limit;
+        result = new address[](count);
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = withdrawers_.at(offset + i);
+        }
+        return result;
+    }
+
+    function pendingWithdrawers() external view returns (address[] memory) {
+        return _pendingWithdrawers.values();
+    }
+
+    function calculateStack()
+        public
+        view
+        returns (IVault.ProcessWithdrawalsStack memory stack)
+    {
+        address this_ = address(this);
+        stack.tokens = new address[](2);
+        stack.tokens[0] = wsteth;
+        stack.tokens[1] = weth;
+        stack.ratiosX96 = new uint128[](2); // withdrawal ratios
+        stack.ratiosX96[0] = 2 ** 96;
+        stack.erc20Balances = new uint256[](2);
+        stack.erc20Balances[0] = IERC20(wsteth).balanceOf(this_);
+        stack.erc20Balances[1] = IERC20(weth).balanceOf(this_);
+        stack.totalSupply = totalSupply();
+        stack.totalValue =
+            IWSteth(wsteth).getStETHByWstETH(stack.erc20Balances[0]) +
+            stack.erc20Balances[1];
+        stack.timestamp = block.timestamp;
+        stack.tokensHash = keccak256(abi.encode(stack.tokens));
     }
 }
