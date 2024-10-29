@@ -6,6 +6,13 @@ import "../interfaces/modules/obol/IStakingModule.sol";
 import "./DefaultAccessControl.sol";
 
 interface IMutableStakingModule {
+    /*
+        Logic:
+        1. get available keys
+        2. get depositable ether
+        3. calculate available amount of ETH for staking
+        4. revert if zero
+    */
     function getAmountForStake(
         bytes calldata data
     ) external view returns (uint256 amount); // revert if not in the right state
@@ -43,6 +50,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
     bytes32[4] private _reserved1;
     uint256 public withdrawalDelay;
     uint256 public totalSupplyLimit;
+    uint256 public emergencyWithdrawalDelay;
     address public stakingModule;
 
     // singleton constructor
@@ -69,6 +77,14 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
     function setTotalSupplyLimit(uint256 newTotalSupplyLimit) external {
         _requireAdmin();
         totalSupplyLimit = newTotalSupplyLimit;
+    }
+
+    // NOTE: no stage-commit logic
+    function setEmergencyWithdrawalDelay(
+        uint256 newEmergencyWithdrawalDelay
+    ) external {
+        _requireAdmin();
+        emergencyWithdrawalDelay = newEmergencyWithdrawalDelay;
     }
 
     // NOTE: no deposit whitelist
@@ -124,6 +140,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
 
     function _submit(uint256 amount) private {
         IWeth(weth).withdraw(amount);
+        // TODO: replace with IWSteth(wsteth).submit{value: amount}(address(0));
         ISteth(steth).submit{value: amount}(address(0));
         IERC20(steth).safeIncreaseAllowance(address(wsteth), amount);
         IWSteth(wsteth).wrap(amount);
@@ -135,7 +152,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256[] calldata minAmounts,
         uint256 deadline,
         uint256 requestDeadline,
-        bool closePrevious
+        bool overridePrevious
     )
         external
         nonReentrant
@@ -148,16 +165,22 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         );
         address sender = msg.sender;
         address this_ = address(this);
+        uint256 existingRequest = 0;
         if (!_pendingWithdrawers.add(sender)) {
             require(
-                closePrevious,
+                overridePrevious,
                 "DVstETH: PREVIOUS_WITHDRAWAL_REQUEST_EXISTS"
             );
-            _transfer(this_, sender, withdrawalRequests[sender].lpAmount);
+            existingRequest = withdrawalRequests[sender].lpAmount;
+            emit IVault.WithdrawalRequestCanceled(sender, tx.origin);
         }
-        lpAmount = lpAmount.min(balanceOf(sender));
+        lpAmount = lpAmount.min(balanceOf(sender) + existingRequest);
         require(lpAmount != 0, "DVstETH: INSUFFICIENT_LP_AMOUNT");
-        _transfer(sender, this_, lpAmount);
+        if (existingRequest > lpAmount) {
+            _transfer(this_, sender, existingRequest - lpAmount);
+        } else if (existingRequest < lpAmount) {
+            _transfer(sender, this_, lpAmount - existingRequest);
+        }
         withdrawalRequests[sender] = IVault.WithdrawalRequest({
             to: to,
             lpAmount: lpAmount,
@@ -166,6 +189,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
             deadline: deadline,
             timestamp: block.timestamp
         });
+        emit IVault.WithdrawalRequested(sender, withdrawalRequests[sender]);
     }
 
     function cancelWithdrawalRequest() external nonReentrant {
@@ -181,6 +205,58 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         delete withdrawalRequests[sender];
         _transfer(address(this), sender, request.lpAmount);
         emit IVault.WithdrawalRequestCanceled(sender, tx.origin);
+    }
+
+    function emergencyWithdraw(
+        uint256[] calldata minAmounts,
+        uint256 deadline
+    )
+        external
+        nonReentrant
+        checkDeadline(deadline)
+        returns (uint256[] memory actualAmounts)
+    {
+        require(minAmounts.length == 2, "DVstETH: INVALID_MIN_AMOUNTS");
+        uint256 timestamp = block.timestamp;
+        address sender = msg.sender;
+        address this_ = address(this);
+        IVault.WithdrawalRequest memory request = withdrawalRequests[sender];
+        require(request.lpAmount != 0, "DVstETH: NO_WITHDRAWAL_REQUEST");
+        if (timestamp > request.deadline) {
+            _cancelWithdrawalRequest(sender);
+            return actualAmounts;
+        }
+        require(
+            request.timestamp + emergencyWithdrawalDelay >= timestamp,
+            "DVstETH: EMERGENCY_WITHDRAWAL_DELAY"
+        );
+
+        uint256 totalSupply_ = totalSupply();
+        actualAmounts = new uint256[](2);
+        actualAmounts[0] = Math.mulDiv(
+            IERC20(wsteth).balanceOf(this_),
+            request.lpAmount,
+            totalSupply_
+        );
+        actualAmounts[1] = Math.mulDiv(
+            IERC20(weth).balanceOf(this_),
+            request.lpAmount,
+            totalSupply_
+        );
+
+        require(
+            actualAmounts[0] >= minAmounts[0] &&
+                actualAmounts[1] >= minAmounts[1],
+            "DVstETH: INSUFFICIENT_AMOUNTS"
+        );
+
+        IERC20(wsteth).safeTransfer(request.to, actualAmounts[0]);
+        IERC20(weth).safeTransfer(request.to, actualAmounts[1]);
+
+        delete withdrawalRequests[sender];
+        _pendingWithdrawers.remove(sender);
+        _burn(this_, request.lpAmount);
+        emit IVault.EmergencyWithdrawal(sender, request, actualAmounts);
     }
 
     function processWithdrawals(
@@ -223,6 +299,8 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
             statuses[i] = true;
             delete withdrawalRequests[user];
         }
+
+        emit IVault.WithdrawalsProcessed(users, statuses);
     }
 
     receive() external payable {
