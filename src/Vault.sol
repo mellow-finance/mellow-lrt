@@ -388,7 +388,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 deadline
     )
         external
-        virtual
         nonReentrant
         checkDeadline(deadline)
         returns (uint256[] memory actualAmounts)
@@ -456,7 +455,6 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         bool closePrevious
     )
         external
-        virtual
         nonReentrant
         checkDeadline(deadline)
         checkDeadline(requestDeadline)

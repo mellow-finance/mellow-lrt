@@ -1,9 +1,9 @@
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 Language                              Files     Lines   Blanks  Comments     Code Complexity Complexity/Lines
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Solidity                                 28      3068      387       289     2392        370           421.16
+Solidity                                 28      2974      382       287     2305        359           420.80
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-src/Vault.sol                                     627       56        27      544        123            22.61
+src/Vault.sol                                     625       56        27      542        123            22.69
 src/VaultConfigurator.sol                         652      103        94      455         31             6.81
 src/modules/DefaultModule.sol                      18        4         1       13          4            30.77
 src/modules/erc20/ERC20SwapModule.sol              44        8         2       34          6            17.65
@@ -22,7 +22,7 @@ src/security/AdminProxy.sol                       164       20        20      12
 src/security/Initializer.sol                       40        7         4       29          7            24.14
 src/strategies/DefaultBondStrategy.sol            122       15        10       97         27            27.84
 ~rc/strategies/SimpleDVTStakingStrategy.sol        84       10         7       67          6             8.96
-src/utils/DVstETH.sol                             372       39        28      305         36            11.80
+src/utils/DVstETH.sol                             280       34        26      220         25            11.36
 src/utils/DVstETHOperator.sol                      20        3         1       16          4            25.00
 src/utils/DefaultAccessControl.sol                 64       13         7       44          6            13.64
 src/utils/DepositWrapper.sol                       87       10         6       71         24            33.80
@@ -32,7 +32,7 @@ src/validators/DefaultBondValidator.sol            37        6         4       2
 src/validators/ERC20SwapValidator.sol              57        6         6       45          9            20.00
 src/validators/ManagedValidator.sol               176       24        20      132         10             7.58
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Total                                    28      3068      387       289     2392        370           421.16
+Total                                    28      2974      382       287     2305        359           420.80
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Processed 100979 bytes, 0.101 megabytes (SI)
+Processed 97906 bytes, 0.098 megabytes (SI)
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────

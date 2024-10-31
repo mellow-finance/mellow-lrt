@@ -13,9 +13,10 @@ contract DVstETH is Vault {
     address public constant steth = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant wsteth = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
-    uint256 public withdrawalDelay = 1 hours;
-    uint256 public totalSupplyLimit = 10000 ether;
-    uint256 public emergencyWithdrawalDelay = 90 days;
+    bool public areTransfersLocked;
+    uint256 public emergencyWithdrawalDelay;
+    uint256 public maximalTotalSupply;
+    uint256 public withdrawalDelay;
     address public stakingModule;
 
     constructor() Vault("", "", address(0xdead)) {}
@@ -26,6 +27,16 @@ contract DVstETH is Vault {
     }
 
     /// ------------------ EXTERNAL MUTABLE GOVERNANCE FUNCTIONS ------------------ ///
+
+    function initialize(uint256 withdrawalDelay_) external {
+        if (address(configurator) == address(this))
+            revert("DVstETH: ALREADY_INITIALIZED");
+        areTransfersLocked = configurator.areTransfersLocked();
+        maximalTotalSupply = configurator.maximalTotalSupply();
+        emergencyWithdrawalDelay = configurator.emergencyWithdrawalDelay();
+        withdrawalDelay = withdrawalDelay_;
+        configurator = IVaultConfigurator(address(this));
+    }
 
     function setWithdrawalDelay(uint256 newWithdrawalDelay) external {
         _requireAdmin();
@@ -40,9 +51,14 @@ contract DVstETH is Vault {
     }
 
     // NOTE: no stage-commit logic
-    function setTotalSupplyLimit(uint256 newTotalSupplyLimit) external {
+    function setMaximalTotalSupply(uint256 newMaximalTotalSupply) external {
         _requireAdmin();
-        totalSupplyLimit = newTotalSupplyLimit;
+        maximalTotalSupply = newMaximalTotalSupply;
+    }
+
+    function setTransfersLock(bool lock) external {
+        _requireAdmin();
+        areTransfersLocked = lock;
     }
 
     // NOTE: no stage-commit logic
@@ -194,113 +210,13 @@ contract DVstETH is Vault {
         uint256 totalSupply_ = totalSupply();
         lpAmount = amount.mulDiv(totalSupply_, totalAssets);
         require(
-            totalSupply_ + lpAmount <= totalSupplyLimit,
+            totalSupply_ + lpAmount <= maximalTotalSupply,
             "DVstETH: EXCEEDS_MAXIMAL_TOTAL_SUPPLY_LIMIT"
         );
         require(lpAmount >= minLpAmount, "DVstETH: INSUFFICIENT_LP_AMOUNT");
         _mint(to, lpAmount);
         actualAmounts = amounts;
         emit IVault.Deposit(to, amounts, lpAmount, referralCode);
-    }
-
-    /// @inheritdoc IVault
-    function registerWithdrawal(
-        address to,
-        uint256 lpAmount,
-        uint256[] calldata minAmounts,
-        uint256 deadline,
-        uint256 requestDeadline,
-        bool overridePrevious
-    )
-        external
-        override
-        nonReentrant
-        checkDeadline(deadline)
-        checkDeadline(requestDeadline)
-    {
-        require(
-            minAmounts.length == 2 && minAmounts[0] != 0 && minAmounts[1] == 0,
-            "DVstETH: INVALID_MIN_AMOUNTS"
-        );
-        address sender = msg.sender;
-        address this_ = address(this);
-        uint256 existingRequest = 0;
-        if (!_pendingWithdrawers.add(sender)) {
-            require(
-                overridePrevious,
-                "DVstETH: PREVIOUS_WITHDRAWAL_REQUEST_EXISTS"
-            );
-            existingRequest = _withdrawalRequest[sender].lpAmount;
-            emit IVault.WithdrawalRequestCanceled(sender, tx.origin);
-        }
-        lpAmount = lpAmount.min(balanceOf(sender) + existingRequest);
-        require(lpAmount != 0, "DVstETH: INSUFFICIENT_LP_AMOUNT");
-        if (existingRequest > lpAmount) {
-            _transfer(this_, sender, existingRequest - lpAmount);
-        } else if (existingRequest < lpAmount) {
-            _transfer(sender, this_, lpAmount - existingRequest);
-        }
-        _withdrawalRequest[sender] = IVault.WithdrawalRequest({
-            to: to,
-            lpAmount: lpAmount,
-            tokensHash: keccak256(abi.encode(_underlyingTokens)),
-            minAmounts: minAmounts,
-            deadline: deadline,
-            timestamp: block.timestamp
-        });
-        emit IVault.WithdrawalRequested(sender, _withdrawalRequest[sender]);
-    }
-
-    /// @inheritdoc IVault
-    function emergencyWithdraw(
-        uint256[] calldata minAmounts,
-        uint256 deadline
-    )
-        external
-        override
-        nonReentrant
-        checkDeadline(deadline)
-        returns (uint256[] memory actualAmounts)
-    {
-        require(minAmounts.length == 2, "DVstETH: INVALID_MIN_AMOUNTS");
-        uint256 timestamp = block.timestamp;
-        address sender = msg.sender;
-        address this_ = address(this);
-        IVault.WithdrawalRequest memory request = _withdrawalRequest[sender];
-        require(request.lpAmount != 0, "DVstETH: NO_WITHDRAWAL_REQUEST");
-        if (timestamp > request.deadline) {
-            _cancelWithdrawalRequest(sender);
-            return actualAmounts;
-        }
-        require(
-            request.timestamp + emergencyWithdrawalDelay >= timestamp,
-            "DVstETH: EMERGENCY_WITHDRAWAL_DELAY"
-        );
-
-        uint256 totalSupply_ = totalSupply();
-        actualAmounts = new uint256[](2);
-        actualAmounts[0] = request.lpAmount.mulDiv(
-            IERC20(wsteth).balanceOf(this_),
-            totalSupply_
-        );
-        actualAmounts[1] = request.lpAmount.mulDiv(
-            IERC20(weth).balanceOf(this_),
-            totalSupply_
-        );
-
-        require(
-            actualAmounts[0] >= minAmounts[0] &&
-                actualAmounts[1] >= minAmounts[1],
-            "DVstETH: INSUFFICIENT_AMOUNTS"
-        );
-
-        IERC20(wsteth).safeTransfer(request.to, actualAmounts[0]);
-        IERC20(weth).safeTransfer(request.to, actualAmounts[1]);
-
-        delete _withdrawalRequest[sender];
-        _pendingWithdrawers.remove(sender);
-        _burn(this_, request.lpAmount);
-        emit IVault.EmergencyWithdrawal(sender, request, actualAmounts);
     }
 
     /// @inheritdoc IVault
@@ -353,14 +269,6 @@ contract DVstETH is Vault {
     }
 
     /// ------------------ INTERNAL MUTABLE OVERRIDE FUNCTIONS ------------------ ///
-
-    function _update(
-        address from,
-        address to,
-        uint256 value
-    ) internal virtual override {
-        ERC20._update(from, to, value);
-    }
 
     function _submit(uint256 amount) private {
         IWeth(weth).withdraw(amount);
