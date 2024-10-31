@@ -20,7 +20,7 @@ contract DVstETH is Vault {
 
     constructor() Vault("", "", address(0xdead)) {}
 
-    modifier depreacted() {
+    modifier deprecated() {
         revert("DVstETH: DEPRECATED");
         _;
     }
@@ -134,28 +134,28 @@ contract DVstETH is Vault {
     /// ------------------ DEPRECATED FUNCTIONS ------------------ ///
 
     /// @inheritdoc IVault
-    function addToken(address) external pure override depreacted {}
+    function addToken(address) external pure override deprecated {}
 
     /// @inheritdoc IVault
-    function removeToken(address) external pure override depreacted {}
+    function removeToken(address) external pure override deprecated {}
 
     /// @inheritdoc IVault
-    function addTvlModule(address) external pure override depreacted {}
+    function addTvlModule(address) external pure override deprecated {}
 
     /// @inheritdoc IVault
-    function removeTvlModule(address) external pure override depreacted {}
+    function removeTvlModule(address) external pure override deprecated {}
 
     /// @inheritdoc IVault
     function externalCall(
         address,
         bytes calldata
-    ) external pure override depreacted returns (bool, bytes memory) {}
+    ) external pure override deprecated returns (bool, bytes memory) {}
 
     /// @inheritdoc IVault
     function delegateCall(
         address,
         bytes calldata
-    ) external pure override depreacted returns (bool, bytes memory) {}
+    ) external pure override deprecated returns (bool, bytes memory) {}
 
     /// ------------------ EXTERNAL MUTABLE FUNCTIONS ------------------ ///
 
