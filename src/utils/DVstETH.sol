@@ -35,6 +35,13 @@ contract DVstETH is Vault {
         maximalTotalSupply = configurator.maximalTotalSupply();
         emergencyWithdrawalDelay = configurator.emergencyWithdrawalDelay();
         withdrawalDelay = withdrawalDelay_;
+        /*
+            This configurator setup allows the functions Vault::_update_ and Vault::emergencyWithdrawal
+            to access the original implementation, where the configurator fields
+            emergencyWithdrawalDelay and areTransfersLocked are invoked.
+            In this DVstETH contract, these parameters are assigned identical names and types
+            to ensure compatibility during migration.
+        */
         configurator = IVaultConfigurator(address(this));
     }
 
