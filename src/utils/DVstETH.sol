@@ -1,24 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import "../interfaces/IVault.sol";
-import "../interfaces/modules/obol/IStakingModule.sol";
-import "./DefaultAccessControl.sol";
+import "../Vault.sol";
+import "../modules/obol/MutableStakingModule.sol";
 
-interface IMutableStakingModule {
-    /*
-        Logic:
-        1. get available keys
-        2. get depositable ether
-        3. calculate available amount of ETH for staking
-        4. revert if zero
-    */
-    function getAmountForStake(
-        bytes calldata data
-    ) external view returns (uint256 amount); // revert if not in the right state
-}
-
-contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
+contract DVstETH is Vault {
     using SafeERC20 for IERC20;
     using Math for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -27,41 +13,19 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
     address public constant steth = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant wsteth = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
-    /*
-        Storage slots:
-
-        inheritances:
-        0-4: ERC20 - first slots [0-4]
-        5-6: DefaultAccessControl - first slots [5-6]
-        7: ReentrancyGuard - first slots [7]
-
-        own and reserved (deprecated) slots:
-        8: IVaultConfigurator public configurator
-        9: mapping(address => IVault.WithdrawalRequest) withdrawalRequests;
-        10-11: _pendingWithdrawers  - EnumerableSet.AddressSet.(bytes32[])_values
-        12: NOTE: _reserved1[0]  - address[] private _underlyingTokens;
-        13: NOTE: _reserved1[1]  - mapping(address => bool) private _isUnderlyingToken;
-        14-15: NOTE: _reserved1[2]  - EnumerableSet.AddressSet.(bytes32[])_values private _tvlModules;
-    */
-
-    IVaultConfigurator public configurator; // backward compatibility
-    mapping(address => IVault.WithdrawalRequest) private _withdrawalRequest;
-    EnumerableSet.AddressSet private _pendingWithdrawers;
-    address[] private _underlyingTokens; // backward compatibility
-    mapping(address => bool) private _isUnderlyingToken; // backward compatibility
-    EnumerableSet.AddressSet private _tvlModules; // backward compatibility
-    uint256 public withdrawalDelay;
-    uint256 public totalSupplyLimit;
-    uint256 public emergencyWithdrawalDelay;
+    uint256 public withdrawalDelay = 1 hours;
+    uint256 public totalSupplyLimit = 10000 ether;
+    uint256 public emergencyWithdrawalDelay = 90 days;
     address public stakingModule;
 
-    // singleton constructor
-    constructor() ERC20("", "") DefaultAccessControl(address(0xdead)) {}
+    constructor() Vault("", "", address(0xdead)) {}
 
-    modifier checkDeadline(uint256 deadline) {
-        require(block.timestamp <= deadline, "DVstETH: EXPIRED");
+    modifier depreacted() {
+        revert("DVstETH: DEPRECATED");
         _;
     }
+
+    /// ------------------ EXTERNAL MUTABLE GOVERNANCE FUNCTIONS ------------------ ///
 
     function setWithdrawalDelay(uint256 newWithdrawalDelay) external {
         _requireAdmin();
@@ -89,7 +53,114 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         emergencyWithdrawalDelay = newEmergencyWithdrawalDelay;
     }
 
+    function submit(uint256 amount) external {
+        _requireAtLeastOperator();
+        _submit(amount);
+    }
+
+    // NOTE: permissionless function
+    function submit(bytes calldata data) external {
+        _submit(IMutableStakingModule(stakingModule).getAmountForStake(data));
+    }
+
+    /// ------------------ EXTERNAL VIEW OVERRIDE FUNCTIONS ------------------ ///
+
+    /// @inheritdoc IVault
+    function underlyingTvl()
+        public
+        view
+        override
+        returns (address[] memory tokens, uint256[] memory amounts)
+    {
+        tokens = _underlyingTokens;
+        amounts = new uint256[](2);
+        address this_ = address(this);
+        amounts[0] = IERC20(wsteth).balanceOf(this_);
+        amounts[1] = IERC20(weth).balanceOf(this_);
+    }
+
+    /// @inheritdoc IVault
+    function baseTvl()
+        public
+        view
+        override
+        returns (address[] memory, uint256[] memory)
+    {
+        return underlyingTvl();
+    }
+
+    /// @inheritdoc IVault
+    function analyzeRequest(
+        ProcessWithdrawalsStack memory s,
+        WithdrawalRequest memory request
+    )
+        public
+        view
+        override
+        returns (bool, bool, uint256[] memory expectedAmounts)
+    {
+        uint256 lpAmount = request.lpAmount;
+        if (request.deadline < s.timestamp)
+            return (false, false, expectedAmounts);
+        uint256 totalValue = s.erc20Balances[0] +
+            IWSteth(wsteth).getWstETHByStETH(s.erc20Balances[1]);
+        expectedAmounts = new uint256[](2);
+        expectedAmounts[0] = totalValue.mulDiv(lpAmount, s.totalSupply);
+        if (request.minAmounts[0] > expectedAmounts[0])
+            return (false, false, expectedAmounts);
+        if (s.erc20Balances[0] < expectedAmounts[0])
+            return (true, false, expectedAmounts);
+        return (true, true, expectedAmounts);
+    }
+
+    /// @inheritdoc IVault
+    function calculateStack()
+        public
+        view
+        override
+        returns (ProcessWithdrawalsStack memory s)
+    {
+        (s.tokens, s.erc20Balances) = underlyingTvl();
+        s.ratiosX96 = new uint128[](2); // withdrawal ratios
+        s.ratiosX96[0] = 2 ** 96;
+        s.totalSupply = totalSupply();
+        s.totalValue =
+            IWSteth(wsteth).getStETHByWstETH(s.erc20Balances[0]) +
+            s.erc20Balances[1];
+        s.timestamp = block.timestamp;
+        s.tokensHash = keccak256(abi.encode(s.tokens));
+    }
+
+    /// ------------------ DEPRECATED FUNCTIONS ------------------ ///
+
+    /// @inheritdoc IVault
+    function addToken(address) external pure override depreacted {}
+
+    /// @inheritdoc IVault
+    function removeToken(address) external pure override depreacted {}
+
+    /// @inheritdoc IVault
+    function addTvlModule(address) external pure override depreacted {}
+
+    /// @inheritdoc IVault
+    function removeTvlModule(address) external pure override depreacted {}
+
+    /// @inheritdoc IVault
+    function externalCall(
+        address,
+        bytes calldata
+    ) external pure override depreacted returns (bool, bytes memory) {}
+
+    /// @inheritdoc IVault
+    function delegateCall(
+        address,
+        bytes calldata
+    ) external pure override depreacted returns (bool, bytes memory) {}
+
+    /// ------------------ EXTERNAL MUTABLE FUNCTIONS ------------------ ///
+
     // NOTE: no deposit whitelist
+    /// @inheritdoc IVault
     function deposit(
         address to,
         uint256[] calldata amounts,
@@ -97,11 +168,12 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 deadline,
         uint256 referralCode
     )
-        public
+        external
         payable
+        override
         nonReentrant
         checkDeadline(deadline)
-        returns (uint256 lpAmount)
+        returns (uint256[] memory actualAmounts, uint256 lpAmount)
     {
         require(
             amounts.length == 2 && amounts[0] == 0 && amounts[1] != 0,
@@ -127,27 +199,11 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         );
         require(lpAmount >= minLpAmount, "DVstETH: INSUFFICIENT_LP_AMOUNT");
         _mint(to, lpAmount);
+        actualAmounts = amounts;
         emit IVault.Deposit(to, amounts, lpAmount, referralCode);
     }
 
-    function submit(uint256 amount) external {
-        _requireAtLeastOperator();
-        _submit(amount);
-    }
-
-    // NOTE: permissionless function
-    function submit(bytes calldata data) external {
-        _submit(IMutableStakingModule(stakingModule).getAmountForStake(data));
-    }
-
-    function _submit(uint256 amount) private {
-        IWeth(weth).withdraw(amount);
-        // TODO: replace with IWSteth(wsteth).submit{value: amount}(address(0));
-        ISteth(steth).submit{value: amount}(address(0));
-        IERC20(steth).safeIncreaseAllowance(address(wsteth), amount);
-        IWSteth(wsteth).wrap(amount);
-    }
-
+    /// @inheritdoc IVault
     function registerWithdrawal(
         address to,
         uint256 lpAmount,
@@ -157,6 +213,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         bool overridePrevious
     )
         external
+        override
         nonReentrant
         checkDeadline(deadline)
         checkDeadline(requestDeadline)
@@ -186,7 +243,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         _withdrawalRequest[sender] = IVault.WithdrawalRequest({
             to: to,
             lpAmount: lpAmount,
-            tokensHash: bytes32(0),
+            tokensHash: keccak256(abi.encode(_underlyingTokens)),
             minAmounts: minAmounts,
             deadline: deadline,
             timestamp: block.timestamp
@@ -194,26 +251,13 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         emit IVault.WithdrawalRequested(sender, _withdrawalRequest[sender]);
     }
 
-    function cancelWithdrawalRequest() external nonReentrant {
-        _cancelWithdrawalRequest(msg.sender);
-    }
-
-    function _cancelWithdrawalRequest(address sender) private {
-        require(
-            _pendingWithdrawers.remove(sender),
-            "DVstETH: NO_WITHDRAWAL_REQUEST"
-        );
-        IVault.WithdrawalRequest memory request = _withdrawalRequest[sender];
-        delete _withdrawalRequest[sender];
-        _transfer(address(this), sender, request.lpAmount);
-        emit IVault.WithdrawalRequestCanceled(sender, tx.origin);
-    }
-
+    /// @inheritdoc IVault
     function emergencyWithdraw(
         uint256[] calldata minAmounts,
         uint256 deadline
     )
         external
+        override
         nonReentrant
         checkDeadline(deadline)
         returns (uint256[] memory actualAmounts)
@@ -235,14 +279,12 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
 
         uint256 totalSupply_ = totalSupply();
         actualAmounts = new uint256[](2);
-        actualAmounts[0] = Math.mulDiv(
+        actualAmounts[0] = request.lpAmount.mulDiv(
             IERC20(wsteth).balanceOf(this_),
-            request.lpAmount,
             totalSupply_
         );
-        actualAmounts[1] = Math.mulDiv(
+        actualAmounts[1] = request.lpAmount.mulDiv(
             IERC20(weth).balanceOf(this_),
-            request.lpAmount,
             totalSupply_
         );
 
@@ -261,9 +303,10 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         emit IVault.EmergencyWithdrawal(sender, request, actualAmounts);
     }
 
+    /// @inheritdoc IVault
     function processWithdrawals(
         address[] calldata users
-    ) external nonReentrant returns (bool[] memory statuses) {
+    ) external override nonReentrant returns (bool[] memory statuses) {
         uint256 latestTimestamp = block.timestamp -
             (isOperator(msg.sender) ? 0 : withdrawalDelay);
         statuses = new bool[](users.length);
@@ -272,7 +315,7 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 wstethBalance = IERC20(wsteth).balanceOf(this_);
         uint256 wethBalance = IERC20(weth).balanceOf(this_);
         uint256 totalAssets_ = wstethBalance +
-            IWSteth(wsteth).getStETHByWstETH(wethBalance);
+            IWSteth(wsteth).getWstETHByStETH(wethBalance);
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
             IVault.WithdrawalRequest memory request = _withdrawalRequest[user];
@@ -305,61 +348,25 @@ contract DVstETH is ERC20, DefaultAccessControl, ReentrancyGuard {
         emit IVault.WithdrawalsProcessed(users, statuses);
     }
 
-    receive() external payable {
+    receive() external payable override {
         require(msg.sender == weth, "DVstETH: INVALID_SENDER");
     }
 
-    // -------- BACKWARD COMPATIBILITY --------
+    /// ------------------ INTERNAL MUTABLE OVERRIDE FUNCTIONS ------------------ ///
 
-    function withdrawalRequest(
-        address user
-    ) external view returns (IVault.WithdrawalRequest memory) {
-        return _withdrawalRequest[user];
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal virtual override {
+        ERC20._update(from, to, value);
     }
 
-    function pendingWithdrawersCount() external view returns (uint256) {
-        return _pendingWithdrawers.length();
-    }
-
-    function pendingWithdrawers(
-        uint256 limit,
-        uint256 offset
-    ) external view returns (address[] memory result) {
-        EnumerableSet.AddressSet storage withdrawers_ = _pendingWithdrawers;
-        uint256 count = withdrawers_.length();
-        if (offset >= count || limit == 0) return result;
-        count -= offset;
-        if (count > limit) count = limit;
-        result = new address[](count);
-        for (uint256 i = 0; i < count; i++) {
-            result[i] = withdrawers_.at(offset + i);
-        }
-        return result;
-    }
-
-    function pendingWithdrawers() external view returns (address[] memory) {
-        return _pendingWithdrawers.values();
-    }
-
-    function calculateStack()
-        public
-        view
-        returns (IVault.ProcessWithdrawalsStack memory stack)
-    {
-        address this_ = address(this);
-        stack.tokens = new address[](2);
-        stack.tokens[0] = wsteth;
-        stack.tokens[1] = weth;
-        stack.ratiosX96 = new uint128[](2); // withdrawal ratios
-        stack.ratiosX96[0] = 2 ** 96;
-        stack.erc20Balances = new uint256[](2);
-        stack.erc20Balances[0] = IERC20(wsteth).balanceOf(this_);
-        stack.erc20Balances[1] = IERC20(weth).balanceOf(this_);
-        stack.totalSupply = totalSupply();
-        stack.totalValue =
-            IWSteth(wsteth).getStETHByWstETH(stack.erc20Balances[0]) +
-            stack.erc20Balances[1];
-        stack.timestamp = block.timestamp;
-        stack.tokensHash = keccak256(abi.encode(stack.tokens));
+    function _submit(uint256 amount) private {
+        IWeth(weth).withdraw(amount);
+        // TODO: replace with IWSteth(wsteth).submit{value: amount}(address(0));
+        ISteth(steth).submit{value: amount}(address(0));
+        IERC20(steth).safeIncreaseAllowance(address(wsteth), amount);
+        IWSteth(wsteth).wrap(amount);
     }
 }

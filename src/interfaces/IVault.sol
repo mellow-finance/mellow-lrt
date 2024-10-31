@@ -221,7 +221,10 @@ interface IVault is IERC20 {
         uint256 minLpAmount,
         uint256 deadline,
         uint256 referralCode
-    ) external returns (uint256[] memory actualAmounts, uint256 lpAmount);
+    )
+        external
+        payable
+        returns (uint256[] memory actualAmounts, uint256 lpAmount);
 
     /// @notice Handles emergency withdrawals, proportionally withdrawing all tokens in the system (not just the underlying).
     /// @dev Transfers tokens based on the user's share of lpAmount / totalSupply.
@@ -263,7 +266,7 @@ interface IVault is IERC20 {
         WithdrawalRequest memory request
     )
         external
-        pure
+        view
         returns (
             bool processingPossible,
             bool withdrawalPossible,
