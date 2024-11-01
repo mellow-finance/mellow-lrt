@@ -13,9 +13,6 @@ contract DVstETH is Vault {
     address public constant steth = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant wsteth = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
-    bool public areTransfersLocked;
-    uint256 public emergencyWithdrawalDelay;
-    uint256 public maximalTotalSupply;
     uint256 public withdrawalDelay;
     address public stakingModule;
 
@@ -31,18 +28,7 @@ contract DVstETH is Vault {
     function initialize(uint256 withdrawalDelay_) external {
         if (address(configurator) == address(this))
             revert("DVstETH: ALREADY_INITIALIZED");
-        areTransfersLocked = configurator.areTransfersLocked();
-        maximalTotalSupply = configurator.maximalTotalSupply();
-        emergencyWithdrawalDelay = configurator.emergencyWithdrawalDelay();
         withdrawalDelay = withdrawalDelay_;
-        /*
-            This configurator setup allows the functions Vault::_update_ and Vault::emergencyWithdrawal
-            to access the original implementation, where the configurator fields
-            emergencyWithdrawalDelay and areTransfersLocked are invoked.
-            In this DVstETH contract, these parameters are assigned identical names and types
-            to ensure compatibility during migration.
-        */
-        configurator = IVaultConfigurator(address(this));
     }
 
     function setWithdrawalDelay(uint256 newWithdrawalDelay) external {
@@ -52,28 +38,18 @@ contract DVstETH is Vault {
     }
 
     // NOTE: high impact
-    function setStakingModule(address newStakingModule) external {
+    function setStakingModule(address module) external {
         _requireAdmin();
-        stakingModule = newStakingModule;
-    }
-
-    // NOTE: no stage-commit logic
-    function setMaximalTotalSupply(uint256 newMaximalTotalSupply) external {
-        _requireAdmin();
-        maximalTotalSupply = newMaximalTotalSupply;
-    }
-
-    function setTransfersLock(bool lock) external {
-        _requireAdmin();
-        areTransfersLocked = lock;
-    }
-
-    // NOTE: no stage-commit logic
-    function setEmergencyWithdrawalDelay(
-        uint256 newEmergencyWithdrawalDelay
-    ) external {
-        _requireAdmin();
-        emergencyWithdrawalDelay = newEmergencyWithdrawalDelay;
+        /*
+            Proposal:
+                use the isDelegateModuleApproved function to pre-grant permission to update the stakingModule to the specified one.
+        */
+        require(
+            module == address(0) ||
+                configurator.isDelegateModuleApproved(module),
+            "DVstETH: STAKING_MODULE_NOT_APPROVED"
+        );
+        stakingModule = module;
     }
 
     function submit(uint256 amount) external {
@@ -180,7 +156,7 @@ contract DVstETH is Vault {
         bytes calldata
     ) external pure override deprecated returns (bool, bytes memory) {}
 
-    /// ------------------ EXTERNAL MUTABLE FUNCTIONS ------------------ ///
+    /// ------------------ EXTERNAL MUTABLE OVERRIDE FUNCTIONS ------------------ ///
 
     // NOTE: no deposit whitelist
     /// @inheritdoc IVault
@@ -198,6 +174,7 @@ contract DVstETH is Vault {
         checkDeadline(deadline)
         returns (uint256[] memory actualAmounts, uint256 lpAmount)
     {
+        require(!configurator.isDepositLocked(), "DVstETH: DEPOSIT_IS_LOCKED");
         require(
             amounts.length == 2 && amounts[0] == 0 && amounts[1] != 0,
             "DVstETH: INVALID_DEPOSIT_AMOUNTS"
@@ -217,7 +194,7 @@ contract DVstETH is Vault {
         uint256 totalSupply_ = totalSupply();
         lpAmount = amount.mulDiv(totalSupply_, totalAssets);
         require(
-            totalSupply_ + lpAmount <= maximalTotalSupply,
+            totalSupply_ + lpAmount <= configurator.maximalTotalSupply(),
             "DVstETH: EXCEEDS_MAXIMAL_TOTAL_SUPPLY_LIMIT"
         );
         require(lpAmount >= minLpAmount, "DVstETH: INSUFFICIENT_LP_AMOUNT");
@@ -275,7 +252,7 @@ contract DVstETH is Vault {
         require(msg.sender == weth, "DVstETH: INVALID_SENDER");
     }
 
-    /// ------------------ INTERNAL MUTABLE OVERRIDE FUNCTIONS ------------------ ///
+    /// ------------------ INTERNAL MUTABLE FUNCTIONS ------------------ ///
 
     function _submit(uint256 amount) private {
         IWeth(weth).withdraw(amount);
