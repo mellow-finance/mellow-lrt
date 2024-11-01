@@ -1,7 +1,7 @@
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 Language                              Files     Lines   Blanks  Comments     Code Complexity Complexity/Lines
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Solidity                                 28      2956      378       293     2285        358           421.44
+Solidity                                 28      2975      383       293     2299        358           421.03
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 src/Vault.sol                                     625       56        27      542        123            22.69
 src/VaultConfigurator.sol                         652      103        94      455         31             6.81
@@ -9,7 +9,7 @@ src/modules/DefaultModule.sol                      18        4         1       1
 src/modules/erc20/ERC20SwapModule.sol              44        8         2       34          6            17.65
 src/modules/erc20/ERC20TvlModule.sol               21        2         2       17          1             5.88
 src/modules/erc20/ManagedTvlModule.sol             32        4         4       24          4            16.67
-src/modules/obol/MutableStakingModule.sol          25        3         9       13          0             0.00
+src/modules/obol/MutableStakingModule.sol          35        7         8       20          0             0.00
 src/modules/obol/StakingModule.sol                103       10         9       84          6             7.14
 ~rc/modules/symbiotic/DefaultBondModule.sol        38        4         3       31          8            25.81
 ~modules/symbiotic/DefaultBondTvlModule.sol        39        4         4       31          5            16.13
@@ -22,7 +22,7 @@ src/security/AdminProxy.sol                       164       20        20      12
 src/security/Initializer.sol                       40        7         4       29          7            24.14
 src/strategies/DefaultBondStrategy.sol            122       15        10       97         27            27.84
 ~rc/strategies/SimpleDVTStakingStrategy.sol        84       10         7       67          6             8.96
-src/utils/DVstETH.sol                             262       30        32      200         24            12.00
+src/utils/DVstETH.sol                             271       31        33      207         24            11.59
 src/utils/DVstETHOperator.sol                      20        3         1       16          4            25.00
 src/utils/DefaultAccessControl.sol                 64       13         7       44          6            13.64
 src/utils/DepositWrapper.sol                       87       10         6       71         24            33.80
@@ -32,7 +32,7 @@ src/validators/DefaultBondValidator.sol            37        6         4       2
 src/validators/ERC20SwapValidator.sol              57        6         6       45          9            20.00
 src/validators/ManagedValidator.sol               176       24        20      132         10             7.58
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Total                                    28      2956      378       293     2285        358           421.44
+Total                                    28      2975      383       293     2299        358           421.03
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Processed 97316 bytes, 0.097 megabytes (SI)
+Processed 97979 bytes, 0.098 megabytes (SI)
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
