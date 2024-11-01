@@ -25,12 +25,6 @@ contract DVstETH is Vault {
 
     /// ------------------ EXTERNAL MUTABLE GOVERNANCE FUNCTIONS ------------------ ///
 
-    function initialize(uint256 withdrawalDelay_) external {
-        if (address(configurator) == address(this))
-            revert("DVstETH: ALREADY_INITIALIZED");
-        withdrawalDelay = withdrawalDelay_;
-    }
-
     function setWithdrawalDelay(uint256 newWithdrawalDelay) external {
         _requireAdmin();
         require(newWithdrawalDelay != 0, "DVstETH: INVALID_WITHDRAWAL_DELAY");
@@ -64,6 +58,7 @@ contract DVstETH is Vault {
 
     /// ------------------ EXTERNAL VIEW OVERRIDE FUNCTIONS ------------------ ///
 
+    /// backwards compatibility
     /// @inheritdoc IVault
     function underlyingTvl()
         public
@@ -78,6 +73,7 @@ contract DVstETH is Vault {
         amounts[1] = IERC20(weth).balanceOf(this_);
     }
 
+    /// backwards compatibility
     /// @inheritdoc IVault
     function baseTvl()
         public
@@ -88,6 +84,7 @@ contract DVstETH is Vault {
         return underlyingTvl();
     }
 
+    /// backwards compatibility
     /// @inheritdoc IVault
     function analyzeRequest(
         ProcessWithdrawalsStack memory s,
@@ -112,6 +109,7 @@ contract DVstETH is Vault {
         return (true, true, expectedAmounts);
     }
 
+    /// backwards compatibility
     /// @inheritdoc IVault
     function calculateStack()
         public
