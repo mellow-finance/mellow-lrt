@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import "@openzeppelin/contracts/utils/Address.sol";
 import "../Vault.sol";
 import "../modules/obol/MutableStakingModule.sol";
 
@@ -9,12 +10,15 @@ contract DVstETH is Vault {
     using Math for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    // Addresses of essential tokens used in the contract
     address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address public constant steth = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     address public constant wsteth = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
+    // Delay for permissionless withdrawal processing
     uint256 public withdrawalDelay;
-    address public stakingModule;
+
+    // Reference to the staking module for staking operations
+    IMutableStakingModule public stakingModule;
 
     constructor() Vault("", "", address(0xdead)) {}
 
@@ -25,49 +29,170 @@ contract DVstETH is Vault {
 
     /// ------------------ EXTERNAL MUTABLE GOVERNANCE FUNCTIONS ------------------ ///
 
+    /// @notice Set the delay for withdrawals
+    /// @param newWithdrawalDelay The delay in seconds
     function setWithdrawalDelay(uint256 newWithdrawalDelay) external {
         _requireAdmin();
         require(newWithdrawalDelay != 0, "DVstETH: INVALID_WITHDRAWAL_DELAY");
         withdrawalDelay = newWithdrawalDelay;
     }
 
-    // NOTE: high impact
+    /// @notice Assign a new staking module, used for managing staking operations
+    /// @param module Address of the new staking module
     function setStakingModule(address module) external {
         _requireAdmin();
-        /*
-            Proposal:
-                use the isDelegateModuleApproved function to pre-grant permission to update the stakingModule to the specified one.
+        /* 
+            Verifies module approval using the VaultConfigurator’s isDelegateModuleApproved field.
         */
         require(
             module == address(0) ||
                 configurator.isDelegateModuleApproved(module),
             "DVstETH: STAKING_MODULE_NOT_APPROVED"
         );
-        stakingModule = module;
+        stakingModule = IMutableStakingModule(module);
     }
 
+    /// @notice Allows operator to submit specified amount for staking
+    /// @param amount The amount to submit
     function submit(uint256 amount) external {
         _requireAtLeastOperator();
         _submit(amount);
     }
 
-    // NOTE: permissionless function
-    function submit(bytes calldata data) external {
-        _submit(IMutableStakingModule(stakingModule).getAmountForStake(data));
+    /// @notice Submits assets for staking using staking module functionality for permissionless staking
+    function submitPermissionless() external {
+        _submit(stakingModule.getAmountForPermissionlessStake());
     }
 
-    // NOTE: permissioned function (mb change to permissionless)
+    /// NOTE: This function is used for permissionless staking and depositing
+    /// @notice Submits assets and deposits them into Lido DSM (or directly in specified submodules) using staking module functionality
+    /// @param data Encoded data for staking and depositing
     function submitAndDeposit(bytes calldata data) external {
-        _requireAtLeastOperator();
-        uint256 amount = IMutableStakingModule(stakingModule)
-            .getAmountForStakeAndDeposit(data);
+        IMutableStakingModule stakingModule_ = stakingModule;
+        uint256 amount = stakingModule_.getAmountForStakeAndDeposit(data);
         _submit(amount);
-        IMutableStakingModule(stakingModule).deposit(data);
+        stakingModule_.depositOnBehalf(data, amount, msg.sender);
     }
 
-    /// ------------------ EXTERNAL VIEW OVERRIDE FUNCTIONS ------------------ ///
+    /// ------------------ EXTERNAL MUTABLE OVERRIDE FUNCTIONS ------------------ ///
 
-    /// backwards compatibility
+    /// NOTE: no whitelist logic
+    /// @inheritdoc IVault
+    function deposit(
+        address to,
+        uint256[] calldata amounts,
+        uint256 minLpAmount,
+        uint256 deadline,
+        uint256 referralCode
+    )
+        external
+        payable
+        override
+        nonReentrant
+        checkDeadline(deadline)
+        returns (uint256[] memory actualAmounts, uint256 lpAmount)
+    {
+        require(!configurator.isDepositLocked(), "DVstETH: DEPOSIT_IS_LOCKED");
+        require(
+            amounts.length == 2 && amounts[0] == 0 && amounts[1] != 0,
+            "DVstETH: INVALID_DEPOSIT_AMOUNTS"
+        );
+
+        uint256 amount = amounts[1];
+        address this_ = address(this);
+        if (msg.value == amount) {
+            // Handling direct ETH deposit, converts to WETH
+            IWeth(weth).deposit{value: amount}();
+        } else {
+            // Handling WETH deposit
+            require(msg.value == 0, "DVstETH: INVALID_MSG_VALUE");
+            IERC20(weth).safeTransferFrom(msg.sender, this_, amount);
+        }
+
+        // `getStETHByWstETH` converts wstETH to stETH with rounding down, which can result in a small precision loss.
+        // Adding 1 wei to the computed total to prevent underestimation in deposit calculations.
+        uint256 totalAssets = IERC20(weth).balanceOf(this_) +
+            IWSteth(wsteth).getStETHByWstETH(IERC20(wsteth).balanceOf(this_)) +
+            1 wei;
+        uint256 totalSupply_ = totalSupply();
+        lpAmount = amount.mulDiv(totalSupply_, totalAssets);
+        require(
+            totalSupply_ + lpAmount <= configurator.maximalTotalSupply(),
+            "DVstETH: EXCEEDS_MAXIMAL_TOTAL_SUPPLY_LIMIT"
+        );
+        require(lpAmount >= minLpAmount, "DVstETH: INSUFFICIENT_LP_AMOUNT");
+        _mint(to, lpAmount);
+        actualAmounts = amounts;
+        emit Deposit(to, amounts, lpAmount, referralCode);
+    }
+
+    /// @inheritdoc IVault
+    function processWithdrawals(
+        address[] calldata users
+    ) external override nonReentrant returns (bool[] memory statuses) {
+        uint256 timestamp = block.timestamp;
+        uint256 latestTimestamp = timestamp -
+            (isOperator(msg.sender) ? 0 : withdrawalDelay);
+        statuses = new bool[](users.length);
+        address this_ = address(this);
+        uint256 totalSupply_ = totalSupply();
+        uint256 wstethBalance = IERC20(wsteth).balanceOf(this_);
+        uint256 wethBalance = IERC20(weth).balanceOf(this_);
+        uint256 totalAssets_ = wstethBalance +
+            IWSteth(wsteth).getWstETHByStETH(wethBalance);
+
+        for (uint256 i = 0; i < users.length; i++) {
+            address user = users[i];
+            WithdrawalRequest memory request = _withdrawalRequest[user];
+            if (request.lpAmount == 0 || request.timestamp > latestTimestamp) {
+                // Skips if no withdrawal request or if request not ready for processing
+                continue;
+            }
+            uint256 amount = totalAssets_.mulDiv(
+                request.lpAmount,
+                totalSupply_
+            );
+            if (amount > wstethBalance) {
+                // Skips if insufficient wstETH to cover the withdrawal
+                continue;
+            }
+            if (
+                timestamp > request.deadline ||
+                amount < request.minAmounts[0] ||
+                request.minAmounts[1] != 0
+            ) {
+                // Skips if deadline has passed, stETH amount is less than min, or unexpected WETH amount is specified
+                _cancelWithdrawalRequest(user);
+                continue;
+            }
+            delete _withdrawalRequest[user];
+            _pendingWithdrawers.remove(user);
+            wstethBalance -= amount;
+            totalAssets_ -= amount;
+            _burn(this_, request.lpAmount);
+            statuses[i] = true;
+            IERC20(wsteth).safeTransfer(request.to, amount);
+        }
+
+        emit WithdrawalsProcessed(users, statuses);
+    }
+
+    /// @notice Fallback function to accept ETH, only from the WETH contract
+    receive() external payable override {
+        require(msg.sender == weth, "DVstETH: INVALID_SENDER");
+    }
+
+    /// ------------------ INTERNAL MUTABLE FUNCTIONS ------------------ ///
+
+    /// @notice Converts WETH to stETH and stakes it
+    /// @param amount Amount to stake
+    function _submit(uint256 amount) private {
+        IWeth(weth).withdraw(amount);
+        Address.sendValue(payable(wsteth), amount);
+    }
+
+    /// ------------------ BACKWARD COMPATIBILITY ------------------ ///
+
     /// @inheritdoc IVault
     function underlyingTvl()
         public
@@ -82,7 +207,6 @@ contract DVstETH is Vault {
         amounts[1] = IERC20(weth).balanceOf(this_);
     }
 
-    /// backwards compatibility
     /// @inheritdoc IVault
     function baseTvl()
         public
@@ -93,7 +217,6 @@ contract DVstETH is Vault {
         return underlyingTvl();
     }
 
-    /// backwards compatibility
     /// @inheritdoc IVault
     function analyzeRequest(
         ProcessWithdrawalsStack memory s,
@@ -118,7 +241,6 @@ contract DVstETH is Vault {
         return (true, true, expectedAmounts);
     }
 
-    /// backwards compatibility
     /// @inheritdoc IVault
     function calculateStack()
         public
@@ -136,8 +258,6 @@ contract DVstETH is Vault {
         s.timestamp = block.timestamp;
         s.tokensHash = keccak256(abi.encode(s.tokens));
     }
-
-    /// ------------------ DEPRECATED FUNCTIONS ------------------ ///
 
     /// @inheritdoc IVault
     function addToken(address) external pure override deprecated {}
@@ -162,110 +282,4 @@ contract DVstETH is Vault {
         address,
         bytes calldata
     ) external pure override deprecated returns (bool, bytes memory) {}
-
-    /// ------------------ EXTERNAL MUTABLE OVERRIDE FUNCTIONS ------------------ ///
-
-    // NOTE: no deposit whitelist
-    /// @inheritdoc IVault
-    function deposit(
-        address to,
-        uint256[] calldata amounts,
-        uint256 minLpAmount,
-        uint256 deadline,
-        uint256 referralCode
-    )
-        external
-        payable
-        override
-        nonReentrant
-        checkDeadline(deadline)
-        returns (uint256[] memory actualAmounts, uint256 lpAmount)
-    {
-        require(!configurator.isDepositLocked(), "DVstETH: DEPOSIT_IS_LOCKED");
-        require(
-            amounts.length == 2 && amounts[0] == 0 && amounts[1] != 0,
-            "DVstETH: INVALID_DEPOSIT_AMOUNTS"
-        );
-        uint256 amount = amounts[1];
-        address this_ = address(this);
-        if (msg.value == amount) {
-            // eth deposit
-            IWeth(weth).deposit{value: amount}();
-        } else {
-            // weth deposit
-            require(msg.value == 0, "DVstETH: INVALID_MSG_VALUE");
-            IERC20(weth).safeTransferFrom(msg.sender, this_, amount);
-        }
-        uint256 totalAssets = IERC20(weth).balanceOf(this_) +
-            IWSteth(wsteth).getStETHByWstETH(IERC20(wsteth).balanceOf(this_));
-        uint256 totalSupply_ = totalSupply();
-        lpAmount = amount.mulDiv(totalSupply_, totalAssets);
-        require(
-            totalSupply_ + lpAmount <= configurator.maximalTotalSupply(),
-            "DVstETH: EXCEEDS_MAXIMAL_TOTAL_SUPPLY_LIMIT"
-        );
-        require(lpAmount >= minLpAmount, "DVstETH: INSUFFICIENT_LP_AMOUNT");
-        _mint(to, lpAmount);
-        actualAmounts = amounts;
-        emit IVault.Deposit(to, amounts, lpAmount, referralCode);
-    }
-
-    /// @inheritdoc IVault
-    function processWithdrawals(
-        address[] calldata users
-    ) external override nonReentrant returns (bool[] memory statuses) {
-        uint256 latestTimestamp = block.timestamp -
-            (isOperator(msg.sender) ? 0 : withdrawalDelay);
-        statuses = new bool[](users.length);
-        address this_ = address(this);
-        uint256 totalSupply_ = totalSupply();
-        uint256 wstethBalance = IERC20(wsteth).balanceOf(this_);
-        uint256 wethBalance = IERC20(weth).balanceOf(this_);
-        uint256 totalAssets_ = wstethBalance +
-            IWSteth(wsteth).getWstETHByStETH(wethBalance);
-        for (uint256 i = 0; i < users.length; i++) {
-            address user = users[i];
-            IVault.WithdrawalRequest memory request = _withdrawalRequest[user];
-            if (request.lpAmount == 0 || request.timestamp > latestTimestamp) {
-                continue;
-            }
-            uint256 amount = totalAssets_.mulDiv(
-                request.lpAmount,
-                totalSupply_
-            );
-            if (amount > wstethBalance) {
-                continue;
-            }
-            _pendingWithdrawers.remove(user);
-            if (
-                block.timestamp > request.deadline ||
-                amount < request.minAmounts[0]
-            ) {
-                _cancelWithdrawalRequest(user);
-                continue;
-            }
-            wstethBalance -= amount;
-            totalAssets_ -= amount;
-            _burn(this_, request.lpAmount);
-            IERC20(wsteth).safeTransfer(request.to, amount);
-            statuses[i] = true;
-            delete _withdrawalRequest[user];
-        }
-
-        emit IVault.WithdrawalsProcessed(users, statuses);
-    }
-
-    receive() external payable override {
-        require(msg.sender == weth, "DVstETH: INVALID_SENDER");
-    }
-
-    /// ------------------ INTERNAL MUTABLE FUNCTIONS ------------------ ///
-
-    function _submit(uint256 amount) private {
-        IWeth(weth).withdraw(amount);
-        // TODO: replace with IWSteth(wsteth).submit{value: amount}(address(0));
-        ISteth(steth).submit{value: amount}(address(0));
-        IERC20(steth).safeIncreaseAllowance(address(wsteth), amount);
-        IWSteth(wsteth).wrap(amount);
-    }
 }
