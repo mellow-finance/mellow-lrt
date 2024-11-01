@@ -14,12 +14,18 @@ interface IMutableStakingModule {
     function getAmountForStake(
         bytes calldata data
     ) external view returns (uint256 amount); // revert if not in the right state
+
+    function submitAndDeposit(bytes calldata data) external;
 }
 
 contract MutableStakingModule is IMutableStakingModule {
     function getAmountForStake(
         bytes calldata data
     ) external pure returns (uint256) {
-        // return 0;
+        revert("No permissionless staking allowed");
+    }
+
+    function submitAndDeposit(bytes calldata data) external {
+        // TODO
     }
 }

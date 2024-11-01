@@ -56,6 +56,12 @@ contract DVstETH is Vault {
         _submit(IMutableStakingModule(stakingModule).getAmountForStake(data));
     }
 
+    // NOTE: permissioned function (mb change to permissionless)
+    function submitAndDeposit(bytes calldata data) external {
+        _requireAtLeastOperator();
+        IMutableStakingModule(stakingModule).submitAndDeposit(data);
+    }
+
     /// ------------------ EXTERNAL VIEW OVERRIDE FUNCTIONS ------------------ ///
 
     /// backwards compatibility
