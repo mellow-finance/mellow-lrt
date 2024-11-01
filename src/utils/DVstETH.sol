@@ -10,7 +10,6 @@ contract DVstETH is Vault {
     using Math for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    // Addresses of essential tokens used in the contract
     address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant wsteth = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
@@ -29,7 +28,7 @@ contract DVstETH is Vault {
 
     /// ------------------ EXTERNAL MUTABLE GOVERNANCE FUNCTIONS ------------------ ///
 
-    /// @notice Set the delay for withdrawals
+    /// @notice Set the delay for permissionless withdrawals
     /// @param newWithdrawalDelay The delay in seconds
     function setWithdrawalDelay(uint256 newWithdrawalDelay) external {
         _requireAdmin();
@@ -37,13 +36,10 @@ contract DVstETH is Vault {
         withdrawalDelay = newWithdrawalDelay;
     }
 
-    /// @notice Assign a new staking module, used for managing staking operations
     /// @param module Address of the new staking module
     function setStakingModule(address module) external {
         _requireAdmin();
-        /* 
-            Verifies module approval using the VaultConfigurator’s isDelegateModuleApproved field.
-        */
+        /// @dev Verifies module approval using the VaultConfigurator’s isDelegateModuleApproved field.
         require(
             module == address(0) ||
                 configurator.isDelegateModuleApproved(module),
@@ -52,14 +48,14 @@ contract DVstETH is Vault {
         stakingModule = IMutableStakingModule(module);
     }
 
-    /// @notice Allows operator to submit specified amount for staking
+    /// @notice Allows operator to stake specified amount of ETH to stETH
     /// @param amount The amount to submit
     function submit(uint256 amount) external {
         _requireAtLeastOperator();
         _submit(amount);
     }
 
-    /// @notice Submits assets for staking using staking module functionality for permissionless staking
+    /// @notice Allows to permissionlessly stake the amount of ETH to stETH calculated by the staking module
     function submitPermissionless() external {
         _submit(stakingModule.getAmountForPermissionlessStake());
     }
@@ -109,7 +105,7 @@ contract DVstETH is Vault {
             IERC20(weth).safeTransferFrom(msg.sender, this_, amount);
         }
 
-        // `getStETHByWstETH` converts wstETH to stETH with rounding down, which can result in a small precision loss.
+        // `getStETHByWstETH` converts wstETH to stETH with rounding down.
         // Adding 1 wei to the computed total to prevent underestimation in deposit calculations.
         uint256 totalAssets = IERC20(weth).balanceOf(this_) +
             IWSteth(wsteth).getStETHByWstETH(IERC20(wsteth).balanceOf(this_)) +
@@ -161,7 +157,8 @@ contract DVstETH is Vault {
                 amount < request.minAmounts[0] ||
                 request.minAmounts[1] != 0
             ) {
-                // Skips if deadline has passed, stETH amount is less than min, or unexpected WETH amount is specified
+                // Cancels the withdrawal request if deadline has passed, stETH amount is less than min,
+                // or unexpected WETH amount is specified
                 _cancelWithdrawalRequest(user);
                 continue;
             }
