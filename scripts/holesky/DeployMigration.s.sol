@@ -2,9 +2,15 @@
 pragma solidity 0.8.25;
 
 import "../../src/migrators/HoleskyOmniDeployer.sol";
+import "../mainnet/Validator.sol";
 import {DeployConstants as Const} from "./DeployConstants.sol";
 
-contract Deploy is Script {
+contract Deploy is Script, Validator {
+    address public immutable migrationProxyAdmin =
+        0x3995c5a3A74f3B3049fD5DA7C7D7BaB0b581A6e1;
+    address public immutable migrationVaultAdmin =
+        0x2C5f98743e4Cb30d8d65e30B8cd748967D7A051e;
+
     function run() external {
         vm.startBroadcast(uint256(bytes32(vm.envBytes("HOLESKY_DEPLOYER"))));
 
@@ -15,19 +21,19 @@ contract Deploy is Script {
         DeployInterfaces.DeployParameters memory deployParams = DeployInterfaces
             .DeployParameters({
                 deployer: address(deployer),
-                proxyAdmin: Const.MELLOW_LIDO_TEST_PROXY_MULTISIG,
-                admin: Const.MELLOW_LIDO_TEST_MULTISIG,
-                curator: Const.STEAKHOUSE_MULTISIG,
+                proxyAdmin: migrationProxyAdmin,
+                admin: migrationVaultAdmin,
+                curator: address(0xdead),
                 wstethDefaultBondFactory: Const.WSTETH_DEFAULT_BOND_FACTORY,
                 wstethDefaultBond: Const.WSTETH_DEFAULT_BOND,
                 wsteth: Const.WSTETH,
                 steth: Const.STETH,
                 weth: Const.WETH,
-                maximalTotalSupply: Const.MAXIMAL_TOTAL_SUPPLY,
-                lpTokenName: Const.STEAKHOUSE_VAULT_TEST_NAME,
-                lpTokenSymbol: Const.STEAKHOUSE_VAULT_TEST_SYMBOL,
-                initialDepositETH: Const.INITIAL_DEPOSIT_ETH,
-                firstDepositETH: Const.FIRST_DEPOSIT_ETH,
+                maximalTotalSupply: 10 ether,
+                lpTokenName: "mellow-lrt@src/Vault.sol:",
+                lpTokenSymbol: "MLV-",
+                initialDepositETH: 1 gwei,
+                firstDepositETH: 0,
                 initialImplementation: Vault(
                     payable(address(0x1F221aad7b77d95042cf535bfB070c9722A34CF5))
                 ),
@@ -60,38 +66,55 @@ contract Deploy is Script {
                 )
             });
 
-        DeployInterfaces.DeploySetup memory setup;
-        (deployParams, setup) = deployer.deploy{
-            value: deployParams.initialDepositETH
-        }(
-            deployParams,
-            bytes32(0),
-            address(0xadB08D2C53D4C47Db0f780B835bA19e71BC19787)
-        );
+        uint256 n = 4;
+        address[4] memory proxyAdmins = [
+            0xadB08D2C53D4C47Db0f780B835bA19e71BC19787,
+            0x799D0F1c7E48819a533dC50f8D942Fc8012779a7,
+            0x3439c1A21Cb503cCB035530565fbD49931CADDcd,
+            0x9F385f9a701FD12930351cE45bcdf1f56Fc84722
+        ];
 
-        if (address(setup.proxyAdmin) == address(0)) {
-            console2.log(
-                "ProxyAdmin:",
-                address(
-                    uint160(
-                        uint256(
-                            vm.load(
-                                address(setup.vault),
-                                ERC1967Utils.ADMIN_SLOT
+        for (uint256 i = 1; i <= n; i++) {
+            deployParams.lpTokenName = string.concat(
+                "mellow-lrt@src/Vault.sol:",
+                Strings.toString(i)
+            );
+
+            deployParams.lpTokenSymbol = string.concat(
+                "MLV-",
+                Strings.toString(i)
+            );
+
+            DeployInterfaces.DeploySetup memory setup;
+            (deployParams, setup) = deployer.deploy{
+                value: deployParams.initialDepositETH
+            }(deployParams, bytes32(i - 1), proxyAdmins[i - 1]);
+
+            if (address(setup.proxyAdmin) == address(0)) {
+                console2.log(
+                    "ProxyAdmin:",
+                    address(
+                        uint160(
+                            uint256(
+                                vm.load(
+                                    address(setup.vault),
+                                    ERC1967Utils.ADMIN_SLOT
+                                )
                             )
                         )
                     )
-                )
-            );
-            revert("proxy admin");
+                );
+                revert("proxy admin");
+            }
+
+            logSetup(setup);
+            logDeployParams(deployParams);
+            console2.log("====================================");
+            console2.log();
+            // validateParameters(deployParams, setup, 0);
         }
 
-        console2.log(address(deployer), balance - gasleft());
-
         vm.stopBroadcast();
-
-        logSetup(setup);
-        logDeployParams(deployParams);
 
         revert("Success");
     }
