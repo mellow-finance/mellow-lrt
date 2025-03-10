@@ -21,9 +21,9 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     /// @inheritdoc IVault
     IVaultConfigurator public configurator;
 
-    mapping(address => WithdrawalRequest) private _withdrawalRequest;
-    EnumerableSet.AddressSet private _pendingWithdrawers;
-    address[] private _underlyingTokens;
+    mapping(address => WithdrawalRequest) internal _withdrawalRequest;
+    EnumerableSet.AddressSet internal _pendingWithdrawers;
+    address[] internal _underlyingTokens;
     mapping(address => bool) private _isUnderlyingToken;
     EnumerableSet.AddressSet private _tvlModules;
 
@@ -112,6 +112,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function underlyingTvl()
         public
         view
+        virtual
         returns (address[] memory tokens, uint256[] memory amounts)
     {
         tokens = _underlyingTokens;
@@ -122,6 +123,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function baseTvl()
         public
         view
+        virtual
         returns (address[] memory tokens, uint256[] memory amounts)
     {
         ITvlModule.Data[] memory data = _tvls();
@@ -179,7 +181,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     /// @inheritdoc IVault
-    function addToken(address token) external nonReentrant {
+    function addToken(address token) external virtual nonReentrant {
         _requireAdmin();
         if (token == address(0)) revert InvalidToken();
         if (_isUnderlyingToken[token]) revert InvalidToken();
@@ -202,7 +204,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     /// @inheritdoc IVault
-    function removeToken(address token) external nonReentrant {
+    function removeToken(address token) external virtual nonReentrant {
         _requireAdmin();
         if (!_isUnderlyingToken[token]) revert InvalidToken();
         (address[] memory tokens, uint256[] memory amounts) = underlyingTvl();
@@ -224,7 +226,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     /// @inheritdoc IVault
-    function addTvlModule(address module) external nonReentrant {
+    function addTvlModule(address module) external virtual nonReentrant {
         _requireAdmin();
         ITvlModule.Data[] memory data = ITvlModule(module).tvl(address(this));
         for (uint256 i = 0; i < data.length; i++) {
@@ -238,7 +240,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     }
 
     /// @inheritdoc IVault
-    function removeTvlModule(address module) external nonReentrant {
+    function removeTvlModule(address module) external virtual nonReentrant {
         _requireAdmin();
         if (!_tvlModules.contains(module)) revert InvalidState();
         _tvlModules.remove(module);
@@ -249,7 +251,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function externalCall(
         address to,
         bytes calldata data
-    ) external nonReentrant returns (bool success, bytes memory response) {
+    )
+        external
+        virtual
+        nonReentrant
+        returns (bool success, bytes memory response)
+    {
         _requireAtLeastOperator();
         if (configurator.isDelegateModuleApproved(to)) revert Forbidden();
         IValidator validator = IValidator(configurator.validator());
@@ -267,7 +274,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function delegateCall(
         address to,
         bytes calldata data
-    ) external returns (bool success, bytes memory response) {
+    ) external virtual returns (bool success, bytes memory response) {
         _requireAtLeastOperator();
         if (!configurator.isDelegateModuleApproved(to)) revert Forbidden();
         IValidator validator = IValidator(configurator.validator());
@@ -290,6 +297,8 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         uint256 referralCode
     )
         external
+        payable
+        virtual
         nonReentrant
         checkDeadline(deadline)
         returns (uint256[] memory actualAmounts, uint256 lpAmount)
@@ -428,7 +437,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         _cancelWithdrawalRequest(sender);
     }
 
-    function _cancelWithdrawalRequest(address sender) private {
+    function _cancelWithdrawalRequest(address sender) internal {
         WithdrawalRequest memory request = _withdrawalRequest[sender];
         delete _withdrawalRequest[sender];
         _pendingWithdrawers.remove(sender);
@@ -482,7 +491,12 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function analyzeRequest(
         ProcessWithdrawalsStack memory s,
         WithdrawalRequest memory request
-    ) public pure returns (bool, bool, uint256[] memory expectedAmounts) {
+    )
+        public
+        view
+        virtual
+        returns (bool, bool, uint256[] memory expectedAmounts)
+    {
         uint256 lpAmount = request.lpAmount;
         if (
             request.tokensHash != s.tokensHash || request.deadline < s.timestamp
@@ -513,6 +527,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     function calculateStack()
         public
         view
+        virtual
         returns (ProcessWithdrawalsStack memory s)
     {
         (address[] memory tokens, uint256[] memory amounts) = underlyingTvl();
@@ -545,7 +560,7 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
     /// @inheritdoc IVault
     function processWithdrawals(
         address[] memory users
-    ) external nonReentrant returns (bool[] memory statuses) {
+    ) external virtual nonReentrant returns (bool[] memory statuses) {
         _requireAtLeastOperator();
         statuses = new bool[](users.length);
         ProcessWithdrawalsStack memory s = calculateStack();
@@ -591,13 +606,13 @@ contract Vault is IVault, ERC20, DefaultAccessControl, ReentrancyGuard {
         emit WithdrawCallback(callback);
     }
 
-    receive() external payable {}
+    receive() external payable virtual {}
 
     function _update(
         address from,
         address to,
         uint256 value
-    ) internal override {
+    ) internal virtual override {
         if (configurator.areTransfersLocked()) {
             address this_ = address(this);
             address zero_ = address(0);
